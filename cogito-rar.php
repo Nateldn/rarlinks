@@ -71,6 +71,10 @@ Cogito_RAR_Dashboard::init();
 // 📈 Chart Rendering (Chart.js + chart classes)
 require_once plugin_dir_path( __FILE__ ) . 'includes/charts/cogito-rar-charts-loader.php';
 
+// ⚙️ Settings Page (submenu)
+require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-settings-page.php';
+Cogito_RAR_Settings_Page::init();
+
 // 📥 RARLink Importer (submenu)
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-importer.php';
 new Cogito_RAR_Importer();
