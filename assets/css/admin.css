@@ -1,0 +1,230 @@
+/*=== New RARLink/Edit Screen Metaboxes  ====*/
+
+/* Notes  */
+.rar-active-note, .rar-inactive-note {
+    background: #e8e8e8;
+    padding: 0.3em;
+    text-align: center;
+    border-radius: 0.1em;
+    width: 40%;
+    margin: 0 auto;    
+}
+
+
+/* Postbox  */
+
+#rar_details .postbox-header {
+    
+    background: #1d2327;
+    color: #f4f4f4;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-size: 1em;
+}
+
+#rar_details h2,
+#rar_details h2.hndle.ui-sortable-handle{
+    color: #f4f4f4;
+    }
+
+/*  Toggle Switches */
+    
+    .rartoggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.625em; /* ~10px */
+      margin-bottom: 1.5em;
+      font-size: 0.95rem;
+    }
+    
+    .rartoggle input[type=checkbox] {
+      display: none;
+    }
+    
+    .rartoggle label {
+      position: relative;
+      display: inline-block;
+      width: 2.875em;  /* ~46px */
+      height: 1.5em;   /* ~24px */
+      cursor: pointer;
+    }
+    
+    .rartoggle label::before,
+    .rartoggle label::after {
+      content: "";
+      position: absolute;
+      transition: 0.3s ease;
+    }
+    
+    .rartoggle label::before {
+      width: 100%;
+      height: 100%;
+      background: #ccc;
+      border-radius: 999px;
+    }
+    
+    .rartoggle label::after {
+      top: 0.125em;
+      left: 0.125em;
+      width: 1.25em;
+      height: 1.25em;
+      background: white;
+      border-radius: 50%;
+    }
+    
+    .rartoggle input:checked + label::before {
+      background: #161616; /* Your specified "on" state */
+    }
+    
+    .rartoggle input:checked + label::after {
+      transform: translateX(1.375em);
+    }
+
+    /* Metabox Labels  */
+    #rar-meta-fields label, .rartoggle span {
+    
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 1em;
+    
+    }
+
+
+    /*======= Importer Styles =======  */
+    
+    /* Importer Submit Button */
+    
+    .rar_importer_wrap input#submit.button.button-primary {
+        background: #1d2327; 
+        border-color: #f4f4f4;
+        color: #f4f4f4;
+        text-decoration: none;
+        text-shadow: none;
+        }
+
+
+    .rar_importer_wrap input#submit.button.button-primary:hover {
+        background: #f4f4f4;
+        border-color: #1d2327;
+        color: #1d2327;
+        text-decoration: none;
+        text-shadow: none;
+        }
+
+    
+    /* Importer field list styles */
+
+    .rar_importer_wrap ul { 
+        list-style: none;
+        background-color: #e7e7e7;
+        padding: 0.9em;
+        border-radius: 3px;
+        
+    
+    .rar-import-fields {
+        margin-top: 2em;
+        padding-left: 1.5em;
+        font-size: 0.95rem;
+        list-style: disc;
+    }
+    
+    .rar-import-fields span.rar-field-name  {
+        font-weight: 600;
+        color: #222;
+        display: inline-block;
+        min-width: 6em;
+    }
+    
+    .rar-sample-row {
+      margin-top: 1em;
+      background: #f8f8f8;
+      border-left: 4px solid #2271b1;
+      padding: 0.75em 1em;
+      font-family: monospace;
+      font-size: 0.95rem;
+    }
+    
+    
+    /* Sample CSV preview table */
+    .rar-sample-table {
+      margin-top: 2em;
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    
+    .rar-sample-table th,
+    .rar-sample-table td {
+      border: 1px solid #ccd0d4;
+      padding: 0.5em 0.75em;
+      text-align: left;
+    }
+    
+    .rar-sample-table thead {
+      background: #f1f1f1;
+      font-weight: 600;
+    }
+    
+    .rar-sample-table tbody tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+
+
+    /* ======== Admin List UI ============ */
+
+    .rar-copy-feedback {
+    font-size: 0.8em;
+    font-weight: normal;
+    }
+
+     /* ======== Stats Dashbaord ============ */    
+        
+   /* Adjust the RARLinks table to fit viewport */
+    .rarlinks-table-wrapper {
+      overflow-x: auto;
+      max-width: 100%;
+    }
+    
+    .rarlinks-table {
+      table-layout: fixed;
+      width: 100%;
+      font-size: 14px;
+    }
+    
+    .rarlinks-table th,
+    .rarlinks-table td {
+      padding: 6px 8px;
+      vertical-align: top;
+      word-wrap: break-word;
+      word-break: break-word;
+    }
+    
+  /* Limit and wrap wide columns */
+.rarlinks-table th:nth-child(4),
+.rarlinks-table td:nth-child(4), /* IP */
+.rarlinks-table th:nth-child(5),
+.rarlinks-table td:nth-child(5), /* Host */
+.rarlinks-table th:nth-child(6),
+.rarlinks-table td:nth-child(6)  /* Referrer */
+{
+  max-width: 3em;
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+        
+/* ======== Moto Partner Warning ============ */
+
+.rar-moto-partner-warning {
+    color: #b32d2e;
+    font-size: 0.9em;
+    margin-top: 0.5em;
+}
+
+.rar-moto-partner-list {
+    margin: 0.5em 0 0 1.2em;
+    list-style: disc;
+}
+        

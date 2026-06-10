@@ -1,0 +1,7 @@
+# Composer dependencies and installer
+vendor/
+composer.phar
+
+# MaxMind GeoIP databases (large binaries)
+geo/GeoLite2-Country.mmdb
+geo/GeoLite2-ASN.mmdb
