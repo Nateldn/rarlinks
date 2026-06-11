@@ -285,7 +285,7 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
      * @param object $item The current click row.
      * @return string Panel HTML.
      */
-    private function render_flag_bot_action( $item ) {
+    protected function render_flag_bot_action( $item ) {
         // Signals available on this row — empty values are skipped (nothing to blacklist)
         $signals = [
             'ip'       => [ 'label' => 'IP',         'value' => $item->ip_address ],

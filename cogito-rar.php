@@ -70,6 +70,12 @@ Cogito_RAR_Moto_Partner_Toggle::init();
 // Moto Partner list (rendered inside the Bot Filtering settings tab)
 require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-moto-partner-list.php';
 
+// Bot Cleanup (Reports tab): review table, render, and bulk delete handler
+require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-bot-cleanup-table.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-bot-cleanup.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-bot-cleanup-actions.php';
+Cogito_RAR_Bot_Cleanup_Actions::init();
+
 // Reports settings tab
 require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-settings-reports.php';
 Cogito_RAR_Settings_Reports::init();
