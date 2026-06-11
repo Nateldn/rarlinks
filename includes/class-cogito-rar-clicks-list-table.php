@@ -316,7 +316,7 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
         // type="button" is essential — the table sits inside a GET <form>,
         // and a default submit button would reload the page instead.
         $html .= '<div class="rar-flag-bot-actions">';
-        $html .= '<button type="button" class="button button-primary rar-flag-bot-confirm">Flag as bot</button>';
+        $html .= '<button type="button" class="button button-primary rar-flag-bot-confirm">Confirm flag</button>';
         $html .= '<button type="button" class="button rar-flag-bot-cancel">Cancel</button>';
         $html .= '</div>';
         $html .= '</div>';

@@ -262,4 +262,9 @@
 .rar-flag-bot-flagged {
     color: #b32d2e;
 }
+
+/* Success state: panel stays in place showing confirmation until closed */
+.rar-flag-bot-panel.rar-flag-bot-success {
+    border-left-color: #00a32a;
+}
         

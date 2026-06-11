@@ -78,7 +78,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 action.innerHTML = '<span class="rar-flag-bot-flagged">Flagged as bot</span>';
             }
 
-            panel.hidden = true;
+            // Show a success message IN the panel rather than hiding it —
+            // collapsing the panel here would shift the rows below mid-read.
+            // The Close button reuses the cancel class, so the delegated
+            // cancel handler above dismisses it when the user is ready.
+            const labels = { ip: 'IP', hostname: 'Hostname', org: 'Org', ua: 'User agent' };
+            const added  = ( result.data && result.data.added ) ? result.data.added : [];
+
+            let message = 'Click flagged as bot.';
+            if ( added.length ) {
+                message += ' Added to live bot list: ' + added.map(function ( type ) {
+                    return labels[type] || type;
+                }).join(', ') + '.';
+            }
+
+            panel.classList.add('rar-flag-bot-success');
+            panel.innerHTML = '<p class="rar-flag-bot-intro">✓ ' + message + '</p>' +
+                '<div class="rar-flag-bot-actions">' +
+                '<button type="button" class="button rar-flag-bot-cancel">Close</button>' +
+                '</div>';
         })
         .catch(function () {
             alert('Request failed. Please try again.');
