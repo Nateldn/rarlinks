@@ -227,4 +227,39 @@
     margin: 0.5em 0 0 1.2em;
     list-style: disc;
 }
+
+/* ======== Flag-as-bot Panel (Clicks table) ============ */
+
+.rar-flag-bot-panel {
+    background: #f6f7f7;
+    border: 1px solid #c3c4c7;
+    border-left: 4px solid #b32d2e;
+    padding: 0.75em 1em;
+    margin-top: 0.5em;
+    max-width: 480px;
+}
+
+.rar-flag-bot-panel .rar-flag-bot-intro {
+    margin: 0 0 0.6em;
+}
+
+.rar-flag-bot-panel label {
+    display: block;
+    margin: 0.25em 0;
+}
+
+.rar-flag-bot-panel .rar-flag-bot-value {
+    font-family: monospace;
+    word-break: break-all;
+}
+
+.rar-flag-bot-actions {
+    display: flex;
+    gap: 0.5em;
+    margin-top: 0.6em;
+}
+
+.rar-flag-bot-flagged {
+    color: #b32d2e;
+}
         

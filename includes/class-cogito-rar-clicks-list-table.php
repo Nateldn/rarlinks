@@ -143,6 +143,11 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
             $display_name = esc_html( $bot_name_value );
             $tooltip_text = '';
 
+            // Rows flagged by hand via the "Flag as bot" row action
+            if ( $bot_name_value === 'Manually flagged' ) {
+                return '<span title="Flagged manually from the clicks table">' . $display_name . '</span>';
+            }
+
             // Attempt to parse the identification method and original name for tooltip
             if ( preg_match( '/^(AS\d+)|(By (PTR|IP|Org|Spamhaus ASN): (.+?))( \(Legit Bot\))?$/i', $bot_name_value, $matches ) ) {
                 if ( !empty($matches[1]) ) { // It's an ASN (e.g., "AS123" from Spamhaus ASN check)
@@ -254,8 +259,69 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
             // bypassing any potential internal WP_List_Table ambiguities.
             echo $this->column_default( $item, $column_name );
 
+            // The primary column also carries the "Flag as bot" row action and
+            // its hidden signal panel (WP core CSS reveals .row-actions on hover).
+            if ( $column_name === $primary ) {
+                echo $this->render_flag_bot_action( $item );
+            }
+
             echo "</td>"; // Close table data cell
         }
+    }
+
+    /**
+     * Renders the "Flag as bot" row action and its hidden signal panel.
+     *
+     * The panel lists this row's four signals (IP, hostname, org, user agent)
+     * as checkboxes — all UNTICKED by default, so a hasty confirm only flags
+     * this one row and adds nothing to the live bot list. Checkboxes carry only
+     * the signal TYPE; values are read server-side from the DB row.
+     *
+     * @param object $item The current click row.
+     * @return string Panel HTML.
+     */
+    private function render_flag_bot_action( $item ) {
+        // Signals available on this row — empty values are skipped (nothing to blacklist)
+        $signals = [
+            'ip'       => [ 'label' => 'IP',         'value' => $item->ip_address ],
+            'hostname' => [ 'label' => 'Hostname',   'value' => $item->hostname ],
+            'org'      => [ 'label' => 'Org',        'value' => $item->org ],
+            'ua'       => [ 'label' => 'User agent', 'value' => $item->user_agent ],
+        ];
+
+        $html  = '<div class="row-actions"><span class="rar-flag-bot">';
+        $html .= '<a href="#" class="rar-flag-bot-toggle">Flag as bot</a>';
+        $html .= '</span></div>';
+
+        // Hidden panel, revealed by JS. Nonce + row ID travel as data attributes.
+        $html .= '<div class="rar-flag-bot-panel" data-click-id="' . absint( $item->id ) . '"';
+        $html .= ' data-nonce="' . esc_attr( wp_create_nonce( 'rar_flag_bot_nonce' ) ) . '" hidden>';
+        $html .= '<p class="rar-flag-bot-intro">Mark this click as a bot. Tick a signal to also add it to the live bot list — <strong>all future clicks matching it will be auto-flagged</strong>.</p>';
+
+        foreach ( $signals as $type => $signal ) {
+            $value = trim( (string) $signal['value'] );
+            if ( '' === $value ) {
+                continue; // No value on this row — nothing to offer
+            }
+            // Truncate long values (user agents especially) for display only;
+            // the server reads the full value from the DB row.
+            $display = mb_strimwidth( $value, 0, 60, '…' );
+
+            $html .= '<label><input type="checkbox" value="' . esc_attr( $type ) . '" /> ';
+            $html .= esc_html( $signal['label'] ) . ': ';
+            $html .= '<span class="rar-flag-bot-value" title="' . esc_attr( $value ) . '">' . esc_html( $display ) . '</span>';
+            $html .= '</label>';
+        }
+
+        // type="button" is essential — the table sits inside a GET <form>,
+        // and a default submit button would reload the page instead.
+        $html .= '<div class="rar-flag-bot-actions">';
+        $html .= '<button type="button" class="button button-primary rar-flag-bot-confirm">Flag as bot</button>';
+        $html .= '<button type="button" class="button rar-flag-bot-cancel">Cancel</button>';
+        $html .= '</div>';
+        $html .= '</div>';
+
+        return $html;
     }
     
     /**
