@@ -37,17 +37,18 @@ class Cogito_RAR {
                 'rar-admin-css',
                 plugin_dir_url( __FILE__ ) . '../assets/css/admin.css',
                 [],
-                '1.0'
+                // File modification time as version: changing the file on disk
+                // busts browser/Cloudflare caches automatically
+                filemtime( plugin_dir_path( __FILE__ ) . '../assets/css/admin.css' )
             );
-    
+
         // Enqueue the consolidated admin meta box JS file
         wp_enqueue_script(
             'rar-admin-metabox-js', // Changed handle
             plugin_dir_url( __FILE__ ) . '../assets/js/rar-admin-metabox.js', // Changed filename
             ['jquery'], // Depends on jQuery
-            '1.0',
+            filemtime( plugin_dir_path( __FILE__ ) . '../assets/js/rar-admin-metabox.js' ),
             true // Load in footer
-<<<<<<< HEAD
            );
 
         // Enqueue dashboard UI JS (filter toggles, custom date range)
@@ -55,13 +56,10 @@ class Cogito_RAR {
             'rar-dashboard-ui-js',
             plugin_dir_url( __FILE__ ) . '../includes/dashboard/js/rar-dashboard-ui.js',
             [ 'jquery' ],
-            '1.0',
+            filemtime( plugin_dir_path( __FILE__ ) . 'dashboard/js/rar-dashboard-ui.js' ),
             true
            );
-        
-=======
-        );    
->>>>>>> 6a31d55 (Enhancement: live search by RARLink name, default 30-day view, UX improvements to filter bar and summary text. Security & cleanup: strict date validation, fix Spamhaus ASN check, remove debug logging and test resolver)
+
     }
 
 

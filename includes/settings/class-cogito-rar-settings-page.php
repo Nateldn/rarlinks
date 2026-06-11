@@ -48,9 +48,13 @@ class Cogito_RAR_Settings_Page {
 
         wp_enqueue_script(
             'cogito-rar-settings',
-            plugins_url( 'assets/js/cogito-rar-settings.js', dirname( __FILE__, 2 ) ),
+            // plugin_dir_url() of includes/ resolves to the plugin root URL.
+            // (plugins_url() with a bare directory path dropped the plugin
+            // folder from the URL, 404ing the script — fixed.)
+            plugin_dir_url( dirname( __FILE__, 2 ) ) . 'assets/js/cogito-rar-settings.js',
             [],
-            '1.0.0',
+            // File modification time as version: busts caches on every change
+            filemtime( dirname( __FILE__, 3 ) . '/assets/js/cogito-rar-settings.js' ),
             true // Load in footer
         );
     }

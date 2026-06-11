@@ -30,7 +30,8 @@ class Cogito_RAR_Dashboard {
 			// This file lives in includes/, so its parent directory is the plugin root
 			plugin_dir_url( dirname( __FILE__ ) ) . 'assets/js/cogito-rar-flag-bot.js',
 			[],
-			'1.0.0',
+			// File modification time as version: busts caches on every change
+			filemtime( dirname( __FILE__, 2 ) . '/assets/js/cogito-rar-flag-bot.js' ),
 			true // Load in footer
 		);
 	}
