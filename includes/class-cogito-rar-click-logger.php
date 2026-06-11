@@ -110,13 +110,27 @@ class Cogito_RAR_Click_Logger {
     
         // --- Bot Detection Waterfall ---
         // Higher priority checks come first. Once classified as a bot (1), stop checking.
-    
-        // ✅ 1. User Agent (UA) match
-        foreach ( $bot_patterns as $pattern => $name ) {
-            if ( stripos( $user_agent, $pattern ) !== false ) {
+
+        // 🚩 0. Live bot list (user-flagged signals) — takes precedence over
+        // EVERYTHING, including the renchlist.com referrer human check below:
+        // a spoofed homepage referrer is precisely the pattern these manual
+        // flags exist to catch.
+        if ( class_exists( 'Cogito_RAR_Live_Bot_List' ) ) {
+            $live_match = Cogito_RAR_Live_Bot_List::match( $ip_address, $hostname, $org, $user_agent );
+            if ( $live_match ) {
                 $bot_or_not = 1;
-                $bot_name = $name; // Store only the bot's name
-                break;
+                $bot_name   = 'Live list (' . $live_match['type'] . ')';
+            }
+        }
+
+        // ✅ 1. User Agent (UA) match
+        if ( $bot_or_not === 2 ) {
+            foreach ( $bot_patterns as $pattern => $name ) {
+                if ( stripos( $user_agent, $pattern ) !== false ) {
+                    $bot_or_not = 1;
+                    $bot_name = $name; // Store only the bot's name
+                    break;
+                }
             }
         }
     
