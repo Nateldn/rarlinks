@@ -15,7 +15,7 @@ class Cogito_RAR_Dashboard {
 	}
 
 	/**
-	 * Enqueues the clicks-table script (flag-as-bot panel) on the dashboard only.
+	 * Enqueues the flag-as-bot script (clicks table row action) on the dashboard only.
 	 *
 	 * @param string $hook The current admin page hook suffix.
 	 */
@@ -26,9 +26,9 @@ class Cogito_RAR_Dashboard {
 		}
 
 		wp_enqueue_script(
-			'cogito-rar-clicks',
+			'cogito-rar-flag-bot',
 			// This file lives in includes/, so its parent directory is the plugin root
-			plugin_dir_url( dirname( __FILE__ ) ) . 'assets/js/cogito-rar-clicks.js',
+			plugin_dir_url( dirname( __FILE__ ) ) . 'assets/js/cogito-rar-flag-bot.js',
 			[],
 			'1.0.0',
 			true // Load in footer
