@@ -19,24 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Cogito_RAR_Flag_Bot {
 
     /**
-     * The wp_options key holding the user-grown live bot list.
-     * Structure: [ 'ip' => [...], 'hostname' => [...], 'org' => [...], 'ua' => [...] ]
-     */
-    const OPTION_KEY = 'rar_live_bot_list';
-
-    /**
-     * Maps the signal keys accepted from the client to their DB columns.
-     * Signal VALUES are always read from the DB row, never from the request,
-     * so a tampered request can only ever blacklist that row's own data.
-     */
-    const SIGNAL_COLUMNS = [
-        'ip'       => 'ip_address',
-        'hostname' => 'hostname',
-        'org'      => 'org',
-        'ua'       => 'user_agent',
-    ];
-
-    /**
      * Registers the AJAX handler.
      * Must run on every admin load so the hook exists when the AJAX request arrives.
      */
@@ -88,56 +70,20 @@ class Cogito_RAR_Flag_Bot {
             wp_send_json_error( [ 'message' => 'Database update failed.' ], 500 );
         }
 
-        // 📥 Whitelist the requested signal types (anything else is discarded)
+        // 📥 Sanitise the requested signal types; values are always read from
+        // the DB row (never the request), and unknown types are discarded by
+        // the live bot list class, so a tampered request can only ever
+        // blacklist that row's own data.
         $requested = isset( $_POST['signals'] ) && is_array( $_POST['signals'] )
             ? array_map( 'sanitize_key', wp_unslash( $_POST['signals'] ) )
             : [];
-        $requested = array_intersect( $requested, array_keys( self::SIGNAL_COLUMNS ) );
 
-        // 📝 Append each chosen signal's value (from the DB row) to the live list
-        $added = self::add_signals_to_live_list( $row, $requested );
+        // 📝 Append each chosen signal's value to the live bot list
+        $added = Cogito_RAR_Live_Bot_List::add_signals( $row, $requested );
 
         wp_send_json_success( [
             'click_id' => $click_id,
             'added'    => $added, // Signal types actually appended (deduped, empties skipped)
         ] );
-    }
-
-    /**
-     * Appends the given signal types' values from a click row to the live bot list.
-     * Skips empty values and exact duplicates.
-     *
-     * @param object $row            The click row from wp_rarlinks_clicks.
-     * @param array  $signal_types   Whitelisted signal keys to add ('ip', 'hostname', 'org', 'ua').
-     * @return array Signal types that were actually appended.
-     */
-    private static function add_signals_to_live_list( $row, $signal_types ) {
-        if ( empty( $signal_types ) ) {
-            return [];
-        }
-
-        // Load the existing list, guaranteeing every signal bucket exists
-        $defaults = [ 'ip' => [], 'hostname' => [], 'org' => [], 'ua' => [] ];
-        $list     = wp_parse_args( (array) get_option( self::OPTION_KEY, [] ), $defaults );
-
-        $added = [];
-        foreach ( $signal_types as $type ) {
-            $column = self::SIGNAL_COLUMNS[ $type ];
-            $value  = trim( (string) $row->$column );
-
-            // An empty value would match everything at detection time — never store it
-            if ( '' === $value || in_array( $value, $list[ $type ], true ) ) {
-                continue;
-            }
-
-            $list[ $type ][] = $value;
-            $added[]         = $type;
-        }
-
-        if ( ! empty( $added ) ) {
-            update_option( self::OPTION_KEY, $list );
-        }
-
-        return $added;
     }
 }

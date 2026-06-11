@@ -52,6 +52,9 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/helpers/timestamp-localiser
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-dashboard.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-click-logger.php';
 
+// 🚩 Live bot list (user-flagged signals; written by Flag-as-bot, read by the click logger)
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-live-bot-list.php';
+
 // Dashboard Components
 // New consolidated filters class
 require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-dashboard-filters.php';
