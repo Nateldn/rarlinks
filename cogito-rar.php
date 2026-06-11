@@ -56,6 +56,10 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-click-logg
 // New consolidated filters class
 require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-dashboard-filters.php';
 
+// 🚩 Flag-as-bot AJAX handler (clicks table row action)
+require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-cogito-rar-flag-bot.php';
+Cogito_RAR_Flag_Bot::init();
+
 // Moto Partner AJAX toggle handler
 require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-moto-partner-toggle.php';
 Cogito_RAR_Moto_Partner_Toggle::init();

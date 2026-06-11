@@ -11,6 +11,28 @@ class Cogito_RAR_Dashboard {
 
 	public static function init() {
 		add_action( 'admin_menu', [ self::class, 'add_dashboard_page' ] );
+		add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_assets' ] );
+	}
+
+	/**
+	 * Enqueues the clicks-table script (flag-as-bot panel) on the dashboard only.
+	 *
+	 * @param string $hook The current admin page hook suffix.
+	 */
+	public static function enqueue_assets( $hook ) {
+		// Hook suffix for a submenu under edit.php?post_type=rar_redirect
+		if ( $hook !== 'rar_redirect_page_rar_dashboard' ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'cogito-rar-clicks',
+			// This file lives in includes/, so its parent directory is the plugin root
+			plugin_dir_url( dirname( __FILE__ ) ) . 'assets/js/cogito-rar-clicks.js',
+			[],
+			'1.0.0',
+			true // Load in footer
+		);
 	}
 
 	public static function add_dashboard_page() {
