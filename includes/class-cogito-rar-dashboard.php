@@ -116,8 +116,7 @@ class Cogito_RAR_Dashboard {
 		// 6. 🎛️ Render Unified Filter Form (Delegated)
 		Cogito_RAR_Dashboard_Filters::render( $min_date );
 
-        // 6b. 🏍️ Render Moto Partner management panel
-        Cogito_RAR_Moto_Partner_Panel::render();
+    
 
 		// 7. 📋 Render List Table
 		// 🟢 CRITICAL: List Table uses the EXACT same $filters array as the charts above.

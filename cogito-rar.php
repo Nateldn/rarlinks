@@ -57,11 +57,15 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-click-logg
 require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-dashboard-filters.php';
 
 // Moto Partner AJAX toggle handler
-require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-moto-partner-toggle.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-moto-partner-toggle.php';
 Cogito_RAR_Moto_Partner_Toggle::init();
 
-// Moto Partner dashboard panel (rendering)
-require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-moto-partner-panel.php';
+// Moto Partner list (rendered inside the Bot Filtering settings tab)
+require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-moto-partner-list.php';
+
+// Reports settings tab
+require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-settings-reports.php';
+Cogito_RAR_Settings_Reports::init();
 
 // We can now optionally remove traffic-filter if no longer needed, but keeping it commented out for safety or reference if you prefer.
 // require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-dashboard-traffic-filter.php'; 

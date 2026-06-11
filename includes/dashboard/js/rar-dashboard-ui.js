@@ -83,65 +83,6 @@ setTimeout(function () {
         }
     });
 }, 100);
-
-
-        // --- Moto Partner Panel Logic ---
-    // Handles expand/collapse of the panel and AJAX disabling of individual partners.
-    const motoPanel = document.querySelector('.rar-moto-panel');
-    
-    if ( motoPanel ) {
-        const toggleBtn = motoPanel.querySelector('.rar-moto-panel-toggle');
-        const panelBody = motoPanel.querySelector('.rar-moto-panel-body');
-        const countSpan = motoPanel.querySelector('.rar-moto-count');
-        const nonce     = motoPanel.getAttribute('data-nonce');
-    
-        // Expand / collapse the panel
-        if ( toggleBtn && panelBody ) {
-            toggleBtn.addEventListener('click', function () {
-                panelBody.style.display = ( panelBody.style.display === 'none' ) ? 'block' : 'none';
-            });
-        }
-    
-        // Disable a partner via AJAX (event delegation on the panel body)
-        if ( panelBody ) {
-            panelBody.addEventListener('click', function ( e ) {
-                if ( ! e.target.classList.contains('rar-moto-disable') ) return;
-    
-                const listItem = e.target.closest('li');
-                const postId   = listItem ? listItem.getAttribute('data-post-id') : null;
-                if ( ! postId ) return;
-    
-                // Build the AJAX request body
-                const body = new URLSearchParams();
-                body.append('action', 'rar_disable_moto_partner');
-                body.append('nonce', nonce);
-                body.append('post_id', postId);
-    
-                // WordPress exposes the admin-ajax URL globally as ajaxurl on admin pages
-                fetch(ajaxurl, {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: body.toString()
-                })
-                .then(function ( response ) { return response.json(); })
-                .then(function ( result ) {
-                    if ( result.success ) {
-                        // Remove the disabled item from the list
-                        listItem.remove();
-                        // Update the count badge
-                        if ( countSpan ) {
-                            countSpan.textContent = result.data.remaining;
-                        }
-                    } else {
-                        alert('Could not disable: ' + ( result.data && result.data.message ? result.data.message : 'Unknown error' ));
-                    }
-                })
-                .catch(function () {
-                    alert('Request failed. Please try again.');
-                });
-            });
-        }
-    }
+ 
 
 });

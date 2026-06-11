@@ -12,10 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Cogito_RAR_Settings_Page {
 
     /**
-     * Hook the submenu registration.
+     * Hook the submenu registration and asset enqueuing.
      */
     public static function init() {
         add_action( 'admin_menu', [ self::class, 'add_settings_page' ], 11 );
+        add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_assets' ] );
     }
 
     /**
@@ -34,13 +35,33 @@ class Cogito_RAR_Settings_Page {
     }
 
     /**
+     * Enqueues the settings-page script, only on the RARLinks settings screen.
+     *
+     * @param string $hook The current admin page hook suffix.
+     */
+    public static function enqueue_assets( $hook ) {
+        // Only load on our settings page. The hook suffix for a submenu under
+        // edit.php?post_type=rar_redirect is 'rar_redirect_page_rar_settings'.
+        if ( $hook !== 'rar_redirect_page_rar_settings' ) {
+            return;
+        }
+
+        wp_enqueue_script(
+            'cogito-rar-settings',
+            plugins_url( 'assets/js/cogito-rar-settings.js', dirname( __FILE__, 2 ) ),
+            [],
+            '1.0.0',
+            true // Load in footer
+        );
+    }
+
+    /**
      * Defines the available tabs as slug => label.
      */
     private static function get_tabs() {
         return [
-            'defaults'     => 'Defaults',
-            'tracking'     => 'Tracking',
-            'bot_filtering'=> 'Bot Filtering',
+            'defaults' => 'Defaults',
+            'reports'  => 'Reports',
         ];
     }
 
@@ -74,7 +95,7 @@ class Cogito_RAR_Settings_Page {
         }
         echo '</h2>';
 
-        // Active tab body — each tab renders its own content (added next)
+        // Active tab body — each tab renders its own content
         echo '<div class="rar-settings-body">';
         do_action( 'rar_settings_render_tab_' . $active_tab );
         echo '</div>';

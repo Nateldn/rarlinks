@@ -1,7 +1,8 @@
 <?php
 /**
- * Renders the collapsible Moto Partner panel above the dashboard list table.
+ * Renders the Moto Partner list within the Bot Filtering settings tab.
  * Lists links currently flagged as homepage native ads, each with a Disable action.
+ * Tells the bot-detection waterfall which links legitimately sit on the homepage.
  *
  * @package Cogito_RAR
  */
@@ -10,10 +11,10 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Cogito_RAR_Moto_Partner_Panel {
+class Cogito_RAR_Moto_Partner_List {
 
     /**
-     * Renders the panel. Called from the dashboard render method.
+     * Renders the Moto Partner list. Hooked to the Bot Filtering settings tab.
      */
     public static function render() {
         // Fetch all links currently flagged as Moto Partners
@@ -33,13 +34,9 @@ class Cogito_RAR_Moto_Partner_Panel {
 
         echo '<div class="rar-moto-panel" data-nonce="' . esc_attr( $nonce ) . '">';
 
-        // Toggle header — shows the count, click to expand/collapse
-        echo '<button type="button" class="button rar-moto-panel-toggle">';
-        echo 'Moto Partners (<span class="rar-moto-count">' . esc_html( $count ) . '</span>)';
-        echo '</button>';
-
-        // Collapsible body (hidden by default)
-        echo '<div class="rar-moto-panel-body" style="display:none;">';
+        // Heading with live count
+        echo '<h3>Moto Partners (<span class="rar-moto-count">' . esc_html( $count ) . '</span>)</h3>';
+        echo '<p class="description">Links currently flagged as homepage native ads. A click arriving from the homepage is only treated as a possible human if it lands on one of these links.</p>';
 
         if ( $count === 0 ) {
             echo '<p class="rar-moto-empty">No links are currently marked as Moto Partners.</p>';
@@ -54,7 +51,6 @@ class Cogito_RAR_Moto_Partner_Panel {
             echo '</ul>';
         }
 
-        echo '</div>'; // .rar-moto-panel-body
         echo '</div>'; // .rar-moto-panel
     }
 }
