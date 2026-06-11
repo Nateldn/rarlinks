@@ -19,27 +19,6 @@ class Cogito_RAR_Dashboard_Filters {
 	 * @return array Sanitized parameters.
 	 */
 	public static function get_params() {
-<<<<<<< HEAD
-    return [
-        'range'        => sanitize_text_field( $_GET['range'] ?? '' ),
-        'from'         => self::sanitize_date( $_GET['from'] ?? '' ),
-        'to'           => self::sanitize_date( $_GET['to'] ?? '' ),
-        'traffic_type' => sanitize_text_field( $_GET['traffic_type'] ?? 'all' ),
-        'post_id'      => isset( $_GET['post_id'] ) && is_numeric( $_GET['post_id'] ) ? intval( $_GET['post_id'] ) : null,
-    ];
-}
-    
-    /**
-     * Strictly validate a date string as YYYY-MM-DD.
-     * Returns '' for anything that doesn't match, which prevents these
-     * values from being used to break out of the SQL string literals
-     * they are later interpolated into.
-     */
-    private static function sanitize_date( $value ) {
-        $value = sanitize_text_field( $value );
-        return preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ? $value : '';
-}
-=======
 		return [
 			'range'        => sanitize_text_field( $_GET['range'] ?? '' ),
 			'from'         => self::sanitize_date( $_GET['from'] ?? '' ),
@@ -48,7 +27,6 @@ class Cogito_RAR_Dashboard_Filters {
 			'post_id'      => isset( $_GET['post_id'] ) && is_numeric( $_GET['post_id'] ) ? intval( $_GET['post_id'] ) : null,
 		];
 	}
->>>>>>> 6a31d55 (Enhancement: live search by RARLink name, default 30-day view, UX improvements to filter bar and summary text. Security & cleanup: strict date validation, fix Spamhaus ASN check, remove debug logging and test resolver)
 
 	/**
 	 * Strictly validate a date string as YYYY-MM-DD.
