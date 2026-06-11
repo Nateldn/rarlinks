@@ -230,13 +230,25 @@
 
 /* ======== Flag-as-bot Panel (Clicks table) ============ */
 
+/* Positioning context so the panel can float relative to its cell */
+.rarlinks-table-wrapper .wp-list-table td {
+    position: relative;
+}
+
+/* The panel is a popover, NOT in document flow — opening, closing or
+   swapping its content must never change row heights (no layout jump) */
 .rar-flag-bot-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 100;
+    width: 480px;
+    max-width: 90vw;
     background: #f6f7f7;
     border: 1px solid #c3c4c7;
     border-left: 4px solid #b32d2e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
     padding: 0.75em 1em;
-    margin-top: 0.5em;
-    max-width: 480px;
 }
 
 .rar-flag-bot-panel .rar-flag-bot-intro {
