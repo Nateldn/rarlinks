@@ -27,6 +27,7 @@ class Cogito_RAR_Settings_Reports {
         // Moto Partner list: tells the bot-detection waterfall which links sit on the homepage.
         Cogito_RAR_Moto_Partner_List::render();
 
-        // Bot Cleanup tool will render here next (review table + bulk delete).
+        // Bot Cleanup: review table + bulk delete for bot/unknown click rows.
+        Cogito_RAR_Bot_Cleanup::render();
     }
 }

@@ -279,4 +279,15 @@
 .rar-flag-bot-panel.rar-flag-bot-success {
     border-left-color: #00a32a;
 }
+
+/* ======== Bot Cleanup (Settings → Reports) ============ */
+
+.rar-bot-cleanup {
+    margin-top: 2.5em;
+}
+
+.rar-bot-cleanup h3 {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
         
