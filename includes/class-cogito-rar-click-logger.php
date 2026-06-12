@@ -107,6 +107,11 @@ class Cogito_RAR_Click_Logger {
             'dotbot' => 'Moz (Dotbot)',
             'majestic' => 'MajesticBot',
             'AliyunSecBot/Aliyun' => 'AliyunSecBot',
+            // Folded in from the manual SQL cleanup query
+            'mj12bot' => 'Majestic (MJ12bot)',
+            'duckduckbot' => 'DuckDuckBot',
+            'webmeup' => 'BLEXBot (webmeup)',
+            'ontaboserver.net' => 'Contabo server',
         ];
     
         // 🌐 Determine traffic classification: 0 = Human, 1 = Known bot, 2 = Unknown
@@ -184,6 +189,16 @@ class Cogito_RAR_Click_Logger {
             'facebookexternalhit',
             'available.above.ne',
             '.ic2net.net',
+            // Folded in from the manual SQL cleanup query
+            'duckduckbot.com',
+            'exabot.com',
+            'googleusercontent.com',
+            'static.vnpt.vn',
+            'technobytes.com.br',
+            'web2objects.com',
+            'darkness-reigns.net',
+            'servermania.com',
+            'angband.teaparty.net',
         ];
     
         if ( $bot_or_not === 2 && ! empty( $hostname ) ) {
@@ -217,6 +232,41 @@ class Cogito_RAR_Click_Logger {
             '161.35.111.188',
             '212.34.153.',
             '159.223.40.',
+            // Folded in from the manual SQL cleanup query
+            // (the 104.250.52.x / 53.x singles collapsed into two prefixes)
+            '34.174.',
+            '34.138.',
+            '104.250.52.',
+            '104.250.53.',
+            '106.38.188.',
+            '114.250.44.',
+            '114.250.59.',
+            '39.156.168.',
+            '111.13.116.',
+            '220.181.90.',
+            '82.80.249.156',
+            '141.98.11.115',
+            '85.254.64.236',
+            '92.50.32.112',
+            '208.240.29.37',
+            '154.30.31.172',
+            '85.204.245.150',
+            '142.147.194.185',
+            '43.153.221.113',
+            '45.148.10.203',
+            '45.148.10.143',
+            '114.250.50.143',
+            '23.105.150.212',
+            '23.81.69.42',
+            '45.165.73.183',
+            '14.191.92.125',
+            '193.34.213.28',
+            '45.169.19.166',
+            '65.21.46.73',
+            '195.178.110.68',
+            '178.17.171.102',
+            '204.217.129.21',
+            '2a02:c207:2249:151::1',
         ];
     
         if ( $bot_or_not === 2 && ! empty( $ip_address ) ) {
@@ -287,9 +337,28 @@ class Cogito_RAR_Click_Logger {
         // Implements cascading org checks: Bad Host Org > Legit Bot Org > Human Org
         if ( $bot_or_not === 2 && ! empty( $org ) ) {
     
+            // Exact-match oddity from the manual SQL cleanup query: some rows
+            // carry the literal org "1". Must NOT go in the pattern lists —
+            // a substring match on '1' would hit any org containing the digit.
+            if ( trim( $org ) === '1' ) {
+                $bot_or_not = 1;
+                $bot_name   = 'Org "1" (Bad Host)';
+            }
+
             // Define patterns for known *malicious/bad host organizations*
             $known_bad_host_org_patterns = [
                 'Servers Tech Fzco',
+                // Folded in from the manual SQL cleanup query: proxy/VPS
+                // providers and foreign ISPs only ever seen as bot exits
+                'UAB code200',
+                'Datacamp',
+                'MEVSPACE',
+                'Contabo GmbH',
+                'UAB Bite Lietuva',
+                'VNPT Corp',
+                'WORLD WIFI TELECOMUNICACOES',
+                'MICROTELL SCM LTDA',
+                'Claro NXT Telecomunicacoes',
             ];
     
             // Define patterns for known *legitimate bot organizations*
@@ -313,6 +382,15 @@ class Cogito_RAR_Click_Logger {
                 'Fastly',
                 'Amazon Web Services',
                 'Microsoft Azure',
+                // Folded in from the manual SQL cleanup query: cloud/datacentre
+                // orgs ('DigitalOcean' and 'AMAZON-02' catch the bare ASN forms
+                // the existing 'DigitalOcean LLC' / 'Amazon.com, Inc.' miss)
+                'Tencent',
+                'Kingsoft cloud',
+                'UUNET',
+                'LEASEWEB',
+                'DIGITALOCEAN',
+                'AMAZON-02',
             ];
             
             // Patterns for known *human-associated* ISPs/organizations
