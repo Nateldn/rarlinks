@@ -63,6 +63,10 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-dashboard-f
 require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-cogito-rar-flag-bot.php';
 Cogito_RAR_Flag_Bot::init();
 
+// 🗂 Bulk re-classification handler (clicks table bulk actions)
+require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-cogito-rar-bulk-classify.php';
+Cogito_RAR_Bulk_Classify::init();
+
 // Moto Partner AJAX toggle handler
 require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-moto-partner-toggle.php';
 Cogito_RAR_Moto_Partner_Toggle::init();

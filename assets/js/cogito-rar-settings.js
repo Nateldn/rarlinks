@@ -56,27 +56,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if ( cleanupForm ) {
         cleanupForm.addEventListener('submit', function ( e ) {
+            // Resolve the chosen bulk action from either dropdown (top/bottom)
             const topAction    = cleanupForm.querySelector('select[name="action"]');
             const bottomAction = cleanupForm.querySelector('select[name="action2"]');
-            const isDelete     = ( topAction && topAction.value === 'delete' ) ||
-                                 ( bottomAction && bottomAction.value === 'delete' );
+            let   action       = topAction && topAction.value !== '-1' ? topAction.value : '';
+            if ( ! action && bottomAction && bottomAction.value !== '-1' ) {
+                action = bottomAction.value;
+            }
 
             const checked = cleanupForm.querySelectorAll('input[name="bulk-select[]"]:checked').length;
 
-            if ( ! isDelete ) {
+            if ( action !== 'delete' && action !== 'mark_human' ) {
                 e.preventDefault();
-                alert('Choose "Delete" from the Bulk actions menu first.');
+                alert('Choose an action from the Bulk actions menu first.');
                 return;
             }
 
             if ( checked === 0 ) {
                 e.preventDefault();
-                alert('Tick at least one row to delete.');
+                alert('Tick at least one row first.');
                 return;
             }
 
+            // Only deletion is irreversible — marking human needs no confirm
             const noun = checked === 1 ? 'row' : 'rows';
-            if ( ! confirm('Permanently delete ' + checked + ' selected ' + noun + '? This cannot be undone.') ) {
+            if ( action === 'delete' && ! confirm('Permanently delete ' + checked + ' selected ' + noun + '? This cannot be undone.') ) {
                 e.preventDefault();
             }
         });

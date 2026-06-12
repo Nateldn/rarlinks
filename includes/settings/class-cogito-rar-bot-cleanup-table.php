@@ -26,12 +26,15 @@ class Cogito_RAR_Bot_Cleanup_Table extends Cogito_RAR_Clicks_List_Table {
     }
 
     /**
-     * The Delete bulk action. WP_List_Table renders the dropdown and the
-     * per-row checkboxes (column_cb in the parent) automatically.
+     * Delete, plus Mark as human for rescuing false positives spotted
+     * during review (the row leaves this table and reverts to human in
+     * the report). WP_List_Table renders the dropdown and the per-row
+     * checkboxes (column_cb in the parent) automatically.
      */
     public function get_bulk_actions() {
         return [
-            'delete' => 'Delete',
+            'delete'     => 'Delete',
+            'mark_human' => 'Mark as human (not a bot)',
         ];
     }
 

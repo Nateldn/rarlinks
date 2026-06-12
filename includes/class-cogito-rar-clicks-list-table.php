@@ -225,6 +225,18 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
         ];
     }
 
+    /**
+     * Bulk re-classification of selected rows. Handled server-side in
+     * Cogito_RAR_Bulk_Classify (the Bot Cleanup subclass overrides this
+     * with its own delete-centred set).
+     */
+    public function get_bulk_actions() {
+        return [
+            'flag_bot'   => 'Flag as bot',
+            'mark_human' => 'Mark as human',
+        ];
+    }
+
     protected function get_hidden_columns() {
         return [];
     }
