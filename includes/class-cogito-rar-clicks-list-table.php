@@ -264,6 +264,16 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
 
         // Loop through each column defined in get_columns()
         foreach ( $columns as $column_name => $column_display_name ) {
+            // The checkbox column has its own renderer and WP markup
+            // (th.check-column) — column_default() would print '—' for it,
+            // leaving the bulk actions with nothing to select.
+            if ( 'cb' === $column_name ) {
+                echo '<th scope="row" class="check-column">';
+                echo $this->column_cb( $item );
+                echo '</th>';
+                continue;
+            }
+
             // Prepare CSS classes and inline styles for the table cell
             $classes    = "class='$column_name column-$column_name'";
             $style      = in_array( $column_name, $hidden ) ? ' style="display:none;"' : '';
