@@ -54,7 +54,7 @@ class Cogito_RAR_Bot_Cleanup_Actions {
             }
         }
 
-        if ( $action !== 'delete' ) {
+        if ( ! in_array( $action, [ 'delete', 'mark_human' ], true ) ) {
             return; // No bulk action chosen — nothing to do
         }
 
@@ -63,27 +63,38 @@ class Cogito_RAR_Bot_Cleanup_Actions {
             ? array_filter( array_map( 'absint', $_POST['bulk-select'] ) )
             : [];
 
-        $deleted = 0;
+        $affected = 0;
 
         if ( ! empty( $ids ) ) {
             global $wpdb;
             $table        = $wpdb->prefix . 'rarlinks_clicks';
             $placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
 
-            // Belt and braces: even with a tampered ID list, human rows
-            // (bot_or_not = 0) can never be deleted from here.
-            $deleted = (int) $wpdb->query( $wpdb->prepare(
-                "DELETE FROM $table WHERE id IN ($placeholders) AND bot_or_not IN (1, 2)",
-                $ids
-            ) );
+            if ( $action === 'delete' ) {
+                // Belt and braces: even with a tampered ID list, human rows
+                // (bot_or_not = 0) can never be deleted from here.
+                $affected = (int) $wpdb->query( $wpdb->prepare(
+                    "DELETE FROM $table WHERE id IN ($placeholders) AND bot_or_not IN (1, 2)",
+                    $ids
+                ) );
+            } else {
+                // mark_human: rescue false positives — reclassify and clear
+                // the bot name; the rows drop out of this table on reload
+                $affected = (int) $wpdb->query( $wpdb->prepare(
+                    "UPDATE $table SET bot_or_not = 0, bot_name = '' WHERE id IN ($placeholders) AND bot_or_not IN (1, 2)",
+                    $ids
+                ) );
+            }
         }
 
-        // 🔁 Redirect back to the Reports tab (PRG: a refresh can't re-delete)
+        // 🔁 Redirect back to the Reports tab (PRG: a refresh can't re-run)
+        $result_param = ( $action === 'delete' ) ? 'deleted' : 'rescued';
+
         wp_safe_redirect( add_query_arg( [
-            'post_type' => 'rar_redirect',
-            'page'      => 'rar_settings',
-            'tab'       => 'reports',
-            'deleted'   => $deleted,
+            'post_type'    => 'rar_redirect',
+            'page'         => 'rar_settings',
+            'tab'          => 'reports',
+            $result_param  => $affected,
         ], admin_url( 'edit.php' ) ) );
         exit;
     }

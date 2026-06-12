@@ -25,11 +25,16 @@ class Cogito_RAR_Bot_Cleanup {
         echo '<p>Bot and unknown clicks only (as classified at log time) — human rows never appear here. ';
         echo 'Review, tick, and delete to keep the report clean. <strong>Deletion is permanent.</strong></p>';
 
-        // Result notice after a delete (redirect appends ?deleted=N)
+        // Result notice after a bulk action (redirect appends ?deleted=N / ?rescued=N)
         if ( isset( $_GET['deleted'] ) ) {
             $deleted = absint( $_GET['deleted'] );
             echo '<div class="notice notice-success is-dismissible"><p>';
             echo esc_html( sprintf( '%d row%s deleted.', $deleted, $deleted === 1 ? '' : 's' ) );
+            echo '</p></div>';
+        } elseif ( isset( $_GET['rescued'] ) ) {
+            $rescued = absint( $_GET['rescued'] );
+            echo '<div class="notice notice-success is-dismissible"><p>';
+            echo esc_html( sprintf( '%d row%s marked as human.', $rescued, $rescued === 1 ? '' : 's' ) );
             echo '</p></div>';
         }
 
