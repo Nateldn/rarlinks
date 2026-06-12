@@ -55,6 +55,11 @@ class Cogito_RAR_Redirect_Engine {
 	 */
 	public static function handle_redirect_from_post( $post ) {
 
+		// Capture whether the visitor ARRIVED with the site cookie, before
+		// the block below (or anything else) sets one. No cookie means they
+		// never loaded a site page — a strong bot signal for the logger.
+		$had_cookie = Cogito_RAR_SetCookie::was_present();
+
 		// Set RAR visitor cookie if missing
 		if ( empty( $_COOKIE['rar_uid'] ) || ! preg_match( '/^[a-f0-9]{32}$/', $_COOKIE['rar_uid'] ) ) {
 			$uid = bin2hex( random_bytes( 16 ) );
@@ -103,7 +108,7 @@ class Cogito_RAR_Redirect_Engine {
 					$url = $g['url'] ?? '';
 					if ( strtoupper( $g['country'] ?? '' ) === $country && self::is_valid_redirect_url( $url ) ) {
 						$add_rel_header( $url );
-						Cogito_RAR_Click_Logger::log_click( $post->ID, $visitor_id );
+						Cogito_RAR_Click_Logger::log_click( $post->ID, $visitor_id, $had_cookie );
 						wp_redirect( $url, $type );
 						exit;
 					}
@@ -125,7 +130,7 @@ class Cogito_RAR_Redirect_Engine {
 					$rand -= $weight;
 					if ( $rand <= 0 ) {
 						$add_rel_header( $url );
-						Cogito_RAR_Click_Logger::log_click( $post->ID, $visitor_id );
+						Cogito_RAR_Click_Logger::log_click( $post->ID, $visitor_id, $had_cookie );
 						wp_redirect( $url, $type );
 						exit;
 					}
@@ -137,7 +142,7 @@ class Cogito_RAR_Redirect_Engine {
 		$target = get_post_meta( $post->ID, '_rar_target', true );
 		if ( self::is_valid_redirect_url( $target ) ) {
 			$add_rel_header( $target );
-			Cogito_RAR_Click_Logger::log_click( $post->ID, $visitor_id );
+			Cogito_RAR_Click_Logger::log_click( $post->ID, $visitor_id, $had_cookie );
 			wp_redirect( $target, $type );
 			exit;
 		}

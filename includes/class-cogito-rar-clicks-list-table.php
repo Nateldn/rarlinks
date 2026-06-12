@@ -153,6 +153,14 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
                 return '<span title="Matched a signal on the live bot list">' . $display_name . '</span>';
             }
 
+            // Rows flagged by the referrer + cookie heuristics
+            if ( $bot_name_value === 'No referrer or site cookie' ) {
+                return '<span title="Hit the redirect URL directly without ever loading a site page">' . $display_name . '</span>';
+            }
+            if ( $bot_name_value === 'Homepage referrer (non-partner)' ) {
+                return '<span title="Spoofed homepage referrer on a link that is not a homepage native ad">' . $display_name . '</span>';
+            }
+
             // Attempt to parse the identification method and original name for tooltip
             if ( preg_match( '/^(AS\d+)|(By (PTR|IP|Org|Spamhaus ASN): (.+?))( \(Legit Bot\))?$/i', $bot_name_value, $matches ) ) {
                 if ( !empty($matches[1]) ) { // It's an ASN (e.g., "AS123" from Spamhaus ASN check)
