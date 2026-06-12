@@ -14,9 +14,14 @@ class Cogito_RAR_Click_Logger {
 	/**
 	 * Logs a click to the wp_rarlinks_clicks table.
 	 *
-	 * @param int $post_id The RARLink post ID.
+	 * @param int    $post_id    The RARLink post ID.
+	 * @param string $visitor_id The rar_uid visitor token.
+	 * @param bool   $had_cookie Whether a valid rar_uid cookie ARRIVED with the
+	 *                           request (i.e. the visitor has loaded a site page
+	 *                           before). Defaults true so a missing value can
+	 *                           never cause a false bot flag.
 	 */
-    	public static function log_click( $post_id, $visitor_id = '' ) {
+    	public static function log_click( $post_id, $visitor_id = '', $had_cookie = true ) {
         global $wpdb;
     
         // 🌐 Capture IP address & validate it
@@ -238,12 +243,44 @@ class Cogito_RAR_Click_Logger {
             }
         }
     
-        // 👤 5. Referrer check (high confidence human signal)
-        if ( $bot_or_not === 2 && ! empty( $referrer ) ) {
-            if ( stripos( $referrer, 'renchlist.com' ) !== false ) {
+        // 👤 5. Referrer + cookie heuristics
+        // Referrers are trivially spoofed, so a site referrer alone no longer
+        // proves human — the visitor must also have arrived carrying the site
+        // cookie (set on any page load). Conversely, NO referrer AND NO cookie
+        // means the redirect URL was hit directly by something that never
+        // loaded a page: the harvested-URL replay signature.
+        if ( $bot_or_not === 2 ) {
+            // Normalise URLs for comparison: drop scheme/www, trailing slash, case
+            $normalise = function( $url ) {
+                $url = strtolower( trim( (string) $url ) );
+                $url = preg_replace( '#^https?://(www\.)?#', '', $url );
+                return rtrim( $url, '/' );
+            };
+            $home_norm = $normalise( home_url() );
+            $ref_norm  = $normalise( $referrer );
+
+            if ( '' === $ref_norm && ! $had_cookie ) {
+                // Direct hit from a client that has never loaded a site page
+                $bot_or_not = 1;
+                $bot_name   = 'No referrer or site cookie';
+            } elseif ( $ref_norm === $home_norm ) {
+                // Bare homepage referrer: only Moto Partner links (homepage
+                // native ads) legitimately produce this. On any other link
+                // it is a spoofed referrer.
+                if ( get_post_meta( $post_id, '_rar_moto_partner', true ) === '1' ) {
+                    $bot_or_not = 0; // Genuine homepage native ad click
+                    $bot_name   = '';
+                } else {
+                    $bot_or_not = 1;
+                    $bot_name   = 'Homepage referrer (non-partner)';
+                }
+            } elseif ( strpos( $ref_norm, $home_norm . '/' ) === 0 && $had_cookie ) {
+                // Referred from a site page AND carrying the site cookie
                 $bot_or_not = 0; // Classify as human
-                $bot_name = ''; // Ensure bot_name is empty for human classification
+                $bot_name   = '';
             }
+            // Site referrer without the cookie falls through to the org
+            // checks below — cookie-blocking humans land in Unknown, not Bot.
         }
     
         // 👤 6. Refined 'org' classification if still Unknown
