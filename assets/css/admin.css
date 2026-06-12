@@ -114,13 +114,13 @@
     
     /* Importer field list styles */
 
-    .rar_importer_wrap ul { 
+    .rar_importer_wrap ul {
         list-style: none;
         background-color: #e7e7e7;
         padding: 0.9em;
         border-radius: 3px;
-        
-    
+    }
+
     .rar-import-fields {
         margin-top: 2em;
         padding-left: 1.5em;
