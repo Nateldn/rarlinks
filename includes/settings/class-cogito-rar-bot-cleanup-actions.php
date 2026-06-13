@@ -21,6 +21,53 @@ class Cogito_RAR_Bot_Cleanup_Actions {
     public static function init() {
         add_action( 'admin_init', [ self::class, 'maybe_handle_delete' ] );
         add_action( 'admin_init', [ self::class, 'maybe_handle_row_action' ] );
+        add_action( 'wp_ajax_rar_bot_cleanup_row', [ self::class, 'ajax_row_action' ] );
+    }
+
+    /**
+     * AJAX twin of maybe_handle_row_action(): Mark as human / Delete a single
+     * row without a page reload. Same guards (per-row nonce, capability, query
+     * constrained to bot/unknown). Returns the remaining bot/unknown count so
+     * the JS can resync the select-all banner.
+     */
+    public static function ajax_row_action() {
+        $id     = isset( $_POST['click_id'] ) ? absint( $_POST['click_id'] ) : 0;
+        $action = isset( $_POST['row_action'] ) ? sanitize_key( $_POST['row_action'] ) : '';
+
+        if ( ! $id || ! in_array( $action, [ 'delete', 'mark_human' ], true ) ) {
+            wp_send_json_error( [ 'message' => 'Invalid request.' ], 400 );
+        }
+
+        // 🔒 Same per-row nonce as the no-JS links, plus capability
+        if ( ! check_ajax_referer( 'rar_row_action_' . $id, 'nonce', false ) ) {
+            wp_send_json_error( [ 'message' => 'Invalid security token.' ], 403 );
+        }
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => 'Insufficient permissions.' ], 403 );
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'rarlinks_clicks';
+
+        // Constrained to bot/unknown: a human row can never be hit here
+        if ( $action === 'delete' ) {
+            $affected = (int) $wpdb->query( $wpdb->prepare( "DELETE FROM $table WHERE id = %d AND bot_or_not IN (1, 2)", $id ) );
+        } else {
+            $affected = (int) $wpdb->query( $wpdb->prepare( "UPDATE $table SET bot_or_not = 0, bot_name = '' WHERE id = %d AND bot_or_not IN (1, 2)", $id ) );
+        }
+
+        if ( $affected < 1 ) {
+            wp_send_json_error( [ 'message' => 'Row not found or already changed.' ], 404 );
+        }
+
+        // Remaining bot/unknown rows, for the select-all banner total
+        $remaining = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table WHERE bot_or_not IN (1, 2)" );
+
+        wp_send_json_success( [
+            'click_id'  => $id,
+            'action'    => $action,
+            'remaining' => $remaining,
+        ] );
     }
 
     /**

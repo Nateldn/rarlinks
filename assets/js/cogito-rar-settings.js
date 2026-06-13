@@ -57,13 +57,23 @@ document.addEventListener('DOMContentLoaded', function () {
         const banner    = cleanupForm.querySelector('.rar-select-all-banner');
         const flagInput = cleanupForm.querySelector('.rar-select-all-flag');
         const selectAllLink = cleanupForm.querySelector('.rar-select-all-link');
-        const total     = banner ? parseInt(banner.getAttribute('data-total'), 10) : 0;
+        let   total     = banner ? parseInt(banner.getAttribute('data-total'), 10) : 0;
 
         function checkedCount() {
             return cleanupForm.querySelectorAll('input[name="bulk-select[]"]:checked').length;
         }
         function rowCount() {
             return cleanupForm.querySelectorAll('input[name="bulk-select[]"]').length;
+        }
+
+        // Keep the cross-page total and its banner/link text in sync after an
+        // AJAX row removal
+        function setTotal( n ) {
+            total = parseInt(n, 10) || 0;
+            if ( banner ) banner.setAttribute('data-total', total);
+            if ( selectAllLink ) {
+                selectAllLink.textContent = 'Select all ' + total.toLocaleString() + ' across all pages';
+            }
         }
 
         // Reset the cross-page flag back to per-page selection
@@ -106,12 +116,49 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // Per-row Delete link: confirm before following
+        // Per-row Mark as human / Delete — AJAX, no reload. The links' href
+        // remains a working fallback if this handler never attaches.
         cleanupForm.addEventListener('click', function ( e ) {
-            const del = e.target.closest('.rar-row-delete');
-            if ( del && ! confirm('Permanently delete this click? This cannot be undone.') ) {
-                e.preventDefault();
+            const link = e.target.closest('.rar-row-human, .rar-row-delete');
+            if ( ! link ) return;
+            e.preventDefault();
+
+            const isDelete = link.classList.contains('rar-row-delete');
+            if ( isDelete && ! confirm('Permanently delete this click? This cannot be undone.') ) {
+                return;
             }
+
+            const body = new URLSearchParams();
+            body.append('action', 'rar_bot_cleanup_row');
+            body.append('row_action', link.getAttribute('data-action'));
+            body.append('click_id', link.getAttribute('data-click-id'));
+            body.append('nonce', link.getAttribute('data-nonce'));
+
+            link.style.pointerEvents = 'none'; // guard against a double-click
+
+            fetch(ajaxurl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body.toString()
+            })
+            .then(function ( r ) { return r.json(); })
+            .then(function ( result ) {
+                if ( ! result.success ) {
+                    alert('Action failed: ' + ( result.data && result.data.message ? result.data.message : 'Unknown error' ));
+                    link.style.pointerEvents = '';
+                    return;
+                }
+                // Drop the row from the table and resync the cross-page total
+                const row = link.closest('tr');
+                if ( row && row.parentNode ) row.parentNode.removeChild(row);
+                setTotal(result.data.remaining);
+                refreshBanner();
+            })
+            .catch(function () {
+                alert('Request failed. Please try again.');
+                link.style.pointerEvents = '';
+            });
         });
 
         // Bulk submit guard
