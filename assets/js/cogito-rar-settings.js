@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Per-row Mark as human / Mark as unknown / Delete — AJAX, no reload.
         // The links' href remains a working fallback if this never attaches.
         cleanupForm.addEventListener('click', function ( e ) {
-            const link = e.target.closest('.rar-row-human, .rar-row-unknown, .rar-row-delete');
+            const link = e.target.closest('.rar-row-human, .rar-row-unknown, .rar-row-bot, .rar-row-delete');
             if ( ! link ) return;
             e.preventDefault();
 
@@ -150,20 +150,31 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
 
-                const row = link.closest('tr');
+                const row    = link.closest('tr');
+                const action = result.data.action;
 
-                if ( result.data.action === 'mark_unknown' ) {
-                    // Row stays (Unknown is still shown here) — update it in place
-                    const icon = row ? row.querySelector('.column-type .dashicons') : null;
-                    if ( icon ) {
-                        icon.className = 'dashicons dashicons-editor-help';
-                        icon.setAttribute('title', 'Click from unknown traffic type – further investigation required');
+                if ( action === 'mark_unknown' || action === 'flag_bot' ) {
+                    // Row stays in this table (both bot and unknown are shown) —
+                    // update it in place and flip its row-action state.
+                    const rowActions = row ? row.querySelector('.row-actions') : null;
+                    const icon       = row ? row.querySelector('.column-type .dashicons') : null;
+                    const nameCell   = row ? row.querySelector('.column-bot_name') : null;
+
+                    if ( action === 'mark_unknown' ) {
+                        if ( rowActions ) rowActions.setAttribute('data-state', 'unknown');
+                        if ( icon ) {
+                            icon.className = 'dashicons dashicons-editor-help';
+                            icon.setAttribute('title', 'Click from unknown traffic type – further investigation required');
+                        }
+                        if ( nameCell ) nameCell.textContent = 'n/a';
+                    } else {
+                        if ( rowActions ) rowActions.setAttribute('data-state', 'bot');
+                        if ( icon ) {
+                            icon.className = 'dashicons dashicons-welcome-view-site';
+                            icon.setAttribute('title', 'Known Bot');
+                        }
+                        if ( nameCell ) nameCell.textContent = 'Manually flagged';
                     }
-                    const nameCell = row ? row.querySelector('.column-bot_name') : null;
-                    if ( nameCell ) nameCell.textContent = 'n/a';
-                    // The action no longer applies once the row is Unknown
-                    const unknownSpan = row ? row.querySelector('.rar-unknown-action') : null;
-                    if ( unknownSpan && unknownSpan.parentNode ) unknownSpan.parentNode.removeChild(unknownSpan);
                     link.style.pointerEvents = '';
                 } else {
                     // Mark as human / Delete: the row leaves this table
@@ -191,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const allPages = flagInput && flagInput.value === '1';
             const checked  = checkedCount();
 
-            if ( action !== 'delete' && action !== 'mark_human' && action !== 'mark_unknown' ) {
+            if ( action !== 'delete' && action !== 'mark_human' && action !== 'mark_unknown' && action !== 'flag_bot' ) {
                 e.preventDefault();
                 alert('Choose an action from the Bulk actions menu first.');
                 return;
