@@ -310,9 +310,13 @@ class Cogito_RAR_Click_Logger {
             $ref_norm  = $normalise( $referrer );
 
             if ( '' === $ref_norm && ! $had_cookie ) {
-                // Direct hit from a client that has never loaded a site page
-                $bot_or_not = 1;
-                $bot_name   = 'No referrer or site cookie';
+                // No referrer AND never visited the site. Suspicious, but not
+                // proof: a first-time visitor pasting a shared link looks the
+                // same. Leave as Unknown (2) rather than Bot — a hard bot flag
+                // stays reserved for the corroborated signals above (UA / PTR /
+                // IP / ASN / org / live list).
+                $bot_or_not = 2;
+                $bot_name   = 'No referrer or cookie';
             } elseif ( $ref_norm === $home_norm ) {
                 // Bare homepage referrer: only Moto Partner links (homepage
                 // native ads) legitimately produce this. On any other link
