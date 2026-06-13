@@ -40,6 +40,7 @@ class Cogito_RAR_Bot_Cleanup {
 
         $table = new Cogito_RAR_Bot_Cleanup_Table();
         $table->prepare_items();
+        $total = (int) $table->get_pagination_arg( 'total_items' );
 
         // POST form: deletion is destructive, so it must never travel by GET.
         // Action URL pins the form back to this tab.
@@ -52,6 +53,15 @@ class Cogito_RAR_Bot_Cleanup {
         echo '<div class="rarlinks-table-wrapper">';
         echo '<form method="post" action="' . esc_url( $form_url ) . '" class="rar-bot-cleanup-form">';
         wp_nonce_field( 'rar_bot_cleanup_bulk', 'rar_bot_cleanup_nonce' );
+
+        // "Select all across all pages" banner (Redirection-plugin style).
+        // Hidden until the whole page is ticked; JS toggles it and sets the flag.
+        echo '<div class="rar-select-all-banner" data-total="' . esc_attr( $total ) . '" hidden>';
+        echo '<span class="rar-select-all-msg"></span>';
+        echo '<a href="#" class="rar-select-all-link">Select all ' . esc_html( number_format( $total ) ) . ' across all pages</a>';
+        echo '<input type="hidden" name="rar_select_all_pages" value="0" class="rar-select-all-flag" />';
+        echo '</div>';
+
         $table->display();
         echo '</form>';
         echo '</div>';

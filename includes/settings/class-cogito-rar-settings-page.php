@@ -17,6 +17,8 @@ class Cogito_RAR_Settings_Page {
     public static function init() {
         add_action( 'admin_menu', [ self::class, 'add_settings_page' ], 11 );
         add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_assets' ] );
+        // Persist the "Bot rows per page" Screen Option (Reports tab) to user meta
+        add_filter( 'set-screen-option', [ self::class, 'save_screen_option' ], 10, 3 );
     }
 
     /**
@@ -24,7 +26,7 @@ class Cogito_RAR_Settings_Page {
      * Priority 11 + array order places it beneath "View Clicks".
      */
     public static function add_settings_page() {
-        add_submenu_page(
+        $hook = add_submenu_page(
             'edit.php?post_type=rar_redirect',
             'RARLinks Settings',
             'Settings',
@@ -32,6 +34,32 @@ class Cogito_RAR_Settings_Page {
             'rar_settings',
             [ self::class, 'render' ]
         );
+
+        // Register the Screen Option only on this page's load
+        add_action( "load-$hook", [ self::class, 'add_screen_options' ] );
+    }
+
+    /**
+     * Registers the "Bot rows per page" Screen Option — only on the Reports
+     * tab, where the Bot Cleanup table lives. The table reads this value via
+     * get_items_per_page( 'rar_bot_cleanup_per_page' ).
+     */
+    public static function add_screen_options() {
+        if ( ( $_GET['tab'] ?? '' ) !== 'reports' ) {
+            return;
+        }
+        add_screen_option( 'per_page', [
+            'label'   => 'Bot rows per page',
+            'default' => 100,
+            'option'  => 'rar_bot_cleanup_per_page',
+        ] );
+    }
+
+    /**
+     * Saves the per-page value (WP discards it unless a filter returns it).
+     */
+    public static function save_screen_option( $status, $option, $value ) {
+        return ( 'rar_bot_cleanup_per_page' === $option ) ? (int) $value : $status;
     }
 
     /**

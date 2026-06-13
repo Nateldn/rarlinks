@@ -290,4 +290,17 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
 }
+
+/* "Select all across pages" banner (Redirection-style) */
+.rar-select-all-banner {
+    background: #f6f7f7;
+    border: 1px solid #c3c4c7;
+    padding: 0.5em 0.75em;
+    margin: 0.5em 0;
+}
+
+.rar-select-all-banner .rar-select-all-link {
+    text-decoration: underline;
+    cursor: pointer;
+}
         
