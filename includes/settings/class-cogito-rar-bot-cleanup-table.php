@@ -33,8 +33,9 @@ class Cogito_RAR_Bot_Cleanup_Table extends Cogito_RAR_Clicks_List_Table {
      */
     public function get_bulk_actions() {
         return [
-            'delete'     => 'Delete',
-            'mark_human' => 'Mark as human (not a bot)',
+            'delete'       => 'Delete',
+            'mark_human'   => 'Mark as human (not a bot)',
+            'mark_unknown' => 'Mark as unknown',
         ];
     }
 
@@ -63,13 +64,21 @@ class Cogito_RAR_Bot_Cleanup_Table extends Cogito_RAR_Clicks_List_Table {
         ], admin_url( 'edit.php' ) );
 
         // One nonce action per row id covers both the no-JS links and the AJAX path
-        $nonce      = wp_create_nonce( 'rar_row_action_' . $id );
-        $human_url  = wp_nonce_url( add_query_arg( [ 'rar_row_action' => 'mark_human', 'click_id' => $id ], $base ), 'rar_row_action_' . $id );
-        $delete_url = wp_nonce_url( add_query_arg( [ 'rar_row_action' => 'delete', 'click_id' => $id ], $base ), 'rar_row_action_' . $id );
+        $nonce       = wp_create_nonce( 'rar_row_action_' . $id );
+        $human_url   = wp_nonce_url( add_query_arg( [ 'rar_row_action' => 'mark_human', 'click_id' => $id ], $base ), 'rar_row_action_' . $id );
+        $unknown_url = wp_nonce_url( add_query_arg( [ 'rar_row_action' => 'mark_unknown', 'click_id' => $id ], $base ), 'rar_row_action_' . $id );
+        $delete_url  = wp_nonce_url( add_query_arg( [ 'rar_row_action' => 'delete', 'click_id' => $id ], $base ), 'rar_row_action_' . $id );
 
         // href is the no-JS fallback; data-* attributes drive the AJAX upgrade
         $html  = '<div class="row-actions">';
         $html .= '<span class="rar-rescue"><a href="' . esc_url( $human_url ) . '" class="rar-row-human" data-click-id="' . $id . '" data-action="mark_human" data-nonce="' . esc_attr( $nonce ) . '">Mark as human</a> | </span>';
+
+        // "Mark as unknown" only makes sense on rows currently flagged Bot (1);
+        // a row that is already Unknown (2) stays put with nothing to change.
+        if ( (int) $item->bot_or_not === 1 ) {
+            $html .= '<span class="rar-unknown-action"><a href="' . esc_url( $unknown_url ) . '" class="rar-row-unknown" data-click-id="' . $id . '" data-action="mark_unknown" data-nonce="' . esc_attr( $nonce ) . '">Mark as unknown</a> | </span>';
+        }
+
         $html .= '<span class="trash"><a href="' . esc_url( $delete_url ) . '" class="rar-row-delete" data-click-id="' . $id . '" data-action="delete" data-nonce="' . esc_attr( $nonce ) . '">Delete</a></span>';
         $html .= '</div>';
 

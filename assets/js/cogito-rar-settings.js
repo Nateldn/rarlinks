@@ -116,10 +116,10 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // Per-row Mark as human / Delete — AJAX, no reload. The links' href
-        // remains a working fallback if this handler never attaches.
+        // Per-row Mark as human / Mark as unknown / Delete — AJAX, no reload.
+        // The links' href remains a working fallback if this never attaches.
         cleanupForm.addEventListener('click', function ( e ) {
-            const link = e.target.closest('.rar-row-human, .rar-row-delete');
+            const link = e.target.closest('.rar-row-human, .rar-row-unknown, .rar-row-delete');
             if ( ! link ) return;
             e.preventDefault();
 
@@ -149,9 +149,27 @@ document.addEventListener('DOMContentLoaded', function () {
                     link.style.pointerEvents = '';
                     return;
                 }
-                // Drop the row from the table and resync the cross-page total
+
                 const row = link.closest('tr');
-                if ( row && row.parentNode ) row.parentNode.removeChild(row);
+
+                if ( result.data.action === 'mark_unknown' ) {
+                    // Row stays (Unknown is still shown here) — update it in place
+                    const icon = row ? row.querySelector('.column-type .dashicons') : null;
+                    if ( icon ) {
+                        icon.className = 'dashicons dashicons-editor-help';
+                        icon.setAttribute('title', 'Click from unknown traffic type – further investigation required');
+                    }
+                    const nameCell = row ? row.querySelector('.column-bot_name') : null;
+                    if ( nameCell ) nameCell.textContent = 'n/a';
+                    // The action no longer applies once the row is Unknown
+                    const unknownSpan = row ? row.querySelector('.rar-unknown-action') : null;
+                    if ( unknownSpan && unknownSpan.parentNode ) unknownSpan.parentNode.removeChild(unknownSpan);
+                    link.style.pointerEvents = '';
+                } else {
+                    // Mark as human / Delete: the row leaves this table
+                    if ( row && row.parentNode ) row.parentNode.removeChild(row);
+                }
+
                 setTotal(result.data.remaining);
                 refreshBanner();
             })
@@ -173,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const allPages = flagInput && flagInput.value === '1';
             const checked  = checkedCount();
 
-            if ( action !== 'delete' && action !== 'mark_human' ) {
+            if ( action !== 'delete' && action !== 'mark_human' && action !== 'mark_unknown' ) {
                 e.preventDefault();
                 alert('Choose an action from the Bulk actions menu first.');
                 return;

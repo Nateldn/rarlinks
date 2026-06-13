@@ -36,6 +36,11 @@ class Cogito_RAR_Bot_Cleanup {
             echo '<div class="notice notice-success is-dismissible"><p>';
             echo esc_html( sprintf( '%d row%s marked as human.', $rescued, $rescued === 1 ? '' : 's' ) );
             echo '</p></div>';
+        } elseif ( isset( $_GET['flagged_unknown'] ) ) {
+            $unknown = absint( $_GET['flagged_unknown'] );
+            echo '<div class="notice notice-success is-dismissible"><p>';
+            echo esc_html( sprintf( '%d row%s marked as unknown.', $unknown, $unknown === 1 ? '' : 's' ) );
+            echo '</p></div>';
         }
 
         $table = new Cogito_RAR_Bot_Cleanup_Table();
