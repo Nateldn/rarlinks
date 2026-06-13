@@ -75,7 +75,7 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
         global $wpdb;
         $table = "{$wpdb->prefix}rarlinks_clicks";
     
-        $per_page     = $this->get_items_per_page('rar_clicks_per_page', 100);
+        $per_page     = $this->get_items_per_page( $this->get_per_page_option(), 100 );
         $current_page = $this->get_pagenum();
         $offset       = ( $current_page - 1 ) * $per_page;
     
@@ -249,6 +249,16 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
         return [];
     }
 
+    /**
+     * The user-meta key backing the "per page" Screen Option for this table.
+     * Subclasses override it so each screen keeps its own page-size setting.
+     *
+     * @return string
+     */
+    protected function get_per_page_option() {
+        return 'rar_clicks_per_page';
+    }
+
     // IMPORTANT: Keep this method commented out. WP_List_Table handles row iteration.
     // If uncommented, it will recursively call single_row() and not work as intended
     // public function display_rows() {
@@ -294,10 +304,10 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
             // bypassing any potential internal WP_List_Table ambiguities.
             echo $this->column_default( $item, $column_name );
 
-            // The primary column also carries the "Flag as bot" row action and
-            // its hidden signal panel (WP core CSS reveals .row-actions on hover).
+            // The primary column carries the row actions (the clicks table's
+            // flag-as-bot panel; subclasses substitute their own actions).
             if ( $column_name === $primary ) {
-                echo $this->render_flag_bot_action( $item );
+                echo $this->render_row_actions( $item );
             }
 
             echo "</td>"; // Close table data cell
@@ -305,17 +315,16 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
     }
 
     /**
-     * Renders the "Flag as bot" row action and its hidden signal panel.
-     *
-     * The panel lists this row's four signals (IP, hostname, org, user agent)
-     * as checkboxes — all UNTICKED by default, so a hasty confirm only flags
-     * this one row and adds nothing to the live bot list. Checkboxes carry only
-     * the signal TYPE; values are read server-side from the DB row.
+     * Renders the primary column's row actions. On the clicks table this is
+     * the "Flag as bot" link plus its hidden signal panel (the checkboxes are
+     * UNTICKED by default, so a hasty confirm only flags this one row and adds
+     * nothing to the live bot list). Signal checkboxes carry only the TYPE;
+     * values are read server-side from the DB row. Subclasses override this.
      *
      * @param object $item The current click row.
-     * @return string Panel HTML.
+     * @return string Row-actions HTML.
      */
-    protected function render_flag_bot_action( $item ) {
+    protected function render_row_actions( $item ) {
         // Signals available on this row — empty values are skipped (nothing to blacklist)
         $signals = [
             'ip'       => [ 'label' => 'IP',         'value' => $item->ip_address ],

@@ -12,6 +12,28 @@ class Cogito_RAR_Dashboard {
 	public static function init() {
 		add_action( 'admin_menu', [ self::class, 'add_dashboard_page' ] );
 		add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_assets' ] );
+		// Persist the "Clicks per page" Screen Option to user meta
+		add_filter( 'set-screen-option', [ self::class, 'save_screen_option' ], 10, 3 );
+	}
+
+	/**
+	 * Registers the "Clicks per page" Screen Option. Hooked on load-{page} so
+	 * the Screen Options tab shows the field. The list table already reads
+	 * this value via get_items_per_page( 'rar_clicks_per_page' ).
+	 */
+	public static function add_screen_options() {
+		add_screen_option( 'per_page', [
+			'label'   => 'Clicks per page',
+			'default' => 100,
+			'option'  => 'rar_clicks_per_page',
+		] );
+	}
+
+	/**
+	 * Saves the per-page value (WP discards it unless a filter returns it).
+	 */
+	public static function save_screen_option( $status, $option, $value ) {
+		return ( 'rar_clicks_per_page' === $option ) ? (int) $value : $status;
 	}
 
 	/**
@@ -37,7 +59,7 @@ class Cogito_RAR_Dashboard {
 	}
 
 	public static function add_dashboard_page() {
-		add_submenu_page(
+		$hook = add_submenu_page(
 			'edit.php?post_type=rar_redirect',
 			'RARLinks Stats',
 			'View Clicks',
@@ -45,6 +67,9 @@ class Cogito_RAR_Dashboard {
 			'rar_dashboard',
 			[ self::class, 'render_dashboard' ]
 		);
+
+		// Register the Screen Option only on this page's load
+		add_action( "load-$hook", [ self::class, 'add_screen_options' ] );
 	}
 
 	public static function render_dashboard() {

@@ -39,11 +39,39 @@ class Cogito_RAR_Bot_Cleanup_Table extends Cogito_RAR_Clicks_List_Table {
     }
 
     /**
-     * No flag-as-bot row action here — every row is already a bot/unknown,
-     * and the flag-as-bot script isn't enqueued on the settings page.
+     * Keep this screen's page-size separate from the View Clicks table.
      */
-    protected function render_flag_bot_action( $item ) {
-        return '';
+    protected function get_per_page_option() {
+        return 'rar_bot_cleanup_per_page';
+    }
+
+    /**
+     * Per-row actions: Mark as human (rescue a false positive) and Delete.
+     * Both are nonce-protected GET links handled by
+     * Cogito_RAR_Bot_Cleanup_Actions::maybe_handle_row_action(). No
+     * flag-as-bot panel here — every row is already a bot/unknown.
+     *
+     * @param object $item The current click row.
+     * @return string Row-actions HTML.
+     */
+    protected function render_row_actions( $item ) {
+        $id   = absint( $item->id );
+        $base = add_query_arg( [
+            'post_type' => 'rar_redirect',
+            'page'      => 'rar_settings',
+            'tab'       => 'reports',
+        ], admin_url( 'edit.php' ) );
+
+        // One nonce action per row id covers both links
+        $human_url  = wp_nonce_url( add_query_arg( [ 'rar_row_action' => 'mark_human', 'click_id' => $id ], $base ), 'rar_row_action_' . $id );
+        $delete_url = wp_nonce_url( add_query_arg( [ 'rar_row_action' => 'delete', 'click_id' => $id ], $base ), 'rar_row_action_' . $id );
+
+        $html  = '<div class="row-actions">';
+        $html .= '<span class="rar-rescue"><a href="' . esc_url( $human_url ) . '">Mark as human</a> | </span>';
+        $html .= '<span class="trash"><a href="' . esc_url( $delete_url ) . '" class="rar-row-delete">Delete</a></span>';
+        $html .= '</div>';
+
+        return $html;
     }
 }
 

@@ -50,13 +50,72 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- Bot Cleanup Logic ---
-    // Verify-before-delete: block useless submissions and require explicit
-    // confirmation before the permanent bulk delete goes through.
+    // Verify-before-delete plus a "select all across pages" affordance.
     const cleanupForm = document.querySelector('.rar-bot-cleanup-form');
 
     if ( cleanupForm ) {
+        const banner    = cleanupForm.querySelector('.rar-select-all-banner');
+        const flagInput = cleanupForm.querySelector('.rar-select-all-flag');
+        const selectAllLink = cleanupForm.querySelector('.rar-select-all-link');
+        const total     = banner ? parseInt(banner.getAttribute('data-total'), 10) : 0;
+
+        function checkedCount() {
+            return cleanupForm.querySelectorAll('input[name="bulk-select[]"]:checked').length;
+        }
+        function rowCount() {
+            return cleanupForm.querySelectorAll('input[name="bulk-select[]"]').length;
+        }
+
+        // Reset the cross-page flag back to per-page selection
+        function clearSelectAll() {
+            if ( flagInput ) flagInput.value = '0';
+            if ( selectAllLink ) selectAllLink.hidden = false;
+        }
+
+        // Show the banner only when the whole page is ticked and more rows
+        // exist on other pages
+        function refreshBanner() {
+            if ( ! banner ) return;
+            const rows = rowCount();
+            const sel  = checkedCount();
+            if ( rows > 0 && sel === rows && total > rows ) {
+                banner.hidden = false;
+                if ( ! flagInput || flagInput.value !== '1' ) {
+                    banner.querySelector('.rar-select-all-msg').textContent =
+                        'All ' + sel + ' on this page selected. ';
+                }
+            } else {
+                banner.hidden = true;
+                clearSelectAll();
+            }
+        }
+
+        cleanupForm.addEventListener('change', function ( e ) {
+            if ( e.target.matches('input[name="bulk-select[]"], #cb-select-all-1, #cb-select-all-2') ) {
+                refreshBanner();
+            }
+        });
+
+        if ( selectAllLink ) {
+            selectAllLink.addEventListener('click', function ( e ) {
+                e.preventDefault();
+                if ( flagInput ) flagInput.value = '1';
+                banner.querySelector('.rar-select-all-msg').textContent =
+                    'All ' + total + ' across all pages selected. ';
+                selectAllLink.hidden = true;
+            });
+        }
+
+        // Per-row Delete link: confirm before following
+        cleanupForm.addEventListener('click', function ( e ) {
+            const del = e.target.closest('.rar-row-delete');
+            if ( del && ! confirm('Permanently delete this click? This cannot be undone.') ) {
+                e.preventDefault();
+            }
+        });
+
+        // Bulk submit guard
         cleanupForm.addEventListener('submit', function ( e ) {
-            // Resolve the chosen bulk action from either dropdown (top/bottom)
             const topAction    = cleanupForm.querySelector('select[name="action"]');
             const bottomAction = cleanupForm.querySelector('select[name="action2"]');
             let   action       = topAction && topAction.value !== '-1' ? topAction.value : '';
@@ -64,14 +123,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 action = bottomAction.value;
             }
 
-            const checked = cleanupForm.querySelectorAll('input[name="bulk-select[]"]:checked').length;
+            const allPages = flagInput && flagInput.value === '1';
+            const checked  = checkedCount();
 
             if ( action !== 'delete' && action !== 'mark_human' ) {
                 e.preventDefault();
                 alert('Choose an action from the Bulk actions menu first.');
                 return;
             }
-
             if ( checked === 0 ) {
                 e.preventDefault();
                 alert('Tick at least one row first.');
@@ -79,8 +138,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             // Only deletion is irreversible — marking human needs no confirm
-            const noun = checked === 1 ? 'row' : 'rows';
-            if ( action === 'delete' && ! confirm('Permanently delete ' + checked + ' selected ' + noun + '? This cannot be undone.') ) {
+            const count = allPages ? total : checked;
+            const noun  = count === 1 ? 'row' : 'rows';
+            if ( action === 'delete' && ! confirm('Permanently delete ' + count + ' ' + noun + '? This cannot be undone.') ) {
                 e.preventDefault();
             }
         });
