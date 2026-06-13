@@ -303,4 +303,15 @@
     text-decoration: underline;
     cursor: pointer;
 }
+
+/* Bot Cleanup row actions: show only the up/down action matching the row's
+   current state (Bot rows offer "Mark as unknown"; Unknown rows offer
+   "Flag as bot"). JS flips data-state after an in-place change. */
+.rar-bot-cleanup .row-actions[data-state="bot"] .rar-state-unknown {
+    display: none;
+}
+
+.rar-bot-cleanup .row-actions[data-state="unknown"] .rar-state-bot {
+    display: none;
+}
         

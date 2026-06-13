@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Cogito_RAR_Bot_Cleanup_Actions {
 
     /** Actions this handler accepts, from any of its three entry points. */
-    const ACTIONS = [ 'delete', 'mark_human', 'mark_unknown' ];
+    const ACTIONS = [ 'delete', 'mark_human', 'mark_unknown', 'flag_bot' ];
 
     /**
      * Registers the handlers. admin_init runs before any page output, so the
@@ -47,6 +47,8 @@ class Cogito_RAR_Bot_Cleanup_Actions {
             $sql = "DELETE FROM $table WHERE $where";
         } elseif ( $action === 'mark_unknown' ) {
             $sql = "UPDATE $table SET bot_or_not = 2, bot_name = '' WHERE $where";
+        } elseif ( $action === 'flag_bot' ) {
+            $sql = "UPDATE $table SET bot_or_not = 1, bot_name = 'Manually flagged' WHERE $where";
         } else { // mark_human
             $sql = "UPDATE $table SET bot_or_not = 0, bot_name = '' WHERE $where";
         }
@@ -66,6 +68,9 @@ class Cogito_RAR_Bot_Cleanup_Actions {
         }
         if ( $action === 'mark_unknown' ) {
             return 'flagged_unknown';
+        }
+        if ( $action === 'flag_bot' ) {
+            return 'flagged_bot';
         }
         return 'rescued';
     }
