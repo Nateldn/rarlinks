@@ -62,13 +62,15 @@ class Cogito_RAR_Bot_Cleanup_Table extends Cogito_RAR_Clicks_List_Table {
             'tab'       => 'reports',
         ], admin_url( 'edit.php' ) );
 
-        // One nonce action per row id covers both links
+        // One nonce action per row id covers both the no-JS links and the AJAX path
+        $nonce      = wp_create_nonce( 'rar_row_action_' . $id );
         $human_url  = wp_nonce_url( add_query_arg( [ 'rar_row_action' => 'mark_human', 'click_id' => $id ], $base ), 'rar_row_action_' . $id );
         $delete_url = wp_nonce_url( add_query_arg( [ 'rar_row_action' => 'delete', 'click_id' => $id ], $base ), 'rar_row_action_' . $id );
 
+        // href is the no-JS fallback; data-* attributes drive the AJAX upgrade
         $html  = '<div class="row-actions">';
-        $html .= '<span class="rar-rescue"><a href="' . esc_url( $human_url ) . '">Mark as human</a> | </span>';
-        $html .= '<span class="trash"><a href="' . esc_url( $delete_url ) . '" class="rar-row-delete">Delete</a></span>';
+        $html .= '<span class="rar-rescue"><a href="' . esc_url( $human_url ) . '" class="rar-row-human" data-click-id="' . $id . '" data-action="mark_human" data-nonce="' . esc_attr( $nonce ) . '">Mark as human</a> | </span>';
+        $html .= '<span class="trash"><a href="' . esc_url( $delete_url ) . '" class="rar-row-delete" data-click-id="' . $id . '" data-action="delete" data-nonce="' . esc_attr( $nonce ) . '">Delete</a></span>';
         $html .= '</div>';
 
         return $html;
