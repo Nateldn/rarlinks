@@ -154,8 +154,8 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
             }
 
             // Rows flagged by the referrer + cookie heuristics
-            if ( $bot_name_value === 'No referrer or site cookie' ) {
-                return '<span title="Hit the redirect URL directly without ever loading a site page">' . $display_name . '</span>';
+            if ( $bot_name_value === 'No referrer or cookie' ) {
+                return '<span title="No referrer and no site cookie — suspicious, left as Unknown">' . $display_name . '</span>';
             }
             if ( $bot_name_value === 'Homepage referrer (non-partner)' ) {
                 return '<span title="Spoofed homepage referrer on a link that is not a homepage native ad">' . $display_name . '</span>';
