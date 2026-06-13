@@ -1,6 +1,7 @@
 <?php
 /**
- * Handles the Bot Cleanup bulk delete POST.
+ * Handles the Bot Cleanup row + bulk actions (Mark as human / Mark as
+ * unknown / Delete).
  *
  * Server logic only — the review table and form live in
  * Cogito_RAR_Bot_Cleanup / Cogito_RAR_Bot_Cleanup_Table.
@@ -14,9 +15,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Cogito_RAR_Bot_Cleanup_Actions {
 
+    /** Actions this handler accepts, from any of its three entry points. */
+    const ACTIONS = [ 'delete', 'mark_human', 'mark_unknown' ];
+
     /**
-     * Registers the handler. admin_init runs before any page output, so the
-     * post-delete redirect can still send headers.
+     * Registers the handlers. admin_init runs before any page output, so the
+     * post-action redirects can still send headers.
      */
     public static function init() {
         add_action( 'admin_init', [ self::class, 'maybe_handle_delete' ] );
@@ -25,16 +29,58 @@ class Cogito_RAR_Bot_Cleanup_Actions {
     }
 
     /**
-     * AJAX twin of maybe_handle_row_action(): Mark as human / Delete a single
-     * row without a page reload. Same guards (per-row nonce, capability, query
-     * constrained to bot/unknown). Returns the remaining bot/unknown count so
-     * the JS can resync the select-all banner.
+     * Runs an action against rows matching a WHERE clause.
+     *
+     * Every query is constrained to bot_or_not IN (1,2) by the caller's WHERE,
+     * so human rows can never be touched — even via a tampered request.
+     *
+     * @param string $action     One of self::ACTIONS.
+     * @param string $where      SQL WHERE body (already includes the bot/unknown guard).
+     * @param array  $where_args Values for any %d placeholders in $where (empty = none).
+     * @return int Rows affected.
+     */
+    private static function apply_action( $action, $where, $where_args = [] ) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rarlinks_clicks';
+
+        if ( $action === 'delete' ) {
+            $sql = "DELETE FROM $table WHERE $where";
+        } elseif ( $action === 'mark_unknown' ) {
+            $sql = "UPDATE $table SET bot_or_not = 2, bot_name = '' WHERE $where";
+        } else { // mark_human
+            $sql = "UPDATE $table SET bot_or_not = 0, bot_name = '' WHERE $where";
+        }
+
+        if ( ! empty( $where_args ) ) {
+            return (int) $wpdb->query( $wpdb->prepare( $sql, $where_args ) );
+        }
+        return (int) $wpdb->query( $sql );
+    }
+
+    /**
+     * The redirect query-arg used to report each action's result count.
+     */
+    private static function result_param( $action ) {
+        if ( $action === 'delete' ) {
+            return 'deleted';
+        }
+        if ( $action === 'mark_unknown' ) {
+            return 'flagged_unknown';
+        }
+        return 'rescued';
+    }
+
+    /**
+     * AJAX twin of maybe_handle_row_action(): act on a single row without a
+     * page reload. Same guards (per-row nonce, capability, bot/unknown only).
+     * Returns the remaining bot/unknown count so the JS can resync the
+     * select-all banner.
      */
     public static function ajax_row_action() {
         $id     = isset( $_POST['click_id'] ) ? absint( $_POST['click_id'] ) : 0;
         $action = isset( $_POST['row_action'] ) ? sanitize_key( $_POST['row_action'] ) : '';
 
-        if ( ! $id || ! in_array( $action, [ 'delete', 'mark_human' ], true ) ) {
+        if ( ! $id || ! in_array( $action, self::ACTIONS, true ) ) {
             wp_send_json_error( [ 'message' => 'Invalid request.' ], 400 );
         }
 
@@ -46,21 +92,14 @@ class Cogito_RAR_Bot_Cleanup_Actions {
             wp_send_json_error( [ 'message' => 'Insufficient permissions.' ], 403 );
         }
 
-        global $wpdb;
-        $table = $wpdb->prefix . 'rarlinks_clicks';
-
-        // Constrained to bot/unknown: a human row can never be hit here
-        if ( $action === 'delete' ) {
-            $affected = (int) $wpdb->query( $wpdb->prepare( "DELETE FROM $table WHERE id = %d AND bot_or_not IN (1, 2)", $id ) );
-        } else {
-            $affected = (int) $wpdb->query( $wpdb->prepare( "UPDATE $table SET bot_or_not = 0, bot_name = '' WHERE id = %d AND bot_or_not IN (1, 2)", $id ) );
-        }
+        $affected = self::apply_action( $action, 'id = %d AND bot_or_not IN (1, 2)', [ $id ] );
 
         if ( $affected < 1 ) {
             wp_send_json_error( [ 'message' => 'Row not found or already changed.' ], 404 );
         }
 
-        // Remaining bot/unknown rows, for the select-all banner total
+        global $wpdb;
+        $table     = $wpdb->prefix . 'rarlinks_clicks';
         $remaining = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table WHERE bot_or_not IN (1, 2)" );
 
         wp_send_json_success( [
@@ -71,10 +110,9 @@ class Cogito_RAR_Bot_Cleanup_Actions {
     }
 
     /**
-     * Processes the bulk delete if this request is a Bot Cleanup submission.
-     * Verifies nonce and capability before touching the database, deletes
-     * only rows still classified bot/unknown, then redirects (PRG pattern)
-     * back to the Reports tab with the deleted count.
+     * Processes a bulk submission. Verifies nonce and capability, applies the
+     * chosen action to the selected rows (or every bot/unknown row when
+     * "select all across pages" is set), then redirects (PRG) with the count.
      */
     public static function maybe_handle_delete() {
         // Cheap bail-out: not our form
@@ -102,12 +140,9 @@ class Cogito_RAR_Bot_Cleanup_Actions {
             }
         }
 
-        if ( ! in_array( $action, [ 'delete', 'mark_human' ], true ) ) {
+        if ( ! in_array( $action, self::ACTIONS, true ) ) {
             return; // No bulk action chosen — nothing to do
         }
-
-        global $wpdb;
-        $table = $wpdb->prefix . 'rarlinks_clicks';
 
         // "Select all across all pages" — apply to every bot/unknown row,
         // ignoring the per-page id list (the Redirection-style banner).
@@ -120,32 +155,15 @@ class Cogito_RAR_Bot_Cleanup_Actions {
 
         $affected = 0;
 
-        // Every query is constrained to bot_or_not IN (1,2), so human rows
-        // can never be touched here — even with a tampered request.
         if ( $select_all ) {
-            if ( $action === 'delete' ) {
-                $affected = (int) $wpdb->query( "DELETE FROM $table WHERE bot_or_not IN (1, 2)" );
-            } else {
-                $affected = (int) $wpdb->query( "UPDATE $table SET bot_or_not = 0, bot_name = '' WHERE bot_or_not IN (1, 2)" );
-            }
+            $affected = self::apply_action( $action, 'bot_or_not IN (1, 2)' );
         } elseif ( ! empty( $ids ) ) {
             $placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
-
-            if ( $action === 'delete' ) {
-                $affected = (int) $wpdb->query( $wpdb->prepare(
-                    "DELETE FROM $table WHERE id IN ($placeholders) AND bot_or_not IN (1, 2)",
-                    $ids
-                ) );
-            } else {
-                $affected = (int) $wpdb->query( $wpdb->prepare(
-                    "UPDATE $table SET bot_or_not = 0, bot_name = '' WHERE id IN ($placeholders) AND bot_or_not IN (1, 2)",
-                    $ids
-                ) );
-            }
+            $affected     = self::apply_action( $action, "id IN ($placeholders) AND bot_or_not IN (1, 2)", $ids );
         }
 
         // 🔁 Redirect back to the Reports tab (PRG: a refresh can't re-run)
-        $result_param = ( $action === 'delete' ) ? 'deleted' : 'rescued';
+        $result_param = self::result_param( $action );
 
         wp_safe_redirect( add_query_arg( [
             'post_type'    => 'rar_redirect',
@@ -157,8 +175,8 @@ class Cogito_RAR_Bot_Cleanup_Actions {
     }
 
     /**
-     * Handles a single-row action (Mark as human / Delete) from the per-row
-     * links in the Bot Cleanup table. Nonce-protected GET links, WP-core style.
+     * Handles a single-row action from the per-row links (no-JS fallback for
+     * ajax_row_action()). Nonce-protected GET links, WP-core style.
      */
     public static function maybe_handle_row_action() {
         // Cheap bail-out: not one of our row links
@@ -167,7 +185,7 @@ class Cogito_RAR_Bot_Cleanup_Actions {
         }
 
         $action = sanitize_key( $_GET['rar_row_action'] );
-        if ( ! in_array( $action, [ 'delete', 'mark_human' ], true ) ) {
+        if ( ! in_array( $action, self::ACTIONS, true ) ) {
             return;
         }
 
@@ -184,17 +202,8 @@ class Cogito_RAR_Bot_Cleanup_Actions {
             wp_die( 'Insufficient permissions.', '', [ 'response' => 403 ] );
         }
 
-        global $wpdb;
-        $table = $wpdb->prefix . 'rarlinks_clicks';
-
-        // Constrained to bot/unknown: a human row can never be hit here
-        if ( $action === 'delete' ) {
-            $affected     = (int) $wpdb->query( $wpdb->prepare( "DELETE FROM $table WHERE id = %d AND bot_or_not IN (1, 2)", $id ) );
-            $result_param = 'deleted';
-        } else {
-            $affected     = (int) $wpdb->query( $wpdb->prepare( "UPDATE $table SET bot_or_not = 0, bot_name = '' WHERE id = %d AND bot_or_not IN (1, 2)", $id ) );
-            $result_param = 'rescued';
-        }
+        $affected     = self::apply_action( $action, 'id = %d AND bot_or_not IN (1, 2)', [ $id ] );
+        $result_param = self::result_param( $action );
 
         // 🔁 PRG redirect back to the Reports tab
         wp_safe_redirect( add_query_arg( [
