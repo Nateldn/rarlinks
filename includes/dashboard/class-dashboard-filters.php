@@ -33,72 +33,89 @@ class Cogito_RAR_Dashboard_Filters {
 	 * values from being used to break out of the SQL string literals
 	 * they are later interpolated into.
 	 */
-	private static function sanitize_date( $value ) {
+	public static function sanitize_date( $value ) {
 		$value = sanitize_text_field( $value );
 		return preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ? $value : '';
 	}
 
 	/**
-	 * Builds the SQL filter clauses based on user selections.
+	 * Builds timezone-aware SQL date clauses for a quick range and/or a custom
+	 * from/to. Shared by the dashboard and Bot Cleanup. Pure — applies no
+	 * default range; the caller decides whether to default.
 	 *
-	 * @return array An array of SQL filter clauses.
+	 * @param string $range A quick-range key, '' or 'all'.
+	 * @param string $from  Validated YYYY-MM-DD or ''.
+	 * @param string $to    Validated YYYY-MM-DD or ''.
+	 * @return array SQL clauses.
 	 */
-	public static function get_filters() {
-		$filters = [];
-		$params  = self::get_params();
+	public static function date_clauses( $range, $from, $to ) {
+		$clauses = [];
+		$col     = "DATE(CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London'))";
+		$tz      = "CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London')";
 
-		$range        = $params['range'];
-		$from         = $params['from'];
-		$to           = $params['to'];
-		$post_id      = $params['post_id'];
-		$today        = date( 'Y-m-d' );
-
-		// 1. Date Range Logic — default to last 30 days if no filter is set
-if ( empty( $range ) && empty( $from ) && empty( $to ) ) {
-    $range = '30days';
-}
-
-if ( ! empty( $range ) && $range !== 'all' ) {
+		if ( ! empty( $range ) && $range !== 'all' ) {
 			switch ( $range ) {
 				case 'today':
-					$filters[] = "DATE(CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London')) = CURDATE()";
+					$clauses[] = "$col = CURDATE()";
 					break;
 				case 'yesterday':
-					$filters[] = "DATE(CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London')) = CURDATE() - INTERVAL 1 DAY";
+					$clauses[] = "$col = CURDATE() - INTERVAL 1 DAY";
 					break;
 				case '7days':
-					$filters[] = "DATE(CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London')) >= CURDATE() - INTERVAL 6 DAY";
+					$clauses[] = "$col >= CURDATE() - INTERVAL 6 DAY";
 					break;
 				case '14days':
-					$filters[] = "DATE(CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London')) >= CURDATE() - INTERVAL 13 DAY";
+					$clauses[] = "$col >= CURDATE() - INTERVAL 13 DAY";
 					break;
 				case '30days':
-					$filters[] = "DATE(CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London')) >= CURDATE() - INTERVAL 29 DAY";
+					$clauses[] = "$col >= CURDATE() - INTERVAL 29 DAY";
 					break;
 				case 'thismonth':
-					$filters[] = "MONTH(CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London')) = MONTH(CURRENT_DATE()) AND YEAR(CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London')) = YEAR(CURRENT_DATE())";
+					$clauses[] = "MONTH($tz) = MONTH(CURRENT_DATE()) AND YEAR($tz) = YEAR(CURRENT_DATE())";
 					break;
 				case 'lastmonth':
-					$filters[] = "MONTH(CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London')) = MONTH(CURRENT_DATE() - INTERVAL 1 MONTH) AND YEAR(CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London')) = YEAR(CURRENT_DATE() - INTERVAL 1 MONTH)";
+					$clauses[] = "MONTH($tz) = MONTH(CURRENT_DATE() - INTERVAL 1 MONTH) AND YEAR($tz) = YEAR(CURRENT_DATE() - INTERVAL 1 MONTH)";
 					break;
 			}
 		}
 
-		// 2. Custom Date Logic (overrides/augments range if set)
+		// Custom dates override/augment the range. $from/$to are pre-validated
+		// YYYY-MM-DD (sanitize_date), safe to interpolate.
 		if ( $from && $to ) {
-			$filters[] = "DATE(CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London')) BETWEEN '$from' AND '$to'";
+			$clauses[] = "$col BETWEEN '$from' AND '$to'";
 		} elseif ( $from && ! $to ) {
-			$filters[] = "DATE(CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London')) BETWEEN '$from' AND CURDATE()";
+			$clauses[] = "$col BETWEEN '$from' AND CURDATE()";
 		} elseif ( ! $from && $to ) {
-			$filters[] = "DATE(CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London')) = '$to'";
+			$clauses[] = "$col = '$to'";
 		}
 
-		// 3. Post ID Logic
+		return $clauses;
+	}
+
+	/**
+	 * Builds the SQL filter clauses for the (human-only) dashboard.
+	 *
+	 * @return array An array of SQL filter clauses.
+	 */
+	public static function get_filters() {
+		$params  = self::get_params();
+		$range   = $params['range'];
+		$from    = $params['from'];
+		$to      = $params['to'];
+		$post_id = $params['post_id'];
+
+		// Default to last 30 days if no date filter is set
+		if ( empty( $range ) && empty( $from ) && empty( $to ) ) {
+			$range = '30days';
+		}
+
+		$filters = self::date_clauses( $range, $from, $to );
+
 		if ( ! is_null( $post_id ) ) {
 			$filters[] = 'post_id = ' . $post_id;
 		}
 
-		// 4. Human-only: the dashboard is the human reporting interface.
+		// Human-only: the dashboard is the human reporting interface.
 		// Bots and unknowns are excluded here and managed in Bot Cleanup.
 		$filters[] = 'bot_or_not = 0';
 

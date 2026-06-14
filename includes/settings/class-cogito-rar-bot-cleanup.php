@@ -48,7 +48,18 @@ class Cogito_RAR_Bot_Cleanup {
             echo '</p></div>';
         }
 
-        $table = new Cogito_RAR_Bot_Cleanup_Table();
+        // Earliest bot/unknown date, for the date-picker min attribute
+        global $wpdb;
+        $clicks_table = $wpdb->prefix . 'rarlinks_clicks';
+        $min_date     = $wpdb->get_var(
+            "SELECT MIN(DATE(CONVERT_TZ(timestamp, 'America/Los_Angeles', 'Europe/London'))) FROM $clicks_table WHERE bot_or_not IN (1, 2)"
+        );
+
+        // Filter form (type + date) and the resulting WHERE clauses
+        Cogito_RAR_Bot_Cleanup_Filters::render( $min_date );
+        $filters = Cogito_RAR_Bot_Cleanup_Filters::get_filters();
+
+        $table = new Cogito_RAR_Bot_Cleanup_Table( $filters );
         $table->prepare_items();
         $total = (int) $table->get_pagination_arg( 'total_items' );
 
