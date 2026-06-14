@@ -24,6 +24,36 @@ class Cogito_RAR_Flag_Bot {
      */
     public static function init() {
         add_action( 'wp_ajax_rar_flag_bot', [ self::class, 'handle_flag' ] );
+        add_action( 'wp_ajax_rar_mark_unknown', [ self::class, 'handle_mark_unknown' ] );
+    }
+
+    /**
+     * AJAX handler: reclassifies a click as Unknown (bot_or_not = 2) from the
+     * human-only dashboard, so it drops off the dashboard and into Bot Cleanup.
+     */
+    public static function handle_mark_unknown() {
+        global $wpdb;
+
+        if ( ! check_ajax_referer( 'rar_flag_bot_nonce', 'nonce', false ) ) {
+            wp_send_json_error( [ 'message' => 'Invalid security token.' ], 403 );
+        }
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => 'Insufficient permissions.' ], 403 );
+        }
+
+        $click_id = isset( $_POST['click_id'] ) ? absint( $_POST['click_id'] ) : 0;
+        if ( ! $click_id ) {
+            wp_send_json_error( [ 'message' => 'Invalid click ID.' ], 400 );
+        }
+
+        $table   = $wpdb->prefix . 'rarlinks_clicks';
+        $updated = $wpdb->update( $table, [ 'bot_or_not' => 2, 'bot_name' => '' ], [ 'id' => $click_id ] );
+
+        if ( false === $updated ) {
+            wp_send_json_error( [ 'message' => 'Database update failed.' ], 500 );
+        }
+
+        wp_send_json_success( [ 'click_id' => $click_id ] );
     }
 
     /**

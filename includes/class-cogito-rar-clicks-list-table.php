@@ -335,13 +335,19 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
             'ua'       => [ 'label' => 'User agent', 'value' => $item->user_agent ],
         ];
 
-        $html  = '<div class="row-actions"><span class="rar-flag-bot">';
-        $html .= '<a href="#" class="rar-flag-bot-toggle">Flag as bot</a>';
-        $html .= '</span></div>';
+        $nonce = wp_create_nonce( 'rar_flag_bot_nonce' );
+
+        // Reclassify actions. Both remove the row from this human-only table
+        // (the click moves to Bot Cleanup). "Flag as bot" opens the signal
+        // panel below; "Mark as unknown" acts immediately.
+        $html  = '<div class="row-actions">';
+        $html .= '<span class="rar-flag-bot"><a href="#" class="rar-flag-bot-toggle">Flag as bot</a> | </span>';
+        $html .= '<span class="rar-mark-unknown"><a href="#" class="rar-row-unknown" data-click-id="' . absint( $item->id ) . '" data-nonce="' . esc_attr( $nonce ) . '">Mark as unknown</a></span>';
+        $html .= '</div>';
 
         // Hidden panel, revealed by JS. Nonce + row ID travel as data attributes.
         $html .= '<div class="rar-flag-bot-panel" data-click-id="' . absint( $item->id ) . '"';
-        $html .= ' data-nonce="' . esc_attr( wp_create_nonce( 'rar_flag_bot_nonce' ) ) . '" hidden>';
+        $html .= ' data-nonce="' . esc_attr( $nonce ) . '" hidden>';
         $html .= '<p class="rar-flag-bot-intro">Mark this click as a bot. Tick a signal to also add it to the live bot list — <strong>all future clicks matching it will be auto-flagged</strong>.</p>';
 
         foreach ( $signals as $type => $signal ) {
