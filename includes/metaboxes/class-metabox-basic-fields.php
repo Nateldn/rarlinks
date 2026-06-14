@@ -30,6 +30,7 @@ class Cogito_RAR_Metabox_Basic_Fields {
         $is_active = get_post_meta( $post->ID, '_rar_active', true );
         if ( $is_active === '' ) $is_active = '1'; // Default to active
         $moto_partner = get_post_meta( $post->ID, '_rar_moto_partner', true ); // Homepage Moto Partner native ad flag
+        $moto_status  = get_post_meta( $post->ID, '_rar_moto_partner_status', true ) ?: 'live'; // Live | Archived
 
         // Output the nonce field (important for security)
         wp_nonce_field( 'rar_save_meta', 'rar_meta_nonce' );
@@ -78,7 +79,30 @@ class Cogito_RAR_Metabox_Basic_Fields {
 // to validate clicks arriving with the homepage as referrer.
 echo '<p><label><input type="checkbox" name="rar_moto_partner" value="1"' . checked( $moto_partner, '1', false ) . '> Moto Partner (Homepage Native Ad)</label></p>';
 
-// Fetch OTHER links already flagged as Moto Partners (full objects so we can show titles)
+// Live / Archived status. "Live" means it is currently on the homepage, so a
+// homepage-referrer click can be human. "Archived" means it was a partner but
+// is no longer live, so homepage-referrer clicks now are treated as bots — the
+// plugin auto-records the dates it was live for the re-scan to honour history.
+echo '<div class="rar-moto-status">';
+echo '<label><input type="radio" name="rar_moto_partner_status" value="live"' . checked( $moto_status, 'live', false ) . '> Live (currently on the homepage)</label> ';
+echo '<label><input type="radio" name="rar_moto_partner_status" value="archived"' . checked( $moto_status, 'archived', false ) . '> Archived (was on the homepage)</label>';
+
+// Show the recorded live windows for reference
+$periods = Cogito_RAR_Moto_Partner::get_periods( $post->ID );
+if ( ! empty( $periods ) ) {
+    echo '<p class="description rar-moto-periods">Recorded live periods: ';
+    $parts = [];
+    foreach ( $periods as $p ) {
+        $from   = isset( $p['from'] ) ? esc_html( $p['from'] ) : '?';
+        $to     = empty( $p['to'] ) ? 'now' : esc_html( $p['to'] );
+        $parts[] = $from . ' → ' . $to;
+    }
+    echo implode( ', ', $parts );
+    echo '</p>';
+}
+echo '</div>';
+
+// Fetch OTHER links and count only those currently LIVE (homepage shows ~3)
 $existing_partners = get_posts( [
     'post_type'      => 'rar_redirect',
     'posts_per_page' => -1,
@@ -86,13 +110,16 @@ $existing_partners = get_posts( [
     'meta_value'     => '1',
     'exclude'        => [ $post->ID ], // Don't count the current post
 ] );
+$live_partners = array_filter( $existing_partners, static function ( $p ) {
+    return Cogito_RAR_Moto_Partner::is_currently_live( $p->ID );
+} );
 
-// Soft warning if 3 or more others are already flagged (homepage shows max 3)
-if ( count( $existing_partners ) >= 3 ) {
+// Soft warning if 3 or more OTHERS are already live (homepage shows max 3)
+if ( count( $live_partners ) >= 3 ) {
     echo '<div class="rar-moto-partner-warning">';
-    echo '⚠️ ' . count( $existing_partners ) . ' other links are already marked as Moto Partners. The homepage typically shows only 3:';
+    echo '⚠️ ' . count( $live_partners ) . ' other links are already Live Moto Partners. The homepage typically shows only 3:';
     echo '<ul class="rar-moto-partner-list">';
-    foreach ( $existing_partners as $partner ) {
+    foreach ( $live_partners as $partner ) {
         $edit_link = get_edit_post_link( $partner->ID );
         echo '<li><a href="' . esc_url( $edit_link ) . '">' . esc_html( $partner->post_title ) . '</a></li>';
     }

@@ -74,11 +74,14 @@ Cogito_RAR_Flag_Bot::init();
 require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-cogito-rar-bulk-classify.php';
 Cogito_RAR_Bulk_Classify::init();
 
+// Moto Partner status + live-period model (used by save, detector, list, toggle)
+require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-moto-partner.php';
+
 // Moto Partner AJAX toggle handler
 require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-moto-partner-toggle.php';
 Cogito_RAR_Moto_Partner_Toggle::init();
 
-// Moto Partner list (rendered inside the Bot Filtering settings tab)
+// Moto Partner list (rendered inside the Reports settings tab)
 require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-moto-partner-list.php';
 
 // Bot Cleanup (Reports tab): filters, review table, render, and bulk delete handler

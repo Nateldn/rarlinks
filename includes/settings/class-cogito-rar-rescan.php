@@ -60,9 +60,12 @@ class Cogito_RAR_Rescan {
         $table    = $wpdb->prefix . 'rarlinks_clicks';
         $after_id = isset( $_POST['after_id'] ) ? absint( $_POST['after_id'] ) : 0;
 
-        // Keyset pagination by id: robust against rows changing during the run
+        // Keyset pagination by id: robust against rows changing during the run.
+        // click_date is the logged time in the site timezone, for the Moto
+        // Partner "was it live that day?" check.
         $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT id, post_id, ip_address, hostname, org, user_agent, referrer
+            "SELECT id, post_id, ip_address, hostname, org, user_agent, referrer,
+                    DATE( CONVERT_TZ( timestamp, 'America/Los_Angeles', 'Europe/London' ) ) AS click_date
              FROM $table WHERE id > %d ORDER BY id ASC LIMIT %d",
             $after_id,
             self::BATCH
@@ -81,6 +84,7 @@ class Cogito_RAR_Rescan {
                 'current_asn'       => null, // not stored historically
                 'had_cookie'        => true, // unknown historically; true avoids false flags
                 'post_id'           => (int) $row->post_id,
+                'click_date'        => (string) $row->click_date,
                 'spamhaus_asn_data' => [],
             ] );
 
