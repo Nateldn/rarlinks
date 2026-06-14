@@ -28,19 +28,32 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
             
     
-    	// 🏗️ Prepare chart arrays
-        $labels = [];
-        $data   = [];
-    
-
+    	// 🏗️ Map the grouped results by date so gaps can be filled
+        $counts = [];
         foreach ( $results as $row ) {
-            $labels[] = date( 'D, d M', strtotime( $row->click_date ) );// Format as "Mon, 20 May"
-            $data[]   = (int) $row->count;
+            $counts[ $row->click_date ] = (int) $row->count;
         }
 
-        
-            
-    
+        $labels = [];
+        $data   = [];
+
+        // Fill every day from the first to the last click with its count (0 on
+        // days with none). Without this the chart only plots days that HAVE
+        // clicks and joins them with straight lines — making a gap read as a
+        // continuous slope and hiding zero days/spikes.
+        if ( ! empty( $counts ) ) {
+            $dates  = array_keys( $counts );
+            $cursor = new DateTime( min( $dates ) );
+            $last   = new DateTime( max( $dates ) );
+
+            while ( $cursor <= $last ) {
+                $key      = $cursor->format( 'Y-m-d' );
+                $labels[] = $cursor->format( 'D, d M' ); // e.g. "Mon, 20 May"
+                $data[]   = $counts[ $key ] ?? 0;
+                $cursor->modify( '+1 day' );
+            }
+        }
+
     	// 📦 Return chart data
     	return [
     		'labels' => $labels,
