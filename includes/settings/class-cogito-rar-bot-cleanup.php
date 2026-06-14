@@ -59,6 +59,27 @@ class Cogito_RAR_Bot_Cleanup {
         Cogito_RAR_Bot_Cleanup_Filters::render( $min_date );
         $filters = Cogito_RAR_Bot_Cleanup_Filters::get_filters();
 
+        // Headline counts for the selected timeframe. Both bots and unknown are
+        // shown regardless of the type filter, so the breakdown is always
+        // visible at a glance. Date clauses are built from sanitised params
+        // (range fixed, dates regex-validated), so interpolation here is safe.
+        $params       = Cogito_RAR_Bot_Cleanup_Filters::get_params();
+        $date_clauses = Cogito_RAR_Dashboard_Filters::date_clauses( $params['range'], $params['from'], $params['to'] );
+        $date_where   = $date_clauses ? implode( ' AND ', $date_clauses ) . ' AND ' : '';
+
+        $bots_count    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $clicks_table WHERE {$date_where}bot_or_not = 1" );
+        $unknown_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $clicks_table WHERE {$date_where}bot_or_not = 2" );
+
+        echo '<h2 class="rar-bot-cleanup-count">';
+        echo esc_html( sprintf(
+            'Bot & Unknown Clicks (%s): %s',
+            self::timeframe_label( $params ),
+            number_format( $bots_count + $unknown_count )
+        ) );
+        echo ' <span class="rar-bot-cleanup-breakdown">';
+        echo esc_html( sprintf( 'Bots: %s · Unknown: %s', number_format( $bots_count ), number_format( $unknown_count ) ) );
+        echo '</span></h2>';
+
         // Spike-spotting line chart (fed by Settings_Page::enqueue_assets with
         // the same filters). Canvas only — Chart.js renders it via rar-charts.js.
         echo '<h4>Bot &amp; Unknown Clicks Over Time</h4>';
@@ -95,5 +116,40 @@ class Cogito_RAR_Bot_Cleanup {
         echo '</div>';
 
         echo '</div>'; // .rar-bot-cleanup
+    }
+
+    /**
+     * Human-readable label for the active timeframe, for the count heading.
+     *
+     * @param array $params Bot Cleanup filter params (range/from/to).
+     * @return string
+     */
+    private static function timeframe_label( $params ) {
+        $fmt = function ( $d ) {
+            $obj = DateTime::createFromFormat( 'Y-m-d', $d );
+            return $obj ? $obj->format( 'd M Y' ) : $d;
+        };
+
+        if ( ! empty( $params['from'] ) && ! empty( $params['to'] ) ) {
+            return $fmt( $params['from'] ) . ' to ' . $fmt( $params['to'] );
+        }
+        if ( ! empty( $params['from'] ) ) {
+            return 'since ' . $fmt( $params['from'] );
+        }
+        if ( ! empty( $params['to'] ) ) {
+            return 'up to ' . $fmt( $params['to'] );
+        }
+
+        $labels = [
+            'today'     => 'today',
+            'yesterday' => 'yesterday',
+            '7days'     => 'last 7 days',
+            '14days'    => 'last 14 days',
+            '30days'    => 'last 30 days',
+            'thismonth' => 'this month',
+            'lastmonth' => 'last month',
+        ];
+
+        return $labels[ $params['range'] ] ?? 'all time';
     }
 }

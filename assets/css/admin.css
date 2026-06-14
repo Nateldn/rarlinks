@@ -291,6 +291,12 @@
     letter-spacing: 0.1em;
 }
 
+.rar-bot-cleanup-count .rar-bot-cleanup-breakdown {
+    font-weight: 400;
+    font-size: 0.7em;
+    color: #555;
+}
+
 /* "Select all across pages" banner (Redirection-style) */
 .rar-select-all-banner {
     background: #f6f7f7;
