@@ -192,6 +192,17 @@ class Cogito_RAR_Click_Logger {
 			}
 		}
 
+		// 🔁 0.5 Self-referential referrer — the recorded referrer is the
+		// RARLink's OWN url. A genuine click always arrives from a different
+		// page; you cannot be "on" a redirect and then click it, because it
+		// bounces you away instantly. So a referrer naming this very link is a
+		// harvested/replayed URL. Near-decisive and independent of the cookie
+		// check; any stale wishlist/_wpnonce query params are ignored.
+		if ( $bot_or_not === 2 && self::is_self_referential_referrer( $referrer, $post_id ) ) {
+			$bot_or_not = 1;
+			$bot_name   = 'Self-referential referrer';
+		}
+
 		// ✅ 1. User Agent (UA) match
 		if ( $bot_or_not === 2 ) {
 			foreach ( $bot_patterns as $pattern => $name ) {
@@ -513,5 +524,58 @@ class Cogito_RAR_Click_Logger {
 		}
 
 		return [ 'bot_or_not' => $bot_or_not, 'bot_name' => $bot_name ];
+	}
+
+	/**
+	 * Whether a referrer points at the redirect's OWN slug — i.e. the link
+	 * names itself as the page the click came from. Impossible for a genuine
+	 * click (a redirect bounces you away before you could click it), so it
+	 * marks a harvested/replayed URL.
+	 *
+	 * Compares the referrer's slug to the post's slug rather than a literal
+	 * URL, so it works at log time AND in the historical re-scan (which only
+	 * has the post id), and transparently handles the optional /go/ prefix and
+	 * any junk query string. Empty referrers are NOT a match — those are left
+	 * to the no-referrer/cookie rule so the two don't double-count.
+	 *
+	 * @param string $referrer The recorded HTTP referrer.
+	 * @param int    $post_id  The redirect post being hit.
+	 * @return bool
+	 */
+	private static function is_self_referential_referrer( $referrer, $post_id ) {
+		$referrer = trim( (string) $referrer );
+		if ( '' === $referrer || ! $post_id ) {
+			return false;
+		}
+
+		$norm_host = static function ( $host ) {
+			return strtolower( (string) preg_replace( '/^www\./i', '', (string) $host ) );
+		};
+
+		// A self-referential referrer must be on our own host
+		$ref_host = wp_parse_url( $referrer, PHP_URL_HOST );
+		if ( $ref_host && $norm_host( $ref_host ) !== $norm_host( wp_parse_url( home_url(), PHP_URL_HOST ) ) ) {
+			return false;
+		}
+
+		// Reduce the referrer path to its single slug segment, dropping the
+		// optional /go/ prefix; ignore the query string entirely.
+		$path     = (string) wp_parse_url( $referrer, PHP_URL_PATH );
+		$segments = array_values( array_filter( explode( '/', strtolower( $path ) ) ) );
+
+		$prefix = class_exists( 'Cogito_RAR_Redirect_Engine' ) ? strtolower( Cogito_RAR_Redirect_Engine::PREFIX ) : '';
+		if ( '' !== $prefix && ! empty( $segments ) && $segments[0] === $prefix ) {
+			array_shift( $segments );
+		}
+
+		// Only a single-segment path can be this link naming itself; a deeper
+		// path (e.g. an article or category page) is a legitimate source.
+		if ( count( $segments ) !== 1 ) {
+			return false;
+		}
+
+		$own_slug = strtolower( (string) get_post_field( 'post_name', $post_id ) );
+
+		return ( '' !== $own_slug && $segments[0] === $own_slug );
 	}
 }
