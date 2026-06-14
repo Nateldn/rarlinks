@@ -77,13 +77,13 @@ class Cogito_RAR_Metabox_Basic_Fields {
 // --- Moto Partner (Homepage Native Ad) flag ---
 // Marks this RARLink as a homepage native ad, used by bot detection
 // to validate clicks arriving with the homepage as referrer.
-echo '<p><label><input type="checkbox" name="rar_moto_partner" value="1"' . checked( $moto_partner, '1', false ) . '> Moto Partner (Homepage Native Ad)</label></p>';
+echo '<p><label><input type="checkbox" id="rar_moto_partner" name="rar_moto_partner" value="1"' . checked( $moto_partner, '1', false ) . '> Moto Partner (Homepage Native Ad)</label></p>';
 
 // Live / Archived status. "Live" means it is currently on the homepage, so a
 // homepage-referrer click can be human. "Archived" means it was a partner but
 // is no longer live, so homepage-referrer clicks now are treated as bots — the
 // plugin auto-records the dates it was live for the re-scan to honour history.
-echo '<div class="rar-moto-status">';
+echo '<div class="rar-moto-status" id="rar-moto-status">';
 echo '<label><input type="radio" name="rar_moto_partner_status" value="live"' . checked( $moto_status, 'live', false ) . '> Live (currently on the homepage)</label> ';
 echo '<label><input type="radio" name="rar_moto_partner_status" value="archived"' . checked( $moto_status, 'archived', false ) . '> Archived (was on the homepage)</label>';
 
