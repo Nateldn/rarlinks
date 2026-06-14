@@ -231,4 +231,61 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    // --- Re-scan all clicks with current detection rules ---
+    // Loops batches over AJAX so a large table can't time out.
+    const rescanBtn = document.querySelector('.rar-rescan-btn');
+
+    if ( rescanBtn ) {
+        const status = document.querySelector('.rar-rescan-status');
+        const total  = parseInt(rescanBtn.getAttribute('data-total'), 10) || 0;
+        const nonce  = rescanBtn.getAttribute('data-nonce');
+
+        rescanBtn.addEventListener('click', function () {
+            if ( ! confirm('Re-scan and reclassify all ' + total.toLocaleString() + ' clicks with the current rules? This overwrites every row\'s classification, including ones you set by hand.') ) {
+                return;
+            }
+
+            rescanBtn.disabled = true;
+            let done    = 0;
+            let afterId = 0;
+
+            function runBatch() {
+                const body = new URLSearchParams();
+                body.append('action', 'rar_rescan_batch');
+                body.append('nonce', nonce);
+                body.append('after_id', afterId);
+
+                fetch(ajaxurl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body.toString()
+                })
+                .then(function ( r ) { return r.json(); })
+                .then(function ( result ) {
+                    if ( ! result.success ) {
+                        status.textContent = 'Error: ' + ( result.data && result.data.message ? result.data.message : 'unknown' );
+                        rescanBtn.disabled = false;
+                        return;
+                    }
+                    done   += result.data.processed;
+                    afterId = result.data.last_id;
+                    if ( result.data.done ) {
+                        status.textContent = 'Done — re-scanned ' + done.toLocaleString() + ' clicks. Reloading…';
+                        setTimeout(function () { location.reload(); }, 1200);
+                    } else {
+                        status.textContent = 'Re-scanned ' + done.toLocaleString() + ( total ? ' of ' + total.toLocaleString() : '' ) + '…';
+                        runBatch();
+                    }
+                })
+                .catch(function () {
+                    status.textContent = 'Request failed. Please try again.';
+                    rescanBtn.disabled = false;
+                });
+            }
+
+            runBatch();
+        });
+    }
 });
