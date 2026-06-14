@@ -49,6 +49,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // --- Bot Cleanup custom-range toggle ---
+    // Show/hide the From/To date inputs when the Custom Range switch is ticked.
+    const bcToggle = document.getElementById('bcCustomRangeToggle');
+    const bcFields = document.getElementById('bcCustomRangeFields');
+    if ( bcToggle && bcFields ) {
+        bcToggle.addEventListener('change', function () {
+            bcFields.style.display = bcToggle.checked ? 'inline-block' : 'none';
+        });
+    }
+
     // --- Bot Cleanup Logic ---
     // Verify-before-delete plus a "select all across pages" affordance.
     const cleanupForm = document.querySelector('.rar-bot-cleanup-form');

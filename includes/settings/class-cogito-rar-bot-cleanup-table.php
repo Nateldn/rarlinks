@@ -20,9 +20,10 @@ if ( class_exists( 'Cogito_RAR_Clicks_List_Table' ) ) :
 
 class Cogito_RAR_Bot_Cleanup_Table extends Cogito_RAR_Clicks_List_Table {
 
-    public function __construct() {
-        // Bots (1) and unknowns (2) only — never humans (0)
-        parent::__construct( [ 'bot_or_not IN (1, 2)' ] );
+    public function __construct( $filters = [ 'bot_or_not IN (1, 2)' ] ) {
+        // Defaults to all bots + unknowns; the filters helper may narrow this
+        // to a type and/or date range. Never includes humans (0).
+        parent::__construct( $filters );
     }
 
     /**
