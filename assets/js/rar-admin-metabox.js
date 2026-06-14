@@ -167,4 +167,21 @@ jQuery(document).ready(function($) {
     // Re-run on toggle change
     $('#rar_active').on('change', toggleRARActiveUI);
 
+
+    // --- Moto Partner Status Visibility ---
+    /*
+     * The Live/Archived status only applies when the link is flagged a Moto
+     * Partner, so show those radios only while the checkbox is ticked.
+     */
+    function toggleMotoStatus() {
+        if ($('#rar-moto-status').length) {
+            $('#rar-moto-status').toggle($('#rar_moto_partner').is(':checked'));
+        }
+    }
+
+    if ($('#rar_moto_partner').length) {
+        toggleMotoStatus(); // Initial state on page load
+        $('#rar_moto_partner').on('change', toggleMotoStatus);
+    }
+
 }); // End jQuery(document).ready
