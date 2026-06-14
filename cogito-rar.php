@@ -85,6 +85,10 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-b
 require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-bot-cleanup-actions.php';
 Cogito_RAR_Bot_Cleanup_Actions::init();
 
+// 🔄 Re-scan: re-apply current detection rules to historical clicks
+require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-rescan.php';
+Cogito_RAR_Rescan::init();
+
 // Reports settings tab
 require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-settings-reports.php';
 Cogito_RAR_Settings_Reports::init();

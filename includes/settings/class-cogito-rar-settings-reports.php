@@ -29,5 +29,8 @@ class Cogito_RAR_Settings_Reports {
 
         // Bot Cleanup: review table + bulk delete for bot/unknown click rows.
         Cogito_RAR_Bot_Cleanup::render();
+
+        // Re-scan: re-run current detection rules over historical clicks.
+        Cogito_RAR_Rescan::render();
     }
 }
