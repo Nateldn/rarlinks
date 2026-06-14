@@ -30,7 +30,7 @@ class Cogito_RAR_Metabox_Basic_Fields {
         $is_active = get_post_meta( $post->ID, '_rar_active', true );
         if ( $is_active === '' ) $is_active = '1'; // Default to active
         $moto_partner = get_post_meta( $post->ID, '_rar_moto_partner', true ); // Homepage Moto Partner native ad flag
-        $moto_status  = get_post_meta( $post->ID, '_rar_moto_partner_status', true ) ?: 'live'; // Live | Archived
+        $moto_status  = get_post_meta( $post->ID, '_rar_moto_partner_status', true ); // 'live' | 'archived' | '' (unset → no radio preselected)
 
         // Output the nonce field (important for security)
         wp_nonce_field( 'rar_save_meta', 'rar_meta_nonce' );
