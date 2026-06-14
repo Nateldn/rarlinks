@@ -41,6 +41,10 @@ add_action( 'init', [ 'Cogito_RAR_SetCookie', 'maybe_set_cookie' ], 1 );
 // Redirect logic engine for conditional redirect checks, GEO, rotation, fallback.
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-redirect-engine.php';
 
+// 🔁 Render-time rewrite of in-content links to the /go/ prefix (no DB changes)
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-link-rewriter.php';
+Cogito_RAR_Link_Rewriter::init();
+
 // 📋 WP_List_Table for displaying click logs
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-clicks-list-table.php';
 

@@ -18,7 +18,7 @@ class Cogito_RAR_Metabox_Preview {
      */
     public static function render( $post ) {
         $slug   = $post->post_name;
-        $vanity = home_url( '/' . $slug . '/' );
+        $vanity = Cogito_RAR_Redirect_Engine::vanity_url( $slug );
 
         echo '<p><strong>Full Vanity URL:</strong> <code>' . esc_html( $vanity ) . '</code></p>';
     }
