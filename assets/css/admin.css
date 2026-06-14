@@ -228,6 +228,38 @@
     list-style: disc;
 }
 
+/* Moto Partner Live/Archived status (edit screen + list) */
+.rar-moto-status {
+    margin: 0.25em 0 0.75em;
+    font-size: 0.95em;
+}
+
+.rar-moto-status .rar-moto-periods {
+    margin-top: 0.4em;
+}
+
+.rar-moto-badge {
+    display: inline-block;
+    padding: 0 0.5em;
+    border-radius: 0.2em;
+    font-size: 0.8em;
+    line-height: 1.6;
+    color: #fff;
+}
+
+.rar-moto-badge-live {
+    background: #00a32a;
+}
+
+.rar-moto-badge-archived {
+    background: #8c8f94;
+}
+
+.rar-moto-since {
+    font-size: 0.85em;
+    color: #555;
+}
+
 /* ======== Flag-as-bot Panel (Clicks table) ============ */
 
 /* Positioning context so the panel can float relative to its cell */

@@ -68,6 +68,7 @@ class Cogito_RAR_Click_Logger {
 			'current_asn'       => $current_asn,
 			'had_cookie'        => $had_cookie,
 			'post_id'           => $post_id,
+			'click_date'        => current_time( 'Y-m-d' ),
 			'spamhaus_asn_data' => self::load_spamhaus_asn_data(),
 		] );
 
@@ -131,6 +132,10 @@ class Cogito_RAR_Click_Logger {
 		$had_cookie        = array_key_exists( 'had_cookie', $signals ) ? (bool) $signals['had_cookie'] : true;
 		$post_id           = (int) ( $signals['post_id'] ?? 0 );
 		$spamhaus_asn_data = is_array( $signals['spamhaus_asn_data'] ?? null ) ? $signals['spamhaus_asn_data'] : [];
+		// The click's date (site timezone, Y-m-d). Live logging passes today;
+		// the re-scan passes the row's logged date. Used by the Moto Partner
+		// "was this a live homepage ad on that day?" check below.
+		$click_date        = (string) ( $signals['click_date'] ?? current_time( 'Y-m-d' ) );
 
 		// 🤖 Known bot patterns by User Agent
 		$bot_patterns = [
@@ -384,10 +389,16 @@ class Cogito_RAR_Click_Logger {
 				$bot_or_not = 2;
 				$bot_name   = 'No referrer or cookie';
 			} elseif ( $ref_norm === $home_norm && '' !== $ref_norm ) {
-				// Bare homepage referrer: only Moto Partner links (homepage
-				// native ads) legitimately produce this. On any other link
-				// it is a spoofed referrer.
-				if ( get_post_meta( $post_id, '_rar_moto_partner', true ) === '1' ) {
+				// Bare homepage referrer: only legitimate when this link was a
+				// LIVE homepage native ad on the click's date. Archived/former
+				// partners (and never-partners) producing a homepage referrer
+				// are spoofed/replayed. The period model honours history, so a
+				// re-scanned click from when the ad WAS live still passes.
+				$was_live_partner = class_exists( 'Cogito_RAR_Moto_Partner' )
+					? Cogito_RAR_Moto_Partner::was_live_on( $post_id, $click_date )
+					: ( get_post_meta( $post_id, '_rar_moto_partner', true ) === '1' );
+
+				if ( $was_live_partner ) {
 					$bot_or_not = 0; // Genuine homepage native ad click
 					$bot_name   = '';
 				} else {

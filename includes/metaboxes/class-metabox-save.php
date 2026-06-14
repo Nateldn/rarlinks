@@ -71,8 +71,14 @@ class Cogito_RAR_Metabox_Save {
         // Save active state toggle
         update_post_meta( $post_id, '_rar_active', isset( $_POST['rar_active'] ) ? '1' : '0' );
 
-        // Save Moto Partner (homepage native ad) flag
-update_post_meta( $post_id, '_rar_moto_partner', isset( $_POST['rar_moto_partner'] ) ? '1' : '0' );
+        // Save Moto Partner (homepage native ad) flag + Live/Archived status.
+        // The period model auto-records the on/off dates so the bot detector and
+        // the re-scan can tell whether the link was live when a click happened.
+        $moto_is_partner = isset( $_POST['rar_moto_partner'] );
+        $moto_status     = ( ( $_POST['rar_moto_partner_status'] ?? 'live' ) === 'archived' )
+            ? 'archived'
+            : 'live';
+        Cogito_RAR_Moto_Partner::sync_on_save( $post_id, $moto_is_partner, $moto_status );
 
 
         $rot = []; // Start with empty array for cleaned entries
