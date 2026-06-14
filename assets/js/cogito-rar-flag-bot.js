@@ -18,10 +18,54 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Cancel simply hides the panel, leaving checkboxes as they were
+        // Cancel / Close. After a successful flag the panel is in its success
+        // state and the row no longer belongs on this human-only table, so
+        // Close removes the row; otherwise it just hides the panel.
         const cancel = e.target.closest('.rar-flag-bot-cancel');
         if ( cancel ) {
-            cancel.closest('.rar-flag-bot-panel').hidden = true;
+            const cancelPanel = cancel.closest('.rar-flag-bot-panel');
+            if ( cancelPanel.classList.contains('rar-flag-bot-success') ) {
+                const doneRow = cancelPanel.closest('tr');
+                if ( doneRow && doneRow.parentNode ) doneRow.parentNode.removeChild(doneRow);
+            } else {
+                cancelPanel.hidden = true;
+            }
+            return;
+        }
+
+        // Mark as unknown: reclassify immediately (bot_or_not = 2) and remove
+        // the row — it moves to Bot Cleanup.
+        const unknownLink = e.target.closest('.rar-row-unknown');
+        if ( unknownLink ) {
+            e.preventDefault();
+
+            const ubody = new URLSearchParams();
+            ubody.append('action', 'rar_mark_unknown');
+            ubody.append('nonce', unknownLink.getAttribute('data-nonce'));
+            ubody.append('click_id', unknownLink.getAttribute('data-click-id'));
+
+            unknownLink.style.pointerEvents = 'none';
+
+            fetch(ajaxurl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: ubody.toString()
+            })
+            .then(function ( response ) { return response.json(); })
+            .then(function ( result ) {
+                if ( ! result.success ) {
+                    alert('Could not reclassify: ' + ( result.data && result.data.message ? result.data.message : 'Unknown error' ));
+                    unknownLink.style.pointerEvents = '';
+                    return;
+                }
+                const row = unknownLink.closest('tr');
+                if ( row && row.parentNode ) row.parentNode.removeChild(row);
+            })
+            .catch(function () {
+                alert('Request failed. Please try again.');
+                unknownLink.style.pointerEvents = '';
+            });
             return;
         }
 
@@ -57,35 +101,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            const row = panel.closest('tr');
-
-            // Swap the Type column icon to the bot icon
-            const icon = row.querySelector('.column-type .dashicons');
-            if ( icon ) {
-                icon.className = 'dashicons dashicons-welcome-view-site';
-                icon.setAttribute('title', 'Known Bot');
-            }
-
-            // Update the Bot Name cell unless detection had already named it
-            const nameCell = row.querySelector('.column-bot_name');
-            if ( nameCell && nameCell.textContent.trim() === 'n/a' ) {
-                nameCell.textContent = 'Manually flagged';
-            }
-
-            // Replace the row action with a static confirmation
-            const action = row.querySelector('.rar-flag-bot');
-            if ( action ) {
-                action.innerHTML = '<span class="rar-flag-bot-flagged">Flagged as bot</span>';
-            }
-
-            // Show a success message IN the panel rather than hiding it —
-            // collapsing the panel here would shift the rows below mid-read.
-            // The Close button reuses the cancel class, so the delegated
-            // cancel handler above dismisses it when the user is ready.
+            // Success — the click is no longer human, so it leaves this table.
+            // Show what (if anything) was added to the live list; the Close
+            // button then removes the row (handled by the cancel branch above).
             const labels = { ip: 'IP', hostname: 'Hostname', org: 'Org', ua: 'User agent' };
             const added  = ( result.data && result.data.added ) ? result.data.added : [];
 
-            let message = 'Click flagged as bot.';
+            let message = 'Click flagged as bot and moved to Bot Cleanup.';
             if ( added.length ) {
                 message += ' Added to live bot list: ' + added.map(function ( type ) {
                     return labels[type] || type;
@@ -95,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function () {
             panel.classList.add('rar-flag-bot-success');
             panel.innerHTML = '<p class="rar-flag-bot-intro">✓ ' + message + '</p>' +
                 '<div class="rar-flag-bot-actions">' +
-                '<button type="button" class="button rar-flag-bot-cancel">Close</button>' +
+                '<button type="button" class="button button-primary rar-flag-bot-cancel">Close</button>' +
                 '</div>';
         })
         .catch(function () {
