@@ -29,25 +29,24 @@ class Cogito_RAR_Bulk_Classify {
     /**
      * Processes a bulk classification if this request is one.
      *
-     * The dashboard list table submits by GET (the WP-core list table
-     * pattern — filters and pagination ride the same form), so the nonce
-     * is what authenticates the state change.
+     * Submitted by POST (so large selections can't overflow the URL length
+     * limit); the nonce authenticates the state change.
      */
     public static function maybe_handle() {
         // Cheap bail-out: not our form
-        if ( ! isset( $_GET['rar_bulk_classify_nonce'] ) ) {
+        if ( ! isset( $_POST['rar_bulk_classify_nonce'] ) ) {
             return;
         }
 
         // Only act on the clicks dashboard page
-        if ( ( $_GET['page'] ?? '' ) !== 'rar_dashboard' ) {
+        if ( ( $_POST['page'] ?? '' ) !== 'rar_dashboard' ) {
             return;
         }
 
         // The bulk action arrives as 'action' (top dropdown) or 'action2' (bottom)
         $action = '';
         foreach ( [ 'action', 'action2' ] as $key ) {
-            $candidate = isset( $_GET[ $key ] ) ? sanitize_key( $_GET[ $key ] ) : '';
+            $candidate = isset( $_POST[ $key ] ) ? sanitize_key( $_POST[ $key ] ) : '';
             if ( $candidate && $candidate !== '-1' ) {
                 $action = $candidate;
                 break;
@@ -55,11 +54,11 @@ class Cogito_RAR_Bulk_Classify {
         }
 
         if ( ! in_array( $action, [ 'flag_bot', 'mark_human' ], true ) ) {
-            return; // No bulk action chosen — an ordinary filter submission
+            return; // No bulk action chosen — an ordinary submission
         }
 
         // 🔒 Verify nonce
-        if ( ! wp_verify_nonce( sanitize_key( $_GET['rar_bulk_classify_nonce'] ), 'rar_bulk_classify' ) ) {
+        if ( ! wp_verify_nonce( sanitize_key( $_POST['rar_bulk_classify_nonce'] ), 'rar_bulk_classify' ) ) {
             wp_die( 'Security check failed.', '', [ 'response' => 403 ] );
         }
 
@@ -69,8 +68,8 @@ class Cogito_RAR_Bulk_Classify {
         }
 
         // 🔢 Collect and validate the selected row IDs
-        $ids = isset( $_GET['bulk-select'] ) && is_array( $_GET['bulk-select'] )
-            ? array_filter( array_map( 'absint', $_GET['bulk-select'] ) )
+        $ids = isset( $_POST['bulk-select'] ) && is_array( $_POST['bulk-select'] )
+            ? array_filter( array_map( 'absint', $_POST['bulk-select'] ) )
             : [];
 
         $updated = 0;
@@ -99,17 +98,25 @@ class Cogito_RAR_Bulk_Classify {
             }
         }
 
-        // 🔁 Redirect back to the dashboard, preserving the active filters
-        // but stripping the action params so a refresh can't re-apply.
-        $redirect = remove_query_arg(
-            [ 'action', 'action2', 'bulk-select', 'rar_bulk_classify_nonce', '_wp_http_referer' ]
-        );
-        $redirect = add_query_arg( [
+        // 🔁 Redirect back to the dashboard, rebuilding the active filters from
+        // the posted hidden fields so the user lands on the same view.
+        $args = [
+            'post_type'       => 'rar_redirect',
+            'page'            => 'rar_dashboard',
             'classified'      => $updated,
             'classify_action' => $action,
-        ], $redirect );
+        ];
+        foreach ( [ 'range', 'from', 'to' ] as $key ) {
+            $val = isset( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '';
+            if ( '' !== $val ) {
+                $args[ $key ] = $val;
+            }
+        }
+        if ( ! empty( $_POST['post_id'] ) ) {
+            $args['post_id'] = absint( $_POST['post_id'] );
+        }
 
-        wp_safe_redirect( $redirect );
+        wp_safe_redirect( add_query_arg( $args, admin_url( 'edit.php' ) ) );
         exit;
     }
 }
