@@ -59,6 +59,13 @@ class Cogito_RAR_Bot_Cleanup {
         Cogito_RAR_Bot_Cleanup_Filters::render( $min_date );
         $filters = Cogito_RAR_Bot_Cleanup_Filters::get_filters();
 
+        // Spike-spotting line chart (fed by Settings_Page::enqueue_assets with
+        // the same filters). Canvas only — Chart.js renders it via rar-charts.js.
+        echo '<h4>Bot &amp; Unknown Clicks Over Time</h4>';
+        echo '<div class="rar-bot-cleanup-chart" style="max-width:100%; margin-bottom:20px;">';
+        echo '<canvas id="rarLineChart" height="80"></canvas>';
+        echo '</div>';
+
         $table = new Cogito_RAR_Bot_Cleanup_Table( $filters );
         $table->prepare_items();
         $total = (int) $table->get_pagination_arg( 'total_items' );

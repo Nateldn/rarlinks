@@ -85,6 +85,26 @@ class Cogito_RAR_Settings_Page {
             filemtime( dirname( __FILE__, 3 ) . '/assets/js/cogito-rar-settings.js' ),
             true // Load in footer
         );
+
+        // Reports tab: Chart.js + the shared chart renderer, fed bot/unknown
+        // click data for the spike-spotting line graph on Bot Cleanup.
+        if ( ( $_GET['tab'] ?? '' ) === 'reports'
+            && class_exists( 'Cogito_RAR_Line_Chart' )
+            && class_exists( 'Cogito_RAR_Bot_Cleanup_Filters' ) ) {
+
+            wp_enqueue_script( 'chartjs', 'https://cdn.jsdelivr.net/npm/chart.js', [], null, true );
+            wp_enqueue_script(
+                'rar-charts-js',
+                plugin_dir_url( dirname( __FILE__, 2 ) ) . 'includes/charts/js/rar-charts.js',
+                [ 'chartjs' ],
+                filemtime( dirname( __FILE__, 3 ) . '/includes/charts/js/rar-charts.js' ),
+                true
+            );
+
+            // Same filters as the table, so the chart and rows agree
+            $line = Cogito_RAR_Line_Chart::get_data( Cogito_RAR_Bot_Cleanup_Filters::get_filters() );
+            wp_localize_script( 'rar-charts-js', 'rarChartData', [ 'line' => $line ] );
+        }
     }
 
     /**
