@@ -93,6 +93,27 @@ class Cogito_RAR_Redirect_Engine {
 	}
 
 	/**
+	 * Appends a Disallow rule for the /go/ prefix to robots.txt, so polite
+	 * crawlers (Googlebot, Bing, Ahrefs, etc.) stop hitting redirect links —
+	 * which keeps their honest crawler clicks out of the report. Malicious
+	 * bots ignore robots.txt, but those are caught by detection regardless.
+	 *
+	 * NOTE: WordPress only serves this virtual robots.txt when no PHYSICAL
+	 * robots.txt file exists at the site root. If one does, add the line to
+	 * that file by hand instead.
+	 *
+	 * @param string $output The robots.txt body assembled so far.
+	 * @param bool   $public Whether the site is set to be search-indexable.
+	 * @return string
+	 */
+	public static function robots_txt( $output, $public ) {
+		if ( self::PREFIX !== '' ) {
+			$output .= "\nUser-agent: *\nDisallow: /" . self::PREFIX . "/\n";
+		}
+		return $output;
+	}
+
+	/**
 	 * Handle redirect from a post object (GEO > rotation > fallback).
 	 */
 	public static function handle_redirect_from_post( $post ) {
