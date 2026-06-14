@@ -1,4 +1,8 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 // Ensure WP_List_Table is loaded if in the admin and not already present.
 if ( is_admin() && ! class_exists( 'WP_List_Table' ) ) {
     require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
@@ -128,9 +132,7 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
             case 'ip_address':
             case 'hostname':
             case 'org':
-                // Debug for these specific columns displaying incorrect data
-                error_log('[RAR DEBUG] For ' . $column_name . ' - raw $item value: ' . ($item->$column_name ?? 'NOT_SET'));
-                return esc_html( $item->$column_name ?: '—' ); // Correctly render their specific data
+                return esc_html( $item->$column_name ?: '—' );
 
             case 'bot_name':
             $bot_name_value = $item->bot_name;

@@ -1,6 +1,7 @@
 # Composer dependencies and installer
 vendor/
 composer.phar
+composer-setup.php
 
 # MaxMind GeoIP databases (large binaries)
 geo/GeoLite2-Country.mmdb
