@@ -12,6 +12,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Cogito_RAR_Redirect_Engine {
 
 	/**
+	 * URL path prefix for vanity links, e.g. /go/pando-bf/. Set to '' to
+	 * serve links at the site root (legacy behaviour). Single source of
+	 * truth: the engine, the permalink filter, the admin previews and the
+	 * content rewriter all read this.
+	 */
+	const PREFIX = 'go';
+
+	/**
 	 * Entry point for redirect logic (called early on template_redirect).
 	 */
 	public static function maybe_redirect() {
@@ -24,15 +32,37 @@ class Cogito_RAR_Redirect_Engine {
 			return;
 		}
 
-		$raw_slug = trim( parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH ), '/' );
+		$path = trim( parse_url( $_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH ), '/' );
 
-		if ( strlen( $raw_slug ) > 100 || strpos( $raw_slug, "\0" ) !== false ) {
+		if ( '' === $path || strlen( $path ) > 100 || strpos( $path, "\0" ) !== false ) {
 			return;
 		}
 
-		$slug = sanitize_title( $raw_slug );
+		// Detect the optional /go/ prefix. Prefixed links are the canonical
+		// form; a bare slug is the legacy form (old links already published
+		// off-site — bookmarks, social posts, search results).
+		$prefixed  = false;
+		$slug_part = $path;
+		if ( self::PREFIX !== '' && strpos( $path, self::PREFIX . '/' ) === 0 ) {
+			$slug_part = substr( $path, strlen( self::PREFIX ) + 1 );
+			$prefixed  = true;
+		}
 
+		// Our slugs are a single path segment — ignore anything deeper
+		if ( '' === $slug_part || strpos( $slug_part, '/' ) !== false ) {
+			return;
+		}
+
+		$slug = sanitize_title( $slug_part );
 		if ( ! $slug ) {
+			return;
+		}
+
+		// For a legacy (un-prefixed) hit, only intercept when WordPress itself
+		// could not resolve the path — so a real page/post sharing the slug is
+		// never shadowed. The /go/ namespace holds no real content, so the
+		// prefixed route is exempt from this check.
+		if ( ! $prefixed && ! is_404() ) {
 			return;
 		}
 
@@ -48,6 +78,18 @@ class Cogito_RAR_Redirect_Engine {
 
 		self::handle_redirect_from_post( $post );
 		exit;
+	}
+
+	/**
+	 * Builds the canonical prefixed vanity URL for a slug, e.g. /go/pando-bf/.
+	 * The single place the prefix is applied to outgoing links.
+	 *
+	 * @param string $slug The redirect post slug (post_name).
+	 * @return string Absolute vanity URL.
+	 */
+	public static function vanity_url( $slug ) {
+		$prefix = ( self::PREFIX !== '' ) ? self::PREFIX . '/' : '';
+		return home_url( '/' . $prefix . $slug . '/' );
 	}
 
 	/**

@@ -76,7 +76,7 @@ class Cogito_RAR_CPT_Registrar {
      */
     public static function filter_permalink( $link, $post ) {
         return ( $post->post_type === self::CPT )
-            ? home_url( '/' . $post->post_name . '/' )
+            ? Cogito_RAR_Redirect_Engine::vanity_url( $post->post_name )
             : $link;
     }
 }
