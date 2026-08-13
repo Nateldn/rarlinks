@@ -177,6 +177,20 @@
     font-weight: normal;
     }
 
+    /* Copy-URL field (list table + preview metabox): input grows to fill
+       the available space instead of the browser's default ~20-char width,
+       so the full URL is visible rather than scrolled/clipped. */
+    .rar-copy-slug-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    }
+
+    .rar-copy-slug-wrap .rar-copy-input {
+    flex: 1;
+    min-width: 0;
+    }
+
      /* ======== Stats Dashbaord ============ */    
         
    /* Adjust the RARLinks table to fit viewport */
