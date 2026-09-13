@@ -1,3 +1,143 @@
+/* ============================================================
+   RARLinks Design System — Phase 1
+   Modern minimalist palette: near-black/off-white neutrals drive
+   every control (per spec), a single deliberate violet accent carries
+   actions/links/focus, and a fixed three-colour "traffic light"
+   vocabulary (green/amber/red) is reserved exclusively for status —
+   never reused for decoration, so it stays legible everywhere.
+
+   admin.css has no per-page enqueue guard (it loads on every wp-admin
+   screen), so every rule below that touches a GENERIC WordPress
+   selector (.button, checkboxes, .nav-tab) is scoped under one of
+   RARLinks' own body classes. Rules on already-namespaced RARLinks
+   classes (.rar-*) need no such scoping — their names are unique.
+   ============================================================ */
+:root {
+    --rar-ink: #161616;
+    --rar-paper: #f4f4f4;
+    --rar-accent: #6d5ef8;
+    --rar-accent-hover: #5645e0;
+    --rar-accent-soft: #eeecff;
+    --rar-good: #00a32a;
+    --rar-good-soft: #e6f7ea;
+    --rar-warn: #b9770e;
+    --rar-warn-soft: #fdf1e0;
+    --rar-bad: #b32d2e;
+    --rar-bad-soft: #fbeaea;
+    --rar-neutral: #6b6f76;
+    --rar-neutral-soft: #eef0f1;
+    --rar-border: #e2e2e2;
+}
+
+/* Every RARLinks admin screen: CPT list/edit, View Clicks, Settings
+   (all tabs), Importer. Grouped once here and reused below. */
+body.post-type-rar_redirect,
+body.rar_redirect_page_rar_dashboard,
+body.rar_redirect_page_rar_settings,
+body.rar_redirect_page_rar_importer {
+    background: var(--rar-paper);
+}
+
+/* --- Buttons: base state is the specified ink/paper pair. Secondary
+   buttons invert it (outline). Hover/focus lean on the accent, so it
+   earns visible presence without altering the ink/paper button spec. */
+body.post-type-rar_redirect .button-primary,
+body.rar_redirect_page_rar_dashboard .button-primary,
+body.rar_redirect_page_rar_settings .button-primary,
+body.rar_redirect_page_rar_importer .button-primary,
+body.post-type-rar_redirect .rar-flag-bot-confirm,
+body.rar_redirect_page_rar_dashboard .rar-flag-bot-confirm,
+body.rar_redirect_page_rar_settings .rar-flag-bot-confirm,
+body.rar_redirect_page_rar_dashboard .rar-moto-disable,
+body.rar_redirect_page_rar_settings .rar-moto-disable {
+    background: var(--rar-ink);
+    border-color: var(--rar-ink);
+    color: var(--rar-paper);
+    box-shadow: none;
+    text-shadow: none;
+    border-radius: 4px;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+body.post-type-rar_redirect .button-primary:hover,
+body.post-type-rar_redirect .button-primary:focus,
+body.rar_redirect_page_rar_dashboard .button-primary:hover,
+body.rar_redirect_page_rar_dashboard .button-primary:focus,
+body.rar_redirect_page_rar_settings .button-primary:hover,
+body.rar_redirect_page_rar_settings .button-primary:focus,
+body.rar_redirect_page_rar_importer .button-primary:hover,
+body.rar_redirect_page_rar_importer .button-primary:focus {
+    background: var(--rar-accent);
+    border-color: var(--rar-accent);
+    color: #fff;
+}
+
+body.post-type-rar_redirect .button:not(.button-primary),
+body.rar_redirect_page_rar_dashboard .button:not(.button-primary),
+body.rar_redirect_page_rar_settings .button:not(.button-primary),
+body.rar_redirect_page_rar_importer .button:not(.button-primary) {
+    background: var(--rar-paper);
+    border-color: var(--rar-ink);
+    color: var(--rar-ink);
+    box-shadow: none;
+    text-shadow: none;
+    border-radius: 4px;
+}
+
+body.post-type-rar_redirect .button:not(.button-primary):hover,
+body.rar_redirect_page_rar_dashboard .button:not(.button-primary):hover,
+body.rar_redirect_page_rar_settings .button:not(.button-primary):hover,
+body.rar_redirect_page_rar_importer .button:not(.button-primary):hover {
+    background: var(--rar-ink);
+    color: var(--rar-paper);
+}
+
+/* --- Checkboxes & radios: native accent-color keeps full browser
+   accessibility/behaviour intact, just recolours the checked fill —
+   the safe way to hit the ink/paper spec without rebuilding markup. */
+body.post-type-rar_redirect input[type="checkbox"],
+body.post-type-rar_redirect input[type="radio"],
+body.rar_redirect_page_rar_dashboard input[type="checkbox"],
+body.rar_redirect_page_rar_dashboard input[type="radio"],
+body.rar_redirect_page_rar_settings input[type="checkbox"],
+body.rar_redirect_page_rar_settings input[type="radio"],
+body.rar_redirect_page_rar_importer input[type="checkbox"] {
+    accent-color: var(--rar-ink);
+}
+
+/* --- Settings tab nav: the active/hovered tab is where the accent
+   gets real visible presence, without overloading every control. */
+body.rar_redirect_page_rar_settings .nav-tab-wrapper .nav-tab-active,
+body.rar_redirect_page_rar_settings .nav-tab-wrapper .nav-tab-active:focus,
+body.rar_redirect_page_rar_settings .nav-tab-wrapper .nav-tab-active:hover {
+    border-color: var(--rar-accent);
+    background: var(--rar-accent-soft);
+    color: var(--rar-accent-hover);
+}
+
+body.rar_redirect_page_rar_settings .nav-tab-wrapper .nav-tab:hover {
+    color: var(--rar-accent);
+}
+
+/* --- Traffic-light status system: one shared vocabulary reused by
+   every classification surface (clicks Type icon, Moto Partner
+   badges) instead of ad hoc colours per screen. Neutral is a fourth,
+   deliberately separate tone for "inactive" states (e.g. Archived)
+   that aren't a problem — folding them into amber would blunt what
+   amber means everywhere else. */
+body.post-type-rar_redirect .column-type .dashicons-admin-users,
+body.rar_redirect_page_rar_dashboard .column-type .dashicons-admin-users {
+    color: var(--rar-good);
+}
+body.post-type-rar_redirect .column-type .dashicons-welcome-view-site,
+body.rar_redirect_page_rar_dashboard .column-type .dashicons-welcome-view-site {
+    color: var(--rar-bad);
+}
+body.post-type-rar_redirect .column-type .dashicons-editor-help,
+body.rar_redirect_page_rar_dashboard .column-type .dashicons-editor-help {
+    color: var(--rar-warn);
+}
+
 /*=== New RARLink/Edit Screen Metaboxes  ====*/
 
 /* Notes  */
@@ -73,7 +213,7 @@
     }
     
     .rartoggle input:checked + label::before {
-      background: #161616; /* Your specified "on" state */
+      background: var(--rar-ink);
     }
     
     .rartoggle input:checked + label::after {
@@ -252,21 +392,29 @@
     margin-top: 0.4em;
 }
 
+/* Soft-filled pills (tinted background, coloured text) rather than
+   solid blocks — reads as one system with the Type-column dot colours
+   above, at a lower-emphasis weight suited to a list-row badge. */
 .rar-moto-badge {
     display: inline-block;
-    padding: 0 0.5em;
-    border-radius: 0.2em;
-    font-size: 0.8em;
+    padding: 0.1em 0.7em;
+    border-radius: 999px;
+    font-size: 0.75em;
+    font-weight: 600;
     line-height: 1.6;
-    color: #fff;
+    letter-spacing: 0.02em;
 }
 
 .rar-moto-badge-live {
-    background: #00a32a;
+    background: var(--rar-good-soft);
+    color: var(--rar-good);
 }
 
 .rar-moto-badge-archived {
-    background: #8c8f94;
+    /* Archived isn't a problem, just inactive — kept out of the
+       amber/warn vocabulary so "warning" still means one thing. */
+    background: var(--rar-neutral-soft);
+    color: var(--rar-neutral);
 }
 
 .rar-moto-since {
