@@ -107,8 +107,11 @@ class Cogito_RAR_Settings_Conversions {
         echo '<table class="form-table"><tbody>';
 
         echo '<tr><th scope="row">Enable conversions</th><td>';
-        echo '<label><input type="checkbox" name="rar_conversions_enabled" value="1" ' . checked( $enabled, true, false ) . '> ';
-        echo 'Capture and send affiliate-click conversion events</label>';
+        echo '<div class="rartoggle">';
+        echo '<input type="checkbox" id="rar_conversions_enabled" name="rar_conversions_enabled" value="1"' . checked( $enabled, true, false ) . '>';
+        echo '<label for="rar_conversions_enabled"></label>';
+        echo '<span>Capture and send affiliate-click conversion events</span>';
+        echo '</div>';
         echo '</td></tr>';
 
         echo '<tr><th scope="row">Hold before sending</th><td>';
