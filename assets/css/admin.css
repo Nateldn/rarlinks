@@ -185,9 +185,12 @@ body.post-type-rar_redirect .wp-list-table {
     table-layout: fixed;
 }
 
-body.post-type-rar_redirect .wp-list-table .column-title { width: 26%; }
-body.post-type-rar_redirect .wp-list-table .column-target { width: 22%; }
-body.post-type-rar_redirect .wp-list-table .column-slug { width: 14%; }
+/* Title and Target URL trimmed 25% from their Phase 2 widths; the
+   reclaimed space (6.5% + 5.5%) goes entirely to Vanity Slug so the
+   URL is actually readable instead of clipped. */
+body.post-type-rar_redirect .wp-list-table .column-title { width: 19.5%; }
+body.post-type-rar_redirect .wp-list-table .column-target { width: 16.5%; }
+body.post-type-rar_redirect .wp-list-table .column-slug { width: 26%; }
 body.post-type-rar_redirect .wp-list-table .column-date { width: 8%; }
 body.post-type-rar_redirect .wp-list-table .column-type,
 body.post-type-rar_redirect .wp-list-table .column-active { width: 6%; }
@@ -201,6 +204,13 @@ body.post-type-rar_redirect .wp-list-table .column-slug {
     /* Long content (titles, target URLs, vanity slugs) wraps rather
        than forcing the fixed layout to overflow or truncate silently. */
     word-break: break-word;
+}
+
+/* Smaller text specifically in the list table's Vanity Slug field (not
+   the edit-screen preview, which shares this class but has room to
+   spare) — more of the URL fits before it's cut off. */
+body.post-type-rar_redirect .wp-list-table .rar-copy-input {
+    font-size: 11px;
 }
 
 /* Un-bold the title, force it to the same size as every other cell
