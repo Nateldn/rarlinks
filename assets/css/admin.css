@@ -145,18 +145,15 @@ body.rar_redirect_page_rar_settings .column-type .dashicons-editor-help {
     color: var(--rar-warn);
 }
 
-/* --- On/off/neutral status icons (Active, Nofollow, Sponsored columns):
-   the same traffic-light tokens, but as a semantic on/off/neutral triad
-   rather than good/bad/warn — these describe a setting, not a verdict. */
-body.post-type-rar_redirect .rar-status-on {
-    color: var(--rar-good);
-}
-body.post-type-rar_redirect .rar-status-off {
-    color: var(--rar-neutral);
-    opacity: 0.6;
-}
+/* Active/Nofollow/Sponsored are on/off TOGGLES on this list, not a bot
+   classification verdict — the traffic-light green/red is reserved for
+   that, so these icons all share the one plain ink colour instead,
+   regardless of state. */
+body.post-type-rar_redirect .rar-status-on,
+body.post-type-rar_redirect .rar-status-off,
 body.post-type-rar_redirect .rar-status-neutral {
-    color: var(--rar-neutral);
+    color: var(--rar-ink);
+    opacity: 1;
 }
 
 /* Redirect-type (301/302/307) compact pill, matching the Moto Partner
@@ -168,7 +165,7 @@ body.post-type-rar_redirect .rar-type-pill {
     background: var(--rar-accent-soft);
     color: var(--rar-accent-hover);
     font-size: 0.85em;
-    font-weight: 600;
+    font-weight: 400;
     font-family: Consolas, Monaco, monospace;
 }
 
@@ -220,7 +217,7 @@ body.post-type-rar_redirect .wp-list-table .rar-copy-input {
    of our own classes. */
 body.post-type-rar_redirect .wp-list-table .row-title {
     font-weight: 400 !important;
-    font-size: 14px !important;
+    font-size: 0.9em !important;
     color: var(--rar-ink) !important;
     text-decoration: none;
 }
