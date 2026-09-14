@@ -227,7 +227,10 @@ body.post-type-rar_redirect .wp-list-table .row-title:hover {
 }
 
 /* Header: a touch more character than stock WP — letter-spacing and an
-   accent-tinted underline instead of the plain grey rule. */
+   accent-tinted underline instead of the plain grey rule. Wrapping is
+   forced (WP core's sortable-column links default to nowrap) so a label
+   like "Sponsored" wraps onto a second line in a narrow icon column
+   instead of clipping against the next header. */
 body.post-type-rar_redirect .wp-list-table thead th,
 body.post-type-rar_redirect .wp-list-table thead td {
     border-bottom: 2px solid var(--rar-accent);
@@ -235,6 +238,14 @@ body.post-type-rar_redirect .wp-list-table thead td {
     font-size: 0.75em;
     letter-spacing: 0.05em;
     color: var(--rar-neutral);
+    white-space: normal;
+    word-break: break-word;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+body.post-type-rar_redirect .wp-list-table thead th a,
+body.post-type-rar_redirect .wp-list-table thead td a {
+    white-space: normal !important;
 }
 
 /* Live row hover across every RARLinks table (post list, View Clicks,
