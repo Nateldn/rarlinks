@@ -112,8 +112,9 @@ class Cogito_RAR_Settings_Page {
      */
     private static function get_tabs() {
         return [
-            'defaults' => 'Defaults',
-            'reports'  => 'Reports',
+            'defaults'    => 'Defaults',
+            'reports'     => 'Reports',
+            'conversions' => 'Conversions',
         ];
     }
 

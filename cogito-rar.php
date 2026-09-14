@@ -99,6 +99,25 @@ Cogito_RAR_Rescan::init();
 require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-settings-reports.php';
 Cogito_RAR_Settings_Reports::init();
 
+// 💳 Conversions: provider-agnostic server-side conversion tracking (Meta
+// first, Pinterest intended next). Off by default (master toggle unchecked).
+require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-provider.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/providers/class-cogito-rar-conversion-provider-meta.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-providers.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-queue.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-dispatcher.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-capture.php';
+Cogito_RAR_Conversion_Capture::init();
+// Self-healing table creation: this plugin is already active on live, so
+// register_activation_hook alone would never fire for this new table —
+// check/create on admin_init instead (dbDelta is idempotent, cheap no-op
+// once the stored version matches).
+add_action( 'admin_init', [ 'Cogito_RAR_Conversion_Queue', 'maybe_upgrade' ] );
+
+// Conversions settings tab
+require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-settings-conversions.php';
+Cogito_RAR_Settings_Conversions::init();
+
 // We can now optionally remove traffic-filter if no longer needed, but keeping it commented out for safety or reference if you prefer.
 // require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-dashboard-traffic-filter.php'; 
 
@@ -129,6 +148,9 @@ add_action( 'init', [ 'Cogito_RAR_Admin_Columns', 'init' ] );
 function cogito_rar_on_activate() {
 	Cogito_RAR_CPT_Registrar::register_cpt_static();
 	cogito_rar_create_click_log_table();
+	if ( class_exists( 'Cogito_RAR_Conversion_Queue' ) ) {
+		Cogito_RAR_Conversion_Queue::create_table();
+	}
 	flush_rewrite_rules();
 }
 register_activation_hook( __FILE__, 'cogito_rar_on_activate' );

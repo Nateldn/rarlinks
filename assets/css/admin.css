@@ -514,4 +514,20 @@ body.rar_redirect_page_rar_dashboard .column-type .dashicons-editor-help {
 .rar-bot-cleanup .row-actions[data-state="unknown"] .rar-state-bot {
     display: none;
 }
+
+/* ======== Conversions (Settings tab) ============ */
+
+.rar-conversions .rar-status-on {
+    color: #00a32a;
+    font-weight: 600;
+}
+
+.rar-conversions .rar-status-off {
+    color: #b32d2e;
+}
+
+.rar-conversions-providers {
+    list-style: disc;
+    margin-left: 1.2em;
+}
         

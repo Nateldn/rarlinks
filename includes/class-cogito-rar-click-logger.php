@@ -19,12 +19,17 @@ class Cogito_RAR_Click_Logger {
 	 *
 	 * @param int    $post_id    The RARLink post ID.
 	 * @param string $visitor_id The rar_uid visitor token.
-	 * @param bool   $had_cookie Whether a valid rar_uid cookie ARRIVED with the
-	 *                           request (i.e. the visitor has loaded a site page
-	 *                           before). Defaults true so a missing value can
-	 *                           never cause a false bot flag.
+	 * @param bool   $had_cookie      Whether a valid rar_uid cookie ARRIVED with
+	 *                                the request (i.e. the visitor has loaded a
+	 *                                site page before). Defaults true so a
+	 *                                missing value can never cause a false bot flag.
+	 * @param string $destination_url The resolved redirect target actually used
+	 *                                for this click (GEO/rotation/fallback,
+	 *                                whichever branch fired). Consumed by the
+	 *                                conversions capture hook below; optional so
+	 *                                this stays backwards compatible.
 	 */
-	public static function log_click( $post_id, $visitor_id = '', $had_cookie = true ) {
+	public static function log_click( $post_id, $visitor_id = '', $had_cookie = true, $destination_url = '' ) {
 		global $wpdb;
 
 		// 🌐 Capture IP address & validate it
@@ -92,7 +97,27 @@ class Cogito_RAR_Click_Logger {
 
 		if ( $wpdb->last_error ) {
 			error_log( '[RAR ERROR] DB Insert Error: ' . $wpdb->last_error );
+			return;
 		}
+
+		// Fired only once the click row is actually logged. Consumed by the
+		// conversions capture pipeline — kept here as a plain do_action so
+		// click logging stays entirely unaware that conversions exist at
+		// all (single responsibility; the two systems only meet at this hook).
+		do_action(
+			'rar_click_logged',
+			$post_id,
+			$result,
+			[
+				'ip_address' => $ip_address,
+				'hostname'   => $hostname,
+				'org'        => $org,
+				'user_agent' => $user_agent,
+				'referrer'   => $referrer,
+				'visitor_id' => $visitor_id,
+			],
+			$destination_url
+		);
 	}
 
 	/**
