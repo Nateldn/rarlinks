@@ -185,18 +185,18 @@ body.post-type-rar_redirect .wp-list-table {
     table-layout: fixed;
 }
 
-/* Title and Target URL trimmed 25% from their Phase 2 widths; the
-   reclaimed space (6.5% + 5.5%) goes entirely to Vanity Slug so the
-   URL is actually readable instead of clipped. */
-body.post-type-rar_redirect .wp-list-table .column-title { width: 19.5%; }
+/* Title enlarged again — the icon-only status columns (Active/Nofollow/
+   Sponsored), Clicks, and Created At don't need nearly as much room as a
+   fixed-width layout was giving them, so that space goes to Title instead. */
+body.post-type-rar_redirect .wp-list-table .column-title { width: 29%; }
 body.post-type-rar_redirect .wp-list-table .column-target { width: 16.5%; }
 body.post-type-rar_redirect .wp-list-table .column-slug { width: 26%; }
-body.post-type-rar_redirect .wp-list-table .column-date { width: 8%; }
-body.post-type-rar_redirect .wp-list-table .column-type,
-body.post-type-rar_redirect .wp-list-table .column-active { width: 6%; }
+body.post-type-rar_redirect .wp-list-table .column-date { width: 6%; }
+body.post-type-rar_redirect .wp-list-table .column-type { width: 6%; }
+body.post-type-rar_redirect .wp-list-table .column-active { width: 4%; }
 body.post-type-rar_redirect .wp-list-table .column-nofollow,
-body.post-type-rar_redirect .wp-list-table .column-sponsored { width: 6%; }
-body.post-type-rar_redirect .wp-list-table .column-rar_clicks { width: 5%; }
+body.post-type-rar_redirect .wp-list-table .column-sponsored { width: 4%; }
+body.post-type-rar_redirect .wp-list-table .column-rar_clicks { width: 3%; }
 
 body.post-type-rar_redirect .wp-list-table .column-title,
 body.post-type-rar_redirect .wp-list-table .column-target,
@@ -213,18 +213,19 @@ body.post-type-rar_redirect .wp-list-table .rar-copy-input {
     font-size: 11px;
 }
 
-/* Un-bold the title, force it to the same size as every other cell
-   (WP core's .row-title otherwise renders bold and slightly larger),
-   and give it the accent colour permanently — not just on :hover —
-   so colour is actually visible at rest, not hiding in an interaction
-   state. */
+/* Un-bold the title and match the same plain text colour as every other
+   column — no accent tint, this is a label, not a call to action.
+   !important because WP core targets .row-title via an ID-scoped
+   selector (#the-list ...), which otherwise always wins over any number
+   of our own classes. */
 body.post-type-rar_redirect .wp-list-table .row-title {
-    font-weight: 400;
-    font-size: 14px;
-    color: var(--rar-accent-hover);
+    font-weight: 400 !important;
+    font-size: 14px !important;
+    color: var(--rar-ink) !important;
+    text-decoration: none;
 }
 body.post-type-rar_redirect .wp-list-table .row-title:hover {
-    color: var(--rar-accent);
+    color: var(--rar-ink) !important;
     text-decoration: underline;
 }
 
@@ -449,39 +450,45 @@ body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
       max-width: 100%;
     }
     
-    .rarlinks-table {
+    /* .rarlinks-table never actually existed on the table itself — only
+       the wrapping div carries "rarlinks-table-wrapper", so every rule
+       below previously matched nothing and the RARLink Name column fell
+       back to WP core's default (bold, admin blue) link styling. Fixed
+       to target the real element: .wp-list-table inside that wrapper. */
+    .rarlinks-table-wrapper .wp-list-table {
       table-layout: fixed;
       width: 100%;
       font-size: 14px;
     }
-    
-    .rarlinks-table th,
-    .rarlinks-table td {
+
+    .rarlinks-table-wrapper .wp-list-table th,
+    .rarlinks-table-wrapper .wp-list-table td {
       padding: 6px 8px;
       vertical-align: top;
       word-wrap: break-word;
       word-break: break-word;
     }
 
-    /* RARLink Name: same colour as the rest of the table (no special
-       accent treatment), just a touch heavier than regular body text
-       so it still reads as the row's primary column. */
-    .rarlinks-table .column-post_title a {
-      color: inherit;
-      font-weight: 500;
+    /* RARLink Name: same weight and colour as every other column and as
+       the Title column on the All RAR Links table — no accent tint, no
+       bold. !important for the same reason as the CPT table's row-title:
+       WP core's default link colour otherwise wins on specificity. */
+    .rarlinks-table-wrapper .wp-list-table .column-post_title a {
+      color: var(--rar-ink) !important;
+      font-weight: 400 !important;
       text-decoration: none;
     }
-    .rarlinks-table .column-post_title a:hover {
+    .rarlinks-table-wrapper .wp-list-table .column-post_title a:hover {
       text-decoration: underline;
     }
-    
+
   /* Limit and wrap wide columns */
-.rarlinks-table th:nth-child(4),
-.rarlinks-table td:nth-child(4), /* IP */
-.rarlinks-table th:nth-child(5),
-.rarlinks-table td:nth-child(5), /* Host */
-.rarlinks-table th:nth-child(6),
-.rarlinks-table td:nth-child(6)  /* Referrer */
+.rarlinks-table-wrapper .wp-list-table th:nth-child(4),
+.rarlinks-table-wrapper .wp-list-table td:nth-child(4), /* IP */
+.rarlinks-table-wrapper .wp-list-table th:nth-child(5),
+.rarlinks-table-wrapper .wp-list-table td:nth-child(5), /* Host */
+.rarlinks-table-wrapper .wp-list-table th:nth-child(6),
+.rarlinks-table-wrapper .wp-list-table td:nth-child(6)  /* Referrer */
 {
   max-width: 3em;
   white-space: normal;
