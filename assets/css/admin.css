@@ -84,6 +84,13 @@ body.rar_redirect_page_rar_importer .button:not(.button-primary) {
     border-radius: 4px;
 }
 
+body.post-type-rar_redirect .button:not(.button-primary),
+body.rar_redirect_page_rar_dashboard .button:not(.button-primary),
+body.rar_redirect_page_rar_settings .button:not(.button-primary),
+body.rar_redirect_page_rar_importer .button:not(.button-primary) {
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
 body.post-type-rar_redirect .button:not(.button-primary):hover,
 body.rar_redirect_page_rar_dashboard .button:not(.button-primary):hover,
 body.rar_redirect_page_rar_settings .button:not(.button-primary):hover,
@@ -125,17 +132,118 @@ body.rar_redirect_page_rar_settings .nav-tab-wrapper .nav-tab:hover {
    deliberately separate tone for "inactive" states (e.g. Archived)
    that aren't a problem — folding them into amber would blunt what
    amber means everywhere else. */
-body.post-type-rar_redirect .column-type .dashicons-admin-users,
-body.rar_redirect_page_rar_dashboard .column-type .dashicons-admin-users {
-    color: var(--rar-good);
-}
-body.post-type-rar_redirect .column-type .dashicons-welcome-view-site,
-body.rar_redirect_page_rar_dashboard .column-type .dashicons-welcome-view-site {
+/* This is Bot Cleanup's Type column specifically — View Clicks dropped
+   Type entirely (it's human-only now, the icon would never vary), and
+   Bot Cleanup never shows a human row, so there is no "likely human"
+   green icon to colour here at all; only bot (red) and unknown (amber)
+   can ever render. (Previously mis-scoped to the View Clicks page,
+   where this column no longer exists, so it never actually applied.) */
+body.rar_redirect_page_rar_settings .column-type .dashicons-welcome-view-site {
     color: var(--rar-bad);
 }
-body.post-type-rar_redirect .column-type .dashicons-editor-help,
-body.rar_redirect_page_rar_dashboard .column-type .dashicons-editor-help {
+body.rar_redirect_page_rar_settings .column-type .dashicons-editor-help {
     color: var(--rar-warn);
+}
+
+/* Active/Nofollow/Sponsored are on/off TOGGLES on this list, not a bot
+   classification verdict — the traffic-light green/red is reserved for
+   that, so these icons all share the one plain ink colour instead,
+   regardless of state. */
+body.post-type-rar_redirect .rar-status-on,
+body.post-type-rar_redirect .rar-status-off,
+body.post-type-rar_redirect .rar-status-neutral {
+    color: var(--rar-ink);
+    opacity: 1;
+}
+
+/* Redirect-type (301/302/307) compact pill, matching the Moto Partner
+   badge language so the whole plugin reads as one visual system. */
+body.post-type-rar_redirect .rar-type-pill {
+    display: inline-block;
+    padding: 0.1em 0.6em;
+    border-radius: 999px;
+    background: var(--rar-accent-soft);
+    color: var(--rar-accent-hover);
+    font-size: 0.85em;
+    font-weight: 400;
+    font-family: Consolas, Monaco, monospace;
+}
+
+/* ============================================================
+   RARLinks post list (All RARLinks): the screen this whole design
+   system started on, and the one the first pass never actually
+   touched. Real column proportions instead of the browser's default
+   even-ish auto-layout, normalised title typography (not bold, same
+   size as every other cell, and coloured with the accent PERMANENTLY
+   rather than only on hover), and a live row hover so the table feels
+   designed rather than default WP.
+   ============================================================ */
+body.post-type-rar_redirect .wp-list-table {
+    table-layout: fixed;
+}
+
+/* Title enlarged again — the icon-only status columns (Active/Nofollow/
+   Sponsored), Clicks, and Created At don't need nearly as much room as a
+   fixed-width layout was giving them, so that space goes to Title instead. */
+body.post-type-rar_redirect .wp-list-table .column-title { width: 29%; }
+body.post-type-rar_redirect .wp-list-table .column-target { width: 16.5%; }
+body.post-type-rar_redirect .wp-list-table .column-slug { width: 26%; }
+body.post-type-rar_redirect .wp-list-table .column-date { width: 6%; }
+body.post-type-rar_redirect .wp-list-table .column-type { width: 6%; }
+body.post-type-rar_redirect .wp-list-table .column-active { width: 4%; }
+body.post-type-rar_redirect .wp-list-table .column-nofollow,
+body.post-type-rar_redirect .wp-list-table .column-sponsored { width: 4%; }
+body.post-type-rar_redirect .wp-list-table .column-rar_clicks { width: 3%; }
+
+body.post-type-rar_redirect .wp-list-table .column-title,
+body.post-type-rar_redirect .wp-list-table .column-target,
+body.post-type-rar_redirect .wp-list-table .column-slug {
+    /* Long content (titles, target URLs, vanity slugs) wraps rather
+       than forcing the fixed layout to overflow or truncate silently. */
+    word-break: break-word;
+}
+
+/* Smaller text specifically in the list table's Vanity Slug field (not
+   the edit-screen preview, which shares this class but has room to
+   spare) — more of the URL fits before it's cut off. */
+body.post-type-rar_redirect .wp-list-table .rar-copy-input {
+    font-size: 11px;
+}
+
+/* Un-bold the title and match the same plain text colour as every other
+   column — no accent tint, this is a label, not a call to action.
+   !important because WP core targets .row-title via an ID-scoped
+   selector (#the-list ...), which otherwise always wins over any number
+   of our own classes. */
+body.post-type-rar_redirect .wp-list-table .row-title {
+    font-weight: 400 !important;
+    font-size: 0.9em !important;
+    color: var(--rar-ink) !important;
+    text-decoration: none;
+}
+body.post-type-rar_redirect .wp-list-table .row-title:hover {
+    color: var(--rar-ink) !important;
+    text-decoration: underline;
+}
+
+/* Header: a touch more character than stock WP — letter-spacing and an
+   accent-tinted underline instead of the plain grey rule. */
+body.post-type-rar_redirect .wp-list-table thead th,
+body.post-type-rar_redirect .wp-list-table thead td {
+    border-bottom: 2px solid var(--rar-accent);
+    text-transform: uppercase;
+    font-size: 0.75em;
+    letter-spacing: 0.05em;
+    color: var(--rar-neutral);
+}
+
+/* Live row hover across every RARLinks table (post list, View Clicks,
+   Bot Cleanup) — a tinted background rather than the browser doing
+   nothing, so the table reads as an interactive product surface. */
+body.post-type-rar_redirect .wp-list-table tbody tr:hover,
+body.rar_redirect_page_rar_dashboard .wp-list-table tbody tr:hover,
+body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
+    background-color: var(--rar-accent-soft);
 }
 
 /*=== New RARLink/Edit Screen Metaboxes  ====*/
@@ -339,27 +447,45 @@ body.rar_redirect_page_rar_dashboard .column-type .dashicons-editor-help {
       max-width: 100%;
     }
     
-    .rarlinks-table {
+    /* .rarlinks-table never actually existed on the table itself — only
+       the wrapping div carries "rarlinks-table-wrapper", so every rule
+       below previously matched nothing and the RARLink Name column fell
+       back to WP core's default (bold, admin blue) link styling. Fixed
+       to target the real element: .wp-list-table inside that wrapper. */
+    .rarlinks-table-wrapper .wp-list-table {
       table-layout: fixed;
       width: 100%;
       font-size: 14px;
     }
-    
-    .rarlinks-table th,
-    .rarlinks-table td {
+
+    .rarlinks-table-wrapper .wp-list-table th,
+    .rarlinks-table-wrapper .wp-list-table td {
       padding: 6px 8px;
       vertical-align: top;
       word-wrap: break-word;
       word-break: break-word;
     }
-    
+
+    /* RARLink Name: same weight and colour as every other column and as
+       the Title column on the All RAR Links table — no accent tint, no
+       bold. !important for the same reason as the CPT table's row-title:
+       WP core's default link colour otherwise wins on specificity. */
+    .rarlinks-table-wrapper .wp-list-table .column-post_title a {
+      color: var(--rar-ink) !important;
+      font-weight: 400 !important;
+      text-decoration: none;
+    }
+    .rarlinks-table-wrapper .wp-list-table .column-post_title a:hover {
+      text-decoration: underline;
+    }
+
   /* Limit and wrap wide columns */
-.rarlinks-table th:nth-child(4),
-.rarlinks-table td:nth-child(4), /* IP */
-.rarlinks-table th:nth-child(5),
-.rarlinks-table td:nth-child(5), /* Host */
-.rarlinks-table th:nth-child(6),
-.rarlinks-table td:nth-child(6)  /* Referrer */
+.rarlinks-table-wrapper .wp-list-table th:nth-child(4),
+.rarlinks-table-wrapper .wp-list-table td:nth-child(4), /* IP */
+.rarlinks-table-wrapper .wp-list-table th:nth-child(5),
+.rarlinks-table-wrapper .wp-list-table td:nth-child(5), /* Host */
+.rarlinks-table-wrapper .wp-list-table th:nth-child(6),
+.rarlinks-table-wrapper .wp-list-table td:nth-child(6)  /* Referrer */
 {
   max-width: 3em;
   white-space: normal;
