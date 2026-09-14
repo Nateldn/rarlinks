@@ -143,28 +143,33 @@ public static function handle_column_sorting( $query ) {
     			break;
     
     		case 'type':
-    			echo esc_html( get_post_meta( $post_id, '_rar_type', true ) );
+    			$type = get_post_meta( $post_id, '_rar_type', true );
+    			echo '<span class="rar-type-pill">' . esc_html( $type ) . '</span>';
     			break;
     
     		case 'active':
     			$is_active = get_post_meta( $post_id, '_rar_active', true ) === '1';
     			$icon      = $is_active ? 'randomize' : 'dismiss';
     			$title     = $is_active ? 'Active' : 'Inactive';
-    			echo '<span class="dashicons dashicons-' . esc_attr( $icon ) . '" title="' . esc_attr( $title ) . '"></span>';
+    			$state     = $is_active ? 'rar-status-on' : 'rar-status-off';
+    			echo '<span class="dashicons dashicons-' . esc_attr( $icon ) . ' ' . esc_attr( $state ) . '" title="' . esc_attr( $title ) . '"></span>';
     			break;
-    
+
     		case 'nofollow':
     			$is_nofollow = get_post_meta( $post_id, '_rar_nofollow', true ) !== '0';
     			$icon        = $is_nofollow ? 'hidden' : 'visibility';
     			$title       = $is_nofollow ? 'nofollow Enabled' : 'nofollow Disabled';
-    			echo '<span class="dashicons dashicons-' . esc_attr( $icon ) . '" title="' . esc_attr( $title ) . '"></span>';
+    			// A deliberate SEO choice either way — never "off" red, just on/neutral.
+    			$state       = $is_nofollow ? 'rar-status-on' : 'rar-status-neutral';
+    			echo '<span class="dashicons dashicons-' . esc_attr( $icon ) . ' ' . esc_attr( $state ) . '" title="' . esc_attr( $title ) . '"></span>';
     			break;
-    
+
     		case 'sponsored':
     			$is_sponsored = get_post_meta( $post_id, '_rar_sponsored', true ) !== '0';
     			$icon         = $is_sponsored ? 'money-alt' : 'admin-links';
     			$title        = $is_sponsored ? 'sponsored Enabled' : 'sponsored Disabled';
-    			echo '<span class="dashicons dashicons-' . esc_attr( $icon ) . '" title="' . esc_attr( $title ) . '"></span>';
+    			$state        = $is_sponsored ? 'rar-status-on' : 'rar-status-neutral';
+    			echo '<span class="dashicons dashicons-' . esc_attr( $icon ) . ' ' . esc_attr( $state ) . '" title="' . esc_attr( $title ) . '"></span>';
     			break;
     
     		case 'rar_clicks':
