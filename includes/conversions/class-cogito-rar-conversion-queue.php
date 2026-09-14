@@ -78,7 +78,7 @@ class Cogito_RAR_Conversion_Queue {
      * @param int    $hold_minutes Minutes before this row becomes eligible to send.
      * @return int Inserted row id.
      */
-    public static function enqueue( $provider, $event_name, array $signals, $post_id = null, $source = 'rarlink', $hold_minutes = 60 ) {
+    public static function enqueue( $provider, $event_name, array $signals, $post_id = null, $source = 'rarlink', $hold_minutes = 0 ) {
         global $wpdb;
 
         $wpdb->insert(

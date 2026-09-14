@@ -20,6 +20,48 @@ class Cogito_RAR_Conversion_Dispatcher {
      */
     const STALE_DAYS = 6.5;
 
+    const CRON_HOOK = 'rar_conversions_cron_dispatch';
+
+    /**
+     * Registers the automatic dispatch schedule. Events are meant to go out
+     * as soon as they occur, not sit waiting for someone to click "Flush
+     * Now" — WP-Cron only checks for due events on incoming page requests
+     * (there's no true background process), so on a quiet site the actual
+     * delay depends on traffic, but on a live site this is effectively
+     * immediate.
+     */
+    public static function init() {
+        add_filter( 'cron_schedules', [ self::class, 'add_cron_schedule' ] );
+        add_action( self::CRON_HOOK, [ self::class, 'flush_all' ] );
+        add_action( 'init', [ self::class, 'maybe_schedule' ] );
+    }
+
+    public static function add_cron_schedule( $schedules ) {
+        $schedules['rar_conversions_minute'] = [
+            'interval' => MINUTE_IN_SECONDS,
+            'display'  => 'Every minute (RARLinks Conversions dispatch)',
+        ];
+        return $schedules;
+    }
+
+    public static function maybe_schedule() {
+        if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
+            wp_schedule_event( time(), 'rar_conversions_minute', self::CRON_HOOK );
+        }
+    }
+
+    /**
+     * Called on plugin deactivation so a disabled plugin doesn't leave a
+     * cron event still firing (and failing, since its hook's callback would
+     * no longer be registered).
+     */
+    public static function unschedule() {
+        $timestamp = wp_next_scheduled( self::CRON_HOOK );
+        if ( $timestamp ) {
+            wp_unschedule_event( $timestamp, self::CRON_HOOK );
+        }
+    }
+
     /**
      * Flushes every enabled provider's eligible queue.
      *

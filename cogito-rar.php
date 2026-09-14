@@ -108,6 +108,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-ra
 require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-dispatcher.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-capture.php';
 Cogito_RAR_Conversion_Capture::init();
+Cogito_RAR_Conversion_Dispatcher::init();
 // Self-healing table creation: this plugin is already active on live, so
 // register_activation_hook alone would never fire for this new table —
 // check/create on admin_init instead (dbDelta is idempotent, cheap no-op
@@ -154,6 +155,17 @@ function cogito_rar_on_activate() {
 	flush_rewrite_rules();
 }
 register_activation_hook( __FILE__, 'cogito_rar_on_activate' );
+
+/**
+ * Stops the Conversions dispatch cron from firing (and failing) once this
+ * plugin's hook callbacks are no longer registered.
+ */
+function cogito_rar_on_deactivate() {
+	if ( class_exists( 'Cogito_RAR_Conversion_Dispatcher' ) ) {
+		Cogito_RAR_Conversion_Dispatcher::unschedule();
+	}
+}
+register_deactivation_hook( __FILE__, 'cogito_rar_on_deactivate' );
 
 
 

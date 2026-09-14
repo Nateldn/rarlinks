@@ -41,7 +41,7 @@ class Cogito_RAR_Settings_Conversions {
 
         update_option( Cogito_RAR_Conversion_Capture::OPTION_ENABLED, isset( $_POST['rar_conversions_enabled'] ) ? '1' : '0' );
 
-        $hold = isset( $_POST['rar_conversions_hold_minutes'] ) ? absint( $_POST['rar_conversions_hold_minutes'] ) : 60;
+        $hold = isset( $_POST['rar_conversions_hold_minutes'] ) ? absint( $_POST['rar_conversions_hold_minutes'] ) : 0;
         update_option( Cogito_RAR_Conversion_Capture::OPTION_HOLD_MINUTES, $hold );
 
         // Stored as raw text (sanitised per-line, not per-textarea) so the
@@ -93,7 +93,7 @@ class Cogito_RAR_Settings_Conversions {
         }
 
         $enabled          = get_option( Cogito_RAR_Conversion_Capture::OPTION_ENABLED ) === '1';
-        $hold             = (int) get_option( Cogito_RAR_Conversion_Capture::OPTION_HOLD_MINUTES, 60 );
+        $hold             = (int) get_option( Cogito_RAR_Conversion_Capture::OPTION_HOLD_MINUTES, 0 );
         $identifiers_raw    = (string) get_option( Cogito_RAR_Conversion_Capture::OPTION_TRACKED_IDENTIFIERS, '' );
         $identifiers_parsed = Cogito_RAR_Conversion_Capture::get_tracked_identifiers();
 
@@ -116,7 +116,7 @@ class Cogito_RAR_Settings_Conversions {
 
         echo '<tr><th scope="row">Hold before sending</th><td>';
         echo '<input type="number" min="0" name="rar_conversions_hold_minutes" value="' . esc_attr( $hold ) . '" style="width:80px;"> minutes';
-        echo '<p class="description">Before a queued event is actually sent, it\'s re-checked against your current bot-detection data (not just the click-time snapshot) — a free safety net that needs no action from you.</p>';
+        echo '<p class="description">Kept at 0 by default — events go out automatically roughly every minute rather than waiting. Whenever a queued event is actually sent, it\'s re-checked against your current bot-detection data (not just the click-time snapshot) — a free safety net that needs no action from you. Raise this only if you want more of a buffer before that re-check happens.</p>';
         echo '</td></tr>';
 
         echo '<tr><th scope="row">Tracked buttons &amp; links</th><td>';
@@ -152,6 +152,7 @@ class Cogito_RAR_Settings_Conversions {
         echo 'Permanently failed: <strong>' . esc_html( $counts['permanently_failed'] ?? 0 ) . '</strong>';
         echo '</p>';
 
+        echo '<p class="description">Events dispatch automatically roughly every minute — this button is only for triggering it immediately (e.g. while testing).</p>';
         echo '<form method="post" action="' . esc_url( self::tab_url() ) . '">';
         wp_nonce_field( 'rar_conversions_flush', 'rar_conversions_flush_nonce' );
         submit_button( 'Flush Now', 'secondary', 'submit', false );
