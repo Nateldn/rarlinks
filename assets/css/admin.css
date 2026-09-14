@@ -132,16 +132,16 @@ body.rar_redirect_page_rar_settings .nav-tab-wrapper .nav-tab:hover {
    deliberately separate tone for "inactive" states (e.g. Archived)
    that aren't a problem — folding them into amber would blunt what
    amber means everywhere else. */
-body.post-type-rar_redirect .column-type .dashicons-admin-users,
-body.rar_redirect_page_rar_dashboard .column-type .dashicons-admin-users {
-    color: var(--rar-good);
-}
-body.post-type-rar_redirect .column-type .dashicons-welcome-view-site,
-body.rar_redirect_page_rar_dashboard .column-type .dashicons-welcome-view-site {
+/* This is Bot Cleanup's Type column specifically — View Clicks dropped
+   Type entirely (it's human-only now, the icon would never vary), and
+   Bot Cleanup never shows a human row, so there is no "likely human"
+   green icon to colour here at all; only bot (red) and unknown (amber)
+   can ever render. (Previously mis-scoped to the View Clicks page,
+   where this column no longer exists, so it never actually applied.) */
+body.rar_redirect_page_rar_settings .column-type .dashicons-welcome-view-site {
     color: var(--rar-bad);
 }
-body.post-type-rar_redirect .column-type .dashicons-editor-help,
-body.rar_redirect_page_rar_dashboard .column-type .dashicons-editor-help {
+body.rar_redirect_page_rar_settings .column-type .dashicons-editor-help {
     color: var(--rar-warn);
 }
 
@@ -463,15 +463,15 @@ body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
       word-break: break-word;
     }
 
-    /* Title link: same accent-at-rest treatment as the main RARLinks
-       post list, so both tables read as one consistent system. */
+    /* RARLink Name: same colour as the rest of the table (no special
+       accent treatment), just a touch heavier than regular body text
+       so it still reads as the row's primary column. */
     .rarlinks-table .column-post_title a {
-      color: var(--rar-accent-hover);
-      font-weight: 400;
+      color: inherit;
+      font-weight: 500;
       text-decoration: none;
     }
     .rarlinks-table .column-post_title a:hover {
-      color: var(--rar-accent);
       text-decoration: underline;
     }
     

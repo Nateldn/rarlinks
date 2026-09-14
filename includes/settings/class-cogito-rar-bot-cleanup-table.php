@@ -27,6 +27,50 @@ class Cogito_RAR_Bot_Cleanup_Table extends Cogito_RAR_Clicks_List_Table {
     }
 
     /**
+     * The parent table dropped Type/Bot Name (View Clicks is human-only now,
+     * so they'd be identical on every row there) — but this table is the
+     * opposite, bots/unknowns only, where Type and Bot Name are the whole
+     * point: they're what tells you WHY a row was flagged. Reinstate both,
+     * in their original position, mirroring the parent's two branches.
+     */
+    public function get_columns() {
+        $is_filtered = isset( $_GET['post_id'] ) && is_numeric( $_GET['post_id'] );
+
+        if ( $is_filtered ) {
+            return [
+                'cb'         => '<input type="checkbox" />',
+                'timestamp'  => 'Time',
+                'visitor_id' => 'Visitor ID',
+                'ip_address' => 'IP',
+                'hostname'   => 'Host',
+                'org'        => 'Org',
+                'type'       => 'Type',
+                'bot_name'   => 'Bot Name',
+                'referrer'   => 'Referrer',
+                'browser'    => 'Browser',
+                'os'         => 'OS',
+                'device'     => 'Device',
+            ];
+        }
+
+        return [
+            'cb'          => '<input type="checkbox" />',
+            'post_title'  => 'RARLink Name',
+            'timestamp'   => 'Time',
+            'visitor_id'  => 'Visitor ID',
+            'ip_address'  => 'IP',
+            'hostname'    => 'Host',
+            'org'         => 'Org',
+            'type'        => 'Type',
+            'bot_name'    => 'Bot Name',
+            'referrer'    => 'Referrer',
+            'browser'     => 'Browser',
+            'os'          => 'OS',
+            'device'      => 'Device',
+        ];
+    }
+
+    /**
      * Delete, plus Mark as human for rescuing false positives spotted
      * during review (the row leaves this table and reverts to human in
      * the report). WP_List_Table renders the dropdown and the per-row
