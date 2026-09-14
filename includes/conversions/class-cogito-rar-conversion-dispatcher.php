@@ -99,6 +99,12 @@ class Cogito_RAR_Conversion_Dispatcher {
             $signals = json_decode( (string) $row->signals, true );
             $signals = is_array( $signals ) ? $signals : [];
 
+            if ( class_exists( 'Cogito_RAR_Conversion_Click_Context' ) ) {
+                // Fills in link_text/link_classes from the click listener's
+                // beacon, if it landed — a no-op otherwise.
+                $signals = Cogito_RAR_Conversion_Click_Context::enrich( $signals );
+            }
+
             if ( (int) ( $signals['click_time'] ?? 0 ) < $stale_cutoff ) {
                 // Too old for the provider's event-time window — give up
                 // rather than let one ancient row block newer ones forever.

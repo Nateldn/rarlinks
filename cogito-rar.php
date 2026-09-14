@@ -106,9 +106,11 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/providers/class
 require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-providers.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-queue.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-dispatcher.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-click-context.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-capture.php';
 Cogito_RAR_Conversion_Capture::init();
 Cogito_RAR_Conversion_Dispatcher::init();
+Cogito_RAR_Conversion_Click_Context::init();
 // Self-healing table creation: this plugin is already active on live, so
 // register_activation_hook alone would never fire for this new table —
 // check/create on admin_init instead (dbDelta is idempotent, cheap no-op

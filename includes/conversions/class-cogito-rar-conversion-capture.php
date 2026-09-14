@@ -87,10 +87,18 @@ class Cogito_RAR_Conversion_Capture {
             // fill from a RARLink redirect's own URL (there is no DOM here).
             'event_source_url' => sanitize_text_field( $_SERVER['HTTP_REFERER'] ?? '' ),
             'destination_url'  => esc_url_raw( $destination_url ),
-            'link_text'        => '', // only the raw-link JS capture path (a later step) can supply these
+            // Blank until Cogito_RAR_Conversion_Click_Context::enrich() fills
+            // them in at dispatch time, IF the browser-side click listener's
+            // beacon landed for this click (see click_token below).
+            'link_text'        => '',
             'link_classes'     => '',
             'fbp'               => self::read_fbp(),
             'fbc'               => self::read_or_build_fbc(),
+            // The redirect and the click listener's beacon are two separate
+            // requests racing each other — this token is how the beacon's
+            // data (captured client-side, where the DOM is visible) gets
+            // matched back up to this specific click at send time.
+            'click_token'      => isset( $_GET['_rct'] ) ? sanitize_key( wp_unslash( $_GET['_rct'] ) ) : '',
         ];
     }
 
