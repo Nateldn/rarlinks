@@ -13,8 +13,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Cogito_RAR_Conversion_Capture {
 
-    const OPTION_ENABLED      = 'rar_conversions_enabled';
-    const OPTION_HOLD_MINUTES = 'rar_conversions_hold_minutes';
+    const OPTION_ENABLED           = 'rar_conversions_enabled';
+    const OPTION_HOLD_MINUTES       = 'rar_conversions_hold_minutes';
+    const OPTION_TRACKED_SELECTORS = 'rar_conversions_tracked_selectors';
+    const MAX_TRACKED_SELECTORS    = 50;
 
     public static function init() {
         add_action( 'rar_click_logged', [ self::class, 'maybe_capture' ], 10, 4 );
@@ -116,6 +118,38 @@ class Cogito_RAR_Conversion_Capture {
         $now_ms = (int) round( microtime( true ) * 1000 );
 
         return 'fb.1.' . $now_ms . '.' . $fbclid;
+    }
+
+    /**
+     * The CSS selectors the (not-yet-built) raw-link click listener should
+     * match against — Nate's own admin-editable list, not a hardcoded
+     * assumption baked into code. One selector per line, e.g. `.affi_btn`,
+     * `.lr-button`, `div.affi_btn_wrap a`. Blank lines and lines starting
+     * with # (comments) are ignored. Stored as the raw textarea text so the
+     * settings form round-trips exactly what was typed; parsed here into a
+     * clean array for anything that actually needs to USE the list (the
+     * settings UI's own preview, and later the REST route + JS listener,
+     * which will read this same list via wp_localize_script()).
+     *
+     * @return string[]
+     */
+    public static function get_tracked_selectors() {
+        $raw   = (string) get_option( self::OPTION_TRACKED_SELECTORS, '' );
+        $lines = preg_split( '/\r\n|\r|\n/', $raw );
+
+        $selectors = [];
+        foreach ( $lines as $line ) {
+            $line = trim( $line );
+            if ( '' === $line || '#' === $line[0] ) {
+                continue;
+            }
+            $selectors[] = sanitize_text_field( $line );
+        }
+
+        // A runaway list would make the future click listener slow to
+        // evaluate on every click, and there's no legitimate reason to need
+        // more than a few dozen distinct button/link styles at once.
+        return array_slice( array_unique( $selectors ), 0, self::MAX_TRACKED_SELECTORS );
     }
 
     /**

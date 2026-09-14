@@ -44,6 +44,14 @@ class Cogito_RAR_Settings_Conversions {
         $hold = isset( $_POST['rar_conversions_hold_minutes'] ) ? absint( $_POST['rar_conversions_hold_minutes'] ) : 60;
         update_option( Cogito_RAR_Conversion_Capture::OPTION_HOLD_MINUTES, $hold );
 
+        // Stored as raw text (sanitised per-line, not per-textarea) so the
+        // form shows back exactly what was typed, including blank spacer
+        // lines — get_tracked_selectors() does the real cleanup on read.
+        $selectors_raw = isset( $_POST['rar_conversions_tracked_selectors'] )
+            ? sanitize_textarea_field( wp_unslash( $_POST['rar_conversions_tracked_selectors'] ) )
+            : '';
+        update_option( Cogito_RAR_Conversion_Capture::OPTION_TRACKED_SELECTORS, $selectors_raw );
+
         wp_safe_redirect( add_query_arg( 'saved', 1, self::tab_url() ) );
         exit;
     }
@@ -84,8 +92,10 @@ class Cogito_RAR_Settings_Conversions {
             echo '</p></div>';
         }
 
-        $enabled = get_option( Cogito_RAR_Conversion_Capture::OPTION_ENABLED ) === '1';
-        $hold    = (int) get_option( Cogito_RAR_Conversion_Capture::OPTION_HOLD_MINUTES, 60 );
+        $enabled          = get_option( Cogito_RAR_Conversion_Capture::OPTION_ENABLED ) === '1';
+        $hold             = (int) get_option( Cogito_RAR_Conversion_Capture::OPTION_HOLD_MINUTES, 60 );
+        $selectors_raw    = (string) get_option( Cogito_RAR_Conversion_Capture::OPTION_TRACKED_SELECTORS, '' );
+        $selectors_parsed = Cogito_RAR_Conversion_Capture::get_tracked_selectors();
 
         echo '<div class="rar-conversions">';
         echo '<h3>Conversions</h3>';
@@ -104,6 +114,16 @@ class Cogito_RAR_Settings_Conversions {
         echo '<tr><th scope="row">Hold before sending</th><td>';
         echo '<input type="number" min="0" name="rar_conversions_hold_minutes" value="' . esc_attr( $hold ) . '" style="width:80px;"> minutes';
         echo '<p class="description">Before a queued event is actually sent, it\'s re-checked against your current bot-detection data (not just the click-time snapshot) — a free safety net that needs no action from you.</p>';
+        echo '</td></tr>';
+
+        echo '<tr><th scope="row">Tracked buttons &amp; links</th><td>';
+        echo '<textarea name="rar_conversions_tracked_selectors" rows="6" style="width:100%; max-width:500px; font-family:monospace;" placeholder="' . esc_attr( ".affi_btn\n.affi_group\n.lr-button" ) . '">' . esc_textarea( $selectors_raw ) . '</textarea>';
+        echo '<p class="description">One CSS selector per line — a class (<code>.affi_btn</code>), an element+class (<code>a.lr-button</code>), or a container (<code>div.affi_btn_wrap a</code>). ';
+        echo 'Add a new line whenever you create a new button/link style you want tracked; lines starting with <code>#</code> are ignored as comments. ';
+        echo 'This is the list the click-listener script (raw, non-RARLink affiliate links — not built yet) will match against; nothing consumes it yet, but it\'s safe to start curating now.</p>';
+        if ( ! empty( $selectors_parsed ) ) {
+            echo '<p class="description">Currently parsed as: <code>' . esc_html( implode( ', ', $selectors_parsed ) ) . '</code></p>';
+        }
         echo '</td></tr>';
 
         echo '</tbody></table>';
