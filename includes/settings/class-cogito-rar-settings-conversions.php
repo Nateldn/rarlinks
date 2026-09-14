@@ -100,7 +100,7 @@ class Cogito_RAR_Settings_Conversions {
         echo '<div class="rar-conversions">';
         echo '<h3>Conversions</h3>';
         echo '<p>Server-side conversion events for affiliate clicks, starting with Meta\'s Conversions API. ';
-        echo '<strong>Off by default</strong> — nothing is captured or sent until enabled below, and only RARLink clicks the bot-detection waterfall classifies as human are ever queued.</p>';
+        echo '<strong>Off by default</strong> — nothing is captured or sent until enabled below. Bot clicks are never sent to Meta: every click is checked with the same bot-detection your Clicks Report already uses, and only clicks it marks as human get queued.</p>';
 
         echo '<form method="post" action="' . esc_url( self::tab_url() ) . '">';
         wp_nonce_field( 'rar_conversions_settings', 'rar_conversions_settings_nonce' );
