@@ -84,6 +84,13 @@ body.rar_redirect_page_rar_importer .button:not(.button-primary) {
     border-radius: 4px;
 }
 
+body.post-type-rar_redirect .button:not(.button-primary),
+body.rar_redirect_page_rar_dashboard .button:not(.button-primary),
+body.rar_redirect_page_rar_settings .button:not(.button-primary),
+body.rar_redirect_page_rar_importer .button:not(.button-primary) {
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
 body.post-type-rar_redirect .button:not(.button-primary):hover,
 body.rar_redirect_page_rar_dashboard .button:not(.button-primary):hover,
 body.rar_redirect_page_rar_settings .button:not(.button-primary):hover,
@@ -136,6 +143,99 @@ body.rar_redirect_page_rar_dashboard .column-type .dashicons-welcome-view-site {
 body.post-type-rar_redirect .column-type .dashicons-editor-help,
 body.rar_redirect_page_rar_dashboard .column-type .dashicons-editor-help {
     color: var(--rar-warn);
+}
+
+/* --- On/off/neutral status icons (Active, Nofollow, Sponsored columns):
+   the same traffic-light tokens, but as a semantic on/off/neutral triad
+   rather than good/bad/warn — these describe a setting, not a verdict. */
+body.post-type-rar_redirect .rar-status-on {
+    color: var(--rar-good);
+}
+body.post-type-rar_redirect .rar-status-off {
+    color: var(--rar-neutral);
+    opacity: 0.6;
+}
+body.post-type-rar_redirect .rar-status-neutral {
+    color: var(--rar-neutral);
+}
+
+/* Redirect-type (301/302/307) compact pill, matching the Moto Partner
+   badge language so the whole plugin reads as one visual system. */
+body.post-type-rar_redirect .rar-type-pill {
+    display: inline-block;
+    padding: 0.1em 0.6em;
+    border-radius: 999px;
+    background: var(--rar-accent-soft);
+    color: var(--rar-accent-hover);
+    font-size: 0.85em;
+    font-weight: 600;
+    font-family: Consolas, Monaco, monospace;
+}
+
+/* ============================================================
+   RARLinks post list (All RARLinks): the screen this whole design
+   system started on, and the one the first pass never actually
+   touched. Real column proportions instead of the browser's default
+   even-ish auto-layout, normalised title typography (not bold, same
+   size as every other cell, and coloured with the accent PERMANENTLY
+   rather than only on hover), and a live row hover so the table feels
+   designed rather than default WP.
+   ============================================================ */
+body.post-type-rar_redirect .wp-list-table {
+    table-layout: fixed;
+}
+
+body.post-type-rar_redirect .wp-list-table .column-title { width: 26%; }
+body.post-type-rar_redirect .wp-list-table .column-target { width: 22%; }
+body.post-type-rar_redirect .wp-list-table .column-slug { width: 14%; }
+body.post-type-rar_redirect .wp-list-table .column-date { width: 8%; }
+body.post-type-rar_redirect .wp-list-table .column-type,
+body.post-type-rar_redirect .wp-list-table .column-active { width: 6%; }
+body.post-type-rar_redirect .wp-list-table .column-nofollow,
+body.post-type-rar_redirect .wp-list-table .column-sponsored { width: 6%; }
+body.post-type-rar_redirect .wp-list-table .column-rar_clicks { width: 5%; }
+
+body.post-type-rar_redirect .wp-list-table .column-title,
+body.post-type-rar_redirect .wp-list-table .column-target,
+body.post-type-rar_redirect .wp-list-table .column-slug {
+    /* Long content (titles, target URLs, vanity slugs) wraps rather
+       than forcing the fixed layout to overflow or truncate silently. */
+    word-break: break-word;
+}
+
+/* Un-bold the title, force it to the same size as every other cell
+   (WP core's .row-title otherwise renders bold and slightly larger),
+   and give it the accent colour permanently — not just on :hover —
+   so colour is actually visible at rest, not hiding in an interaction
+   state. */
+body.post-type-rar_redirect .wp-list-table .row-title {
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--rar-accent-hover);
+}
+body.post-type-rar_redirect .wp-list-table .row-title:hover {
+    color: var(--rar-accent);
+    text-decoration: underline;
+}
+
+/* Header: a touch more character than stock WP — letter-spacing and an
+   accent-tinted underline instead of the plain grey rule. */
+body.post-type-rar_redirect .wp-list-table thead th,
+body.post-type-rar_redirect .wp-list-table thead td {
+    border-bottom: 2px solid var(--rar-accent);
+    text-transform: uppercase;
+    font-size: 0.75em;
+    letter-spacing: 0.05em;
+    color: var(--rar-neutral);
+}
+
+/* Live row hover across every RARLinks table (post list, View Clicks,
+   Bot Cleanup) — a tinted background rather than the browser doing
+   nothing, so the table reads as an interactive product surface. */
+body.post-type-rar_redirect .wp-list-table tbody tr:hover,
+body.rar_redirect_page_rar_dashboard .wp-list-table tbody tr:hover,
+body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
+    background-color: var(--rar-accent-soft);
 }
 
 /*=== New RARLink/Edit Screen Metaboxes  ====*/
@@ -351,6 +451,18 @@ body.rar_redirect_page_rar_dashboard .column-type .dashicons-editor-help {
       vertical-align: top;
       word-wrap: break-word;
       word-break: break-word;
+    }
+
+    /* Title link: same accent-at-rest treatment as the main RARLinks
+       post list, so both tables read as one consistent system. */
+    .rarlinks-table .column-post_title a {
+      color: var(--rar-accent-hover);
+      font-weight: 400;
+      text-decoration: none;
+    }
+    .rarlinks-table .column-post_title a:hover {
+      color: var(--rar-accent);
+      text-decoration: underline;
     }
     
   /* Limit and wrap wide columns */
