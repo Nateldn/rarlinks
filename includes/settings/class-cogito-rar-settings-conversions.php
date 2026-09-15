@@ -26,32 +26,45 @@ class Cogito_RAR_Settings_Conversions {
     }
 
     /**
-     * Renders one event's name + identifiers block. Field names use empty
-     * "[]" array brackets rather than numeric indexes — however many rows
-     * actually exist in the DOM at submit time (rows can be added/removed
-     * freely via JS) arrive as a plain sequential array in $_POST, no
-     * client-side re-indexing required.
+     * Renders one event's name + identifiers block, laid out inline
+     * (name, classes/IDs, and remove all on one row).
      *
-     * @param string $name
-     * @param string $identifiers_raw
+     * Field names carry an EXPLICIT, matching index — "rar_conversions_
+     * events[$index][name]" and "[$index][identifiers]" — rather than
+     * empty "[]" brackets. Empty brackets look like they'd auto-pair a
+     * row's fields together, but PHP actually assigns each "[]" occurrence
+     * its OWN new top-level index regardless of which subkey follows, so
+     * a name input and identifiers textarea declared as two separate "[]"
+     * fields land in DIFFERENT array entries — never paired, and both
+     * missing their other half, so every row is silently dropped on save.
+     * An explicit shared index avoids this entirely. PHP doesn't need
+     * these indices to be sequential or even numeric — just unique per
+     * row and matching between a row's own name/identifiers pair — so a
+     * JS-added row can safely use something like Date.now().
+     *
+     * @param string     $name
+     * @param string     $identifiers_raw
+     * @param int|string $index
      */
-    private static function render_event_row( $name, $identifiers_raw ) {
+    private static function render_event_row( $name, $identifiers_raw, $index ) {
         $parsed = '' !== trim( (string) $identifiers_raw ) ? Cogito_RAR_Conversion_Capture::parse_identifier_groups( $identifiers_raw ) : [];
+        $base   = 'rar_conversions_events[' . esc_attr( $index ) . ']';
 
         echo '<div class="rar-event-row">';
-        echo '<p><label>Event name<br>';
-        echo '<input type="text" name="rar_conversions_events[][name]" value="' . esc_attr( $name ) . '" placeholder="AffiliateClick" style="width:100%; max-width:300px; font-family:monospace;"></label></p>';
-        echo '<p><label>Tracked classes &amp; IDs<br>';
-        echo '<textarea name="rar_conversions_events[][identifiers]" rows="4" style="width:100%; max-width:500px; font-family:monospace;" placeholder="' . esc_attr( "affi_btn\naffi_group\nrl_wrap rl_drift" ) . '">' . esc_textarea( $identifiers_raw ) . '</textarea></label></p>';
+        echo '<div class="rar-event-row-fields">';
+        echo '<label class="rar-event-field rar-event-field--name">Event name<br>';
+        echo '<input type="text" name="' . $base . '[name]" value="' . esc_attr( $name ) . '" placeholder="AffiliateClick" style="width:100%; font-family:monospace;"></label>';
+        echo '<label class="rar-event-field rar-event-field--identifiers">Tracked classes &amp; IDs<br>';
+        echo '<textarea name="' . $base . '[identifiers]" rows="2" style="width:100%; font-family:monospace;" placeholder="' . esc_attr( "affi_btn\nrl_wrap rl_drift" ) . '">' . esc_textarea( $identifiers_raw ) . '</textarea></label>';
+        echo '<button type="button" class="button-link rar-remove-event">Remove</button>';
+        echo '</div>';
         if ( ! empty( $parsed ) ) {
-            echo '<p class="description">Currently parsed as:</p>';
             echo '<div class="rar-chip-row">';
             foreach ( $parsed as $group ) {
                 echo '<code class="rar-chip">' . esc_html( implode( ' + ', $group ) ) . '</code>';
             }
             echo '</div>';
         }
-        echo '<button type="button" class="button-link rar-remove-event">Remove this event</button>';
         echo '</div>';
     }
 
@@ -182,10 +195,10 @@ class Cogito_RAR_Settings_Conversions {
         echo '<p class="description">Each event you define here is entirely self-service — add a new one, rename one, or remove one any time a landing page needs a new button/ad style tracked. No code change is ever needed.</p>';
         echo '<div id="rar-events-repeater">';
         if ( empty( $events_raw ) ) {
-            self::render_event_row( '', '' );
+            self::render_event_row( '', '', 0 );
         } else {
-            foreach ( $events_raw as $event ) {
-                self::render_event_row( $event['name'] ?? '', $event['identifiers'] ?? '' );
+            foreach ( array_values( $events_raw ) as $index => $event ) {
+                self::render_event_row( $event['name'] ?? '', $event['identifiers'] ?? '', $index );
             }
         }
         echo '</div>';
@@ -262,7 +275,7 @@ class Cogito_RAR_Settings_Conversions {
                 echo '<td>' . esc_html( $row->provider ) . '</td>';
                 echo '<td>' . esc_html( $row->event_name ) . '</td>';
                 echo '<td><span class="rar-badge rar-badge--' . esc_attr( $tone ) . '">' . esc_html( $row->status ) . '</span></td>';
-                echo '<td>' . esc_html( $row->created_at ) . '</td>';
+                echo '<td>' . esc_html( cogito_rar_localise_utc_timestamp( $row->created_at ) ) . '</td>';
                 echo '<td>' . esc_html( $row->last_error ) . '</td>';
                 echo '</tr>';
             }

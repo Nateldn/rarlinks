@@ -1,22 +1,27 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     // --- Conversions: self-service tracked-events repeater ---
-    // Field names use empty "[]" array brackets (see class-cogito-rar-
-    // settings-conversions.php), so a new row just needs to exist in the
-    // DOM at submit time — no index bookkeeping required on add or remove.
+    // Each row's name/identifiers fields share one EXPLICIT index (see
+    // class-cogito-rar-settings-conversions.php for why empty "[]"
+    // brackets don't actually pair them together). Date.now() is good
+    // enough here — it only needs to be unique among rows in THIS form
+    // submission, not stable or sequential.
     const eventsRepeater = document.getElementById('rar-events-repeater');
     const addEventBtn    = document.getElementById('rar-add-event');
 
     if ( eventsRepeater && addEventBtn ) {
         addEventBtn.addEventListener('click', function () {
+            const idx = 'new' + Date.now();
             const row = document.createElement('div');
             row.className = 'rar-event-row';
             row.innerHTML =
-                '<p><label>Event name<br>' +
-                '<input type="text" name="rar_conversions_events[][name]" placeholder="AffiliateClick" style="width:100%; max-width:300px; font-family:monospace;"></label></p>' +
-                '<p><label>Tracked classes &amp; IDs<br>' +
-                '<textarea name="rar_conversions_events[][identifiers]" rows="4" style="width:100%; max-width:500px; font-family:monospace;" placeholder="affi_btn\naffi_group\nrl_wrap rl_drift"></textarea></label></p>' +
-                '<button type="button" class="button-link rar-remove-event">Remove this event</button>';
+                '<div class="rar-event-row-fields">' +
+                '<label class="rar-event-field rar-event-field--name">Event name<br>' +
+                '<input type="text" name="rar_conversions_events[' + idx + '][name]" placeholder="AffiliateClick" style="width:100%; font-family:monospace;"></label>' +
+                '<label class="rar-event-field rar-event-field--identifiers">Tracked classes &amp; IDs<br>' +
+                '<textarea name="rar_conversions_events[' + idx + '][identifiers]" rows="2" style="width:100%; font-family:monospace;" placeholder="affi_btn\nrl_wrap rl_drift"></textarea></label>' +
+                '<button type="button" class="button-link rar-remove-event">Remove</button>' +
+                '</div>';
             eventsRepeater.appendChild(row);
         });
 

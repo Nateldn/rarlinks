@@ -705,18 +705,42 @@ body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
 
 /* Self-service tracked-events repeater: each event gets its own bordered
    block so an arbitrary, admin-grown list of them still reads as distinct
-   entries rather than one long run-on form. */
+   entries rather than one long run-on form. Name, classes/IDs and the
+   remove action sit in one inline row instead of stacking — the list is
+   meant to be scanned quickly, not read as a form one field at a time. */
 .rar-event-row {
     border: 1px solid var(--rar-border);
     border-radius: 6px;
-    padding: 12px 16px 4px;
-    margin-bottom: 12px;
+    padding: 10px 16px;
+    margin-bottom: 10px;
     background: var(--rar-paper);
 }
+.rar-event-row-fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+}
+.rar-event-field {
+    display: block;
+    font-size: 0.9em;
+}
+.rar-event-field--name {
+    flex: 1 1 160px;
+    max-width: 220px;
+}
+.rar-event-field--identifiers {
+    flex: 2 1 260px;
+}
+.rar-event-field textarea {
+    resize: vertical;
+}
 .rar-event-row .rar-remove-event {
+    flex: 0 0 auto;
     color: var(--rar-bad);
     text-decoration: none;
     font-size: 0.85em;
+    padding-bottom: 6px;
 }
 .rar-event-row .rar-remove-event:hover {
     text-decoration: underline;
