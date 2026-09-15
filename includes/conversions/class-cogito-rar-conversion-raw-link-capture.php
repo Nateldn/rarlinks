@@ -1,11 +1,12 @@
 <?php
 /**
- * Captures AffiliateClick conversion events for raw affiliate links — bare
- * merchant URLs and affiliate buttons NOT routed through a RARLink redirect.
- * Unlike a RARLink click (a server-side redirect our own code controls),
- * these clicks navigate straight to the merchant's own URL, so the ENTIRE
- * event has to be captured client-side and reported in one shot: there is
- * no server-side request of ours to hang enrichment off of.
+ * Captures AffiliateClick/AdvertisementClick conversion events for raw
+ * links — bare merchant URLs, affiliate buttons, and native ad units NOT
+ * routed through a RARLink redirect. Unlike a RARLink click (a server-side
+ * redirect our own code controls), these clicks navigate straight to their
+ * own destination, so the ENTIRE event has to be captured client-side and
+ * reported in one shot: there is no server-side request of ours to hang
+ * enrichment off of.
  *
  * Because this endpoint, unlike click-context's, actually CREATES a queued
  * conversion event from browser-supplied data (not just enriches one our
@@ -85,8 +86,9 @@ class Cogito_RAR_Conversion_Raw_Link_Capture {
             return;
         }
 
-        $identifiers = Cogito_RAR_Conversion_Capture::get_tracked_identifiers();
-        if ( empty( $identifiers ) ) {
+        $identifiers    = Cogito_RAR_Conversion_Capture::get_tracked_identifiers();
+        $ad_identifiers = Cogito_RAR_Conversion_Capture::get_tracked_ad_identifiers();
+        if ( empty( $identifiers ) && empty( $ad_identifiers ) ) {
             return;
         }
 
@@ -105,11 +107,14 @@ class Cogito_RAR_Conversion_Raw_Link_Capture {
         );
 
         wp_localize_script( 'cogito-rar-raw-link-capture', 'rarRawLinkCapture', [
-            'restUrl'     => esc_url_raw( rest_url( 'rar/v1/raw-link-click' ) ),
-            'nonce'       => wp_create_nonce( self::NONCE_ACTION ),
-            'identifiers' => $identifiers,
-            'goPrefix'    => '/' . ( class_exists( 'Cogito_RAR_Redirect_Engine' ) ? Cogito_RAR_Redirect_Engine::PREFIX : 'go' ) . '/',
-            'homeHost'    => wp_parse_url( home_url(), PHP_URL_HOST ),
+            'restUrl'         => esc_url_raw( rest_url( 'rar/v1/raw-link-click' ) ),
+            'nonce'           => wp_create_nonce( self::NONCE_ACTION ),
+            // AdvertisementClick checked first client-side — a class listed
+            // in both lists (shouldn't normally happen) resolves as an ad.
+            'adIdentifiers'   => $ad_identifiers,
+            'identifiers'     => $identifiers,
+            'goPrefix'        => '/' . ( class_exists( 'Cogito_RAR_Redirect_Engine' ) ? Cogito_RAR_Redirect_Engine::PREFIX : 'go' ) . '/',
+            'homeHost'        => wp_parse_url( home_url(), PHP_URL_HOST ),
         ] );
     }
 
@@ -218,8 +223,15 @@ class Cogito_RAR_Conversion_Raw_Link_Capture {
             self::MAX_CLASSES
         );
 
+        // Client reports which list matched (Advertisement vs Affiliate);
+        // never trust it blindly — whitelist against the only two event
+        // names this route is allowed to produce.
+        $event_name = isset( $params['event_name'] ) && in_array( $params['event_name'], [ 'AffiliateClick', 'AdvertisementClick' ], true )
+            ? $params['event_name']
+            : 'AffiliateClick';
+
         $event_signals = [
-            'event_name'       => 'AffiliateClick',
+            'event_name'       => $event_name,
             'event_id'         => wp_generate_uuid4(),
             'click_time'       => time(),
             'ip'               => $ip_address,

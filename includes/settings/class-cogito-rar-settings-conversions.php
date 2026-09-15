@@ -52,6 +52,11 @@ class Cogito_RAR_Settings_Conversions {
             : '';
         update_option( Cogito_RAR_Conversion_Capture::OPTION_TRACKED_IDENTIFIERS, $identifiers_raw );
 
+        $ad_identifiers_raw = isset( $_POST['rar_conversions_tracked_ad_identifiers'] )
+            ? sanitize_textarea_field( wp_unslash( $_POST['rar_conversions_tracked_ad_identifiers'] ) )
+            : '';
+        update_option( Cogito_RAR_Conversion_Capture::OPTION_TRACKED_AD_IDENTIFIERS, $ad_identifiers_raw );
+
         $domains_raw = isset( $_POST['rar_conversions_raw_link_domains'] )
             ? sanitize_textarea_field( wp_unslash( $_POST['rar_conversions_raw_link_domains'] ) )
             : '';
@@ -101,6 +106,8 @@ class Cogito_RAR_Settings_Conversions {
         $hold             = (int) get_option( Cogito_RAR_Conversion_Capture::OPTION_HOLD_MINUTES, 0 );
         $identifiers_raw    = (string) get_option( Cogito_RAR_Conversion_Capture::OPTION_TRACKED_IDENTIFIERS, '' );
         $identifiers_parsed = Cogito_RAR_Conversion_Capture::get_tracked_identifiers();
+        $ad_identifiers_raw    = (string) get_option( Cogito_RAR_Conversion_Capture::OPTION_TRACKED_AD_IDENTIFIERS, '' );
+        $ad_identifiers_parsed = Cogito_RAR_Conversion_Capture::get_tracked_ad_identifiers();
         $raw_link_domains   = (string) get_option( Cogito_RAR_Conversion_Raw_Link_Capture::OPTION_ALLOWED_DOMAINS, '' );
 
         echo '<div class="rar-conversions">';
@@ -133,14 +140,29 @@ class Cogito_RAR_Settings_Conversions {
         echo '<tr><th scope="row">Tracked buttons &amp; links</th><td>';
         echo '<textarea name="rar_conversions_tracked_identifiers" rows="6" style="width:100%; max-width:500px; font-family:monospace;" placeholder="' . esc_attr( "affi_btn\naffi_group\nlr-button" ) . '">' . esc_textarea( $identifiers_raw ) . '</textarea>';
         echo '<p class="description">One class name or element ID per line — no CSS syntax needed, just the bare name (e.g. <code>affi_btn</code> or <code>myButtonId</code>). ';
-        echo 'Each line is checked against both the clicked element\'s classes and its ID, walking up through parent elements too. ';
+        echo 'Each one is checked against both the clicked element\'s classes and its ID, walking up through parent elements too. ';
+        echo 'Put multiple names on the same line, separated by a space, to require them ALL together (chained) — e.g. <code>rl_wrap rl_drift</code> only matches when both are found somewhere in the same click, not necessarily on the same element. ';
         echo 'Add a new line whenever you create a new button/link style you want tracked. ';
-        echo 'This is the list the click-listener script matches against for raw, non-RARLink affiliate links and buttons — a RARLink click is always captured regardless of class.</p>';
+        echo 'This is the list the click-listener script matches against for raw, non-RARLink affiliate links and buttons, reported as <strong>AffiliateClick</strong> — a RARLink click is always captured regardless of class.</p>';
         if ( ! empty( $identifiers_parsed ) ) {
             echo '<p class="description">Currently parsed as:</p>';
             echo '<div class="rar-chip-row">';
-            foreach ( $identifiers_parsed as $identifier ) {
-                echo '<code class="rar-chip">' . esc_html( $identifier ) . '</code>';
+            foreach ( $identifiers_parsed as $group ) {
+                echo '<code class="rar-chip">' . esc_html( implode( ' + ', $group ) ) . '</code>';
+            }
+            echo '</div>';
+        }
+        echo '</td></tr>';
+
+        echo '<tr><th scope="row">Tracked ad units</th><td>';
+        echo '<textarea name="rar_conversions_tracked_ad_identifiers" rows="6" style="width:100%; max-width:500px; font-family:monospace;" placeholder="' . esc_attr( "rench-ad-img\nrl-drift\nrl_wrap rl_sidecar" ) . '">' . esc_textarea( $ad_identifiers_raw ) . '</textarea>';
+        echo '<p class="description">Same format and matching rules as Tracked buttons &amp; links above (one class/ID per line, space-separate to chain), but reported as <strong>AdvertisementClick</strong> instead — for native/display ad units rather than affiliate buttons. ';
+        echo 'A class listed here takes priority over the same class also appearing above.</p>';
+        if ( ! empty( $ad_identifiers_parsed ) ) {
+            echo '<p class="description">Currently parsed as:</p>';
+            echo '<div class="rar-chip-row">';
+            foreach ( $ad_identifiers_parsed as $group ) {
+                echo '<code class="rar-chip">' . esc_html( implode( ' + ', $group ) ) . '</code>';
             }
             echo '</div>';
         }

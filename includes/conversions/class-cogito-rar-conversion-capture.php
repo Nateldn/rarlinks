@@ -13,10 +13,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Cogito_RAR_Conversion_Capture {
 
-    const OPTION_ENABLED             = 'rar_conversions_enabled';
-    const OPTION_HOLD_MINUTES         = 'rar_conversions_hold_minutes';
-    const OPTION_TRACKED_IDENTIFIERS = 'rar_conversions_tracked_identifiers';
-    const MAX_TRACKED_IDENTIFIERS    = 50;
+    const OPTION_ENABLED                = 'rar_conversions_enabled';
+    const OPTION_HOLD_MINUTES            = 'rar_conversions_hold_minutes';
+    const OPTION_TRACKED_IDENTIFIERS    = 'rar_conversions_tracked_identifiers';
+    const OPTION_TRACKED_AD_IDENTIFIERS = 'rar_conversions_tracked_ad_identifiers';
+    const MAX_TRACKED_IDENTIFIERS       = 50;
 
     public static function init() {
         add_action( 'rar_click_logged', [ self::class, 'maybe_capture' ], 10, 4 );
@@ -129,49 +130,88 @@ class Cogito_RAR_Conversion_Capture {
     }
 
     /**
-     * The class names / element IDs the (not-yet-built) raw-link click
-     * listener should match against — Nate's own admin-editable list, not
-     * a hardcoded assumption baked into code. One bare identifier per line
-     * (e.g. `affi_btn`, `lr-button`, `myButtonId`) — NOT a CSS selector.
-     * Each one is checked against the clicked element's class list AND its
-     * id attribute, walking up through ancestors (so a container class
-     * like `affi_btn_wrap` still matches a click on a link inside it,
-     * replicating what a GTM "Click Element contains" trigger did).
+     * The class names / element IDs the raw-link click listener matches
+     * against for AffiliateClick — Nate's own admin-editable list, not a
+     * hardcoded assumption baked into code.
      *
-     * # is NOT a comment marker — that collided with real CSS id syntax
-     * (`#some-id`), so a leading '.' or '#' is simply stripped if present
-     * (tolerates old CSS-selector habits) rather than treated specially.
-     * Blank lines are skipped since no real identifier is ever empty.
-     *
-     * Stored as the raw textarea text so the settings form round-trips
-     * exactly what was typed; parsed here into a clean array for anything
-     * that actually needs to USE the list (the settings UI's own preview,
-     * and later the REST route + JS listener, which will read this same
-     * list via wp_localize_script()).
-     *
-     * @return string[]
+     * @return string[][] See parse_identifier_groups().
      */
     public static function get_tracked_identifiers() {
-        $raw   = (string) get_option( self::OPTION_TRACKED_IDENTIFIERS, '' );
-        $lines = preg_split( '/\r\n|\r|\n/', $raw );
+        return self::parse_identifier_groups( (string) get_option( self::OPTION_TRACKED_IDENTIFIERS, '' ) );
+    }
 
-        $identifiers = [];
+    /**
+     * Same idea, for the separate AdvertisementClick class/ID list (native
+     * ad units — a click matching this list is reported as
+     * AdvertisementClick instead of AffiliateClick).
+     *
+     * @return string[][]
+     */
+    public static function get_tracked_ad_identifiers() {
+        return self::parse_identifier_groups( (string) get_option( self::OPTION_TRACKED_AD_IDENTIFIERS, '' ) );
+    }
+
+    /**
+     * Parses a tracked-identifiers textarea into "groups": each LINE is one
+     * group, and a group's space-separated tokens are ALL required
+     * ("chained" — an AND across the clicked element's own class/id plus
+     * every ancestor's, not just any single class/id anywhere) for that
+     * line to match. A plain single-token line behaves exactly as a bare
+     * identifier always has. Different lines are OR'd — matching any ONE
+     * line's full group is enough.
+     *
+     * Example: a line "rl_wrap rl_drift" only matches a click where BOTH
+     * rl_wrap and rl_drift are found somewhere in the clicked element's own
+     * classes/id or its ancestors' — not necessarily on the same element.
+     *
+     * Each token is checked against the clicked element's class list AND
+     * its id attribute, walking up through ancestors (so a container class
+     * still matches a click on a link inside it, replicating what a GTM
+     * "Click Element contains" trigger did). NOT CSS selector syntax — a
+     * leading '.' or '#' is simply stripped if present (tolerates old
+     * CSS-selector habits) rather than treated specially; blank lines are
+     * skipped since no real identifier is ever empty.
+     *
+     * Stored as the raw textarea text so the settings form round-trips
+     * exactly what was typed; parsed here into groups for anything that
+     * actually needs to USE the list (the settings UI's own preview, and
+     * the raw-link REST route + JS listener, via wp_localize_script()).
+     *
+     * @param string $raw
+     * @return string[][] Array of groups; each group an array of 1+ sanitised tokens.
+     */
+    private static function parse_identifier_groups( $raw ) {
+        $lines  = preg_split( '/\r\n|\r|\n/', $raw );
+        $groups = [];
+
         foreach ( $lines as $line ) {
-            $line = ltrim( trim( $line ), '.#' ); // tolerate a leading .foo or #foo, not treated as syntax
-            if ( '' === $line ) {
+            $tokens = array_filter( preg_split( '/\s+/', trim( $line ) ) );
+            if ( empty( $tokens ) ) {
                 continue;
             }
-            // Safe for both a class name and an id attribute value; matches
-            // this plugin's existing convention for sanitising class-like
-            // tokens (see the nofollow/sponsored rel building in the
-            // redirect engine).
-            $identifiers[] = sanitize_html_class( $line );
+
+            $group = [];
+            foreach ( $tokens as $token ) {
+                $token = ltrim( trim( $token ), '.#' ); // tolerate a leading .foo or #foo, not treated as syntax
+                if ( '' === $token ) {
+                    continue;
+                }
+                // Safe for both a class name and an id attribute value; matches
+                // this plugin's existing convention for sanitising class-like
+                // tokens (see the nofollow/sponsored rel building in the
+                // redirect engine).
+                $group[] = sanitize_html_class( $token );
+            }
+
+            if ( ! empty( $group ) ) {
+                $groups[] = $group;
+            }
         }
 
-        // A runaway list would make the future click listener slow to
-        // evaluate on every click, and there's no legitimate reason to need
-        // more than a few dozen distinct button/link styles at once.
-        return array_slice( array_unique( $identifiers ), 0, self::MAX_TRACKED_IDENTIFIERS );
+        // A runaway list would make the click listener slow to evaluate on
+        // every click, and there's no legitimate reason to need more than a
+        // few dozen distinct button/link styles at once.
+        return array_slice( $groups, 0, self::MAX_TRACKED_IDENTIFIERS );
     }
 
     /**
