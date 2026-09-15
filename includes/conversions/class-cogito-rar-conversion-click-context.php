@@ -31,9 +31,25 @@ class Cogito_RAR_Conversion_Click_Context {
     const MAX_LINK_TEXT    = 150;
     const MAX_CLASSES      = 10;
 
+    /** The route path as WordPress records it in query_vars['rest_route']. */
+    const ROUTE = '/rar/v1/click-context';
+
     public static function init() {
         add_action( 'rest_api_init', [ self::class, 'register_route' ] );
         add_action( 'wp_enqueue_scripts', [ self::class, 'enqueue' ] );
+
+        // navigator.sendBeacon() cannot send custom headers, so it can
+        // never carry the X-WP-Nonce WordPress's core REST auth demands
+        // from any request that happens to carry valid login cookies —
+        // which every request from an already-logged-in browser does,
+        // regardless of this endpoint's own permission_callback. Without
+        // this, the beacon gets a silent 403 from ANY logged-in browser
+        // (exactly what was happening while testing as an admin), while
+        // a real logged-out visitor was never affected in the first
+        // place. Priority 101 to run after core's own check (100) and
+        // override its verdict, only for this one public, non-sensitive,
+        // non-destructive route.
+        add_filter( 'rest_authentication_errors', [ self::class, 'bypass_cookie_nonce_for_route' ], 101 );
 
         // This listener has to be attached before the FIRST click on the
         // page, not deferred until "user interaction" — which is exactly
@@ -60,6 +76,24 @@ class Cogito_RAR_Conversion_Click_Context {
             return $tag;
         }
         return str_replace( ' src=', ' data-no-optimize="1" data-cfasync="false" data-no-defer="1" data-no-delay="1" src=', $tag );
+    }
+
+    /**
+     * Clears WordPress core's "logged in but no nonce" REST error, but
+     * only for this specific route — every other endpoint keeps the
+     * normal protection.
+     */
+    public static function bypass_cookie_nonce_for_route( $result ) {
+        if ( ! is_wp_error( $result ) || 'rest_cookie_invalid_nonce' !== $result->get_error_code() ) {
+            return $result;
+        }
+
+        $route = isset( $GLOBALS['wp']->query_vars['rest_route'] ) ? $GLOBALS['wp']->query_vars['rest_route'] : '';
+        if ( 0 === strpos( $route, self::ROUTE ) ) {
+            return null;
+        }
+
+        return $result;
     }
 
     /**
