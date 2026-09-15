@@ -90,6 +90,7 @@ class Cogito_RAR_Click_Logger {
 				'post_id'           => $post_id,
 				'click_date'        => current_time( 'Y-m-d' ),
 				'spamhaus_asn_data' => self::load_spamhaus_asn_data(),
+				'spamhaus_drop_data' => class_exists( 'Cogito_RAR_Spamhaus_Drop' ) ? Cogito_RAR_Spamhaus_Drop::load() : [],
 			] )
 			: [ 'bot_or_not' => 2, 'bot_name' => '' ];
 
@@ -160,19 +161,21 @@ class Cogito_RAR_Click_Logger {
 	 * had_cookie=true so the cookie-dependent rule can't false-flag.
 	 *
 	 * @param array $signals ip_address, hostname, org, user_agent, referrer,
-	 *                       current_asn, had_cookie, post_id, spamhaus_asn_data.
+	 *                       current_asn, had_cookie, post_id, spamhaus_asn_data,
+	 *                       spamhaus_drop_data.
 	 * @return array
 	 */
 	public static function classify( array $signals ) {
-		$ip_address        = (string) ( $signals['ip_address'] ?? '' );
-		$hostname          = (string) ( $signals['hostname'] ?? '' );
-		$org               = (string) ( $signals['org'] ?? '' );
-		$user_agent        = (string) ( $signals['user_agent'] ?? '' );
-		$referrer          = (string) ( $signals['referrer'] ?? '' );
-		$current_asn       = $signals['current_asn'] ?? null;
-		$had_cookie        = array_key_exists( 'had_cookie', $signals ) ? (bool) $signals['had_cookie'] : true;
-		$post_id           = (int) ( $signals['post_id'] ?? 0 );
-		$spamhaus_asn_data = is_array( $signals['spamhaus_asn_data'] ?? null ) ? $signals['spamhaus_asn_data'] : [];
+		$ip_address         = (string) ( $signals['ip_address'] ?? '' );
+		$hostname           = (string) ( $signals['hostname'] ?? '' );
+		$org                = (string) ( $signals['org'] ?? '' );
+		$user_agent         = (string) ( $signals['user_agent'] ?? '' );
+		$referrer           = (string) ( $signals['referrer'] ?? '' );
+		$current_asn        = $signals['current_asn'] ?? null;
+		$had_cookie         = array_key_exists( 'had_cookie', $signals ) ? (bool) $signals['had_cookie'] : true;
+		$post_id            = (int) ( $signals['post_id'] ?? 0 );
+		$spamhaus_asn_data  = is_array( $signals['spamhaus_asn_data'] ?? null ) ? $signals['spamhaus_asn_data'] : [];
+		$spamhaus_drop_data = is_array( $signals['spamhaus_drop_data'] ?? null ) ? $signals['spamhaus_drop_data'] : [];
 		// The click's date (site timezone, Y-m-d). Live logging passes today;
 		// the re-scan passes the row's logged date. Used by the Moto Partner
 		// "was this a live homepage ad on that day?" check below.
@@ -404,6 +407,16 @@ class Cogito_RAR_Click_Logger {
 					$bot_name   = 'AS' . $current_asn; // Store only the ASN
 					break;
 				}
+			}
+		}
+
+		// 🚨 4.5. Spamhaus DROP/EDROP check (malicious IP ranges) if still
+		// Unknown — small, high-confidence netblocks controlled by
+		// professional cybercrime operations, refreshed daily.
+		if ( $bot_or_not === 2 && ! empty( $ip_address ) && ! empty( $spamhaus_drop_data ) && class_exists( 'Cogito_RAR_Spamhaus_Drop' ) ) {
+			if ( Cogito_RAR_Spamhaus_Drop::matches( $ip_address, $spamhaus_drop_data ) ) {
+				$bot_or_not = 1;
+				$bot_name   = 'Spamhaus DROP';
 			}
 		}
 

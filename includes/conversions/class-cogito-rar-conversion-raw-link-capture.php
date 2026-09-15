@@ -198,6 +198,7 @@ class Cogito_RAR_Conversion_Raw_Link_Capture {
                 'post_id'           => 0,
                 'click_date'        => current_time( 'Y-m-d' ),
                 'spamhaus_asn_data' => Cogito_RAR_Click_Logger::load_spamhaus_asn_data(),
+                'spamhaus_drop_data' => class_exists( 'Cogito_RAR_Spamhaus_Drop' ) ? Cogito_RAR_Spamhaus_Drop::load() : [],
             ] )
             : [ 'bot_or_not' => 2 ];
 

@@ -66,6 +66,10 @@ Cogito_RAR_Retention::init();
 // 🚩 Live bot list (user-flagged signals; written by Flag-as-bot, read by the click logger)
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-live-bot-list.php';
 
+// 🚨 Spamhaus DROP/EDROP IP feed (malicious netblocks; daily refresh, cached to data/)
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-spamhaus-drop.php';
+Cogito_RAR_Spamhaus_Drop::init();
+
 // Dashboard Components
 // New consolidated filters class
 require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-dashboard-filters.php';
@@ -178,6 +182,9 @@ function cogito_rar_on_deactivate() {
 	}
 	if ( class_exists( 'Cogito_RAR_Retention' ) ) {
 		Cogito_RAR_Retention::unschedule();
+	}
+	if ( class_exists( 'Cogito_RAR_Spamhaus_Drop' ) ) {
+		Cogito_RAR_Spamhaus_Drop::unschedule();
 	}
 }
 register_deactivation_hook( __FILE__, 'cogito_rar_on_deactivate' );
