@@ -209,6 +209,21 @@ class Cogito_RAR_Redirect_Engine {
 			wp_redirect( $target, $type );
 			exit;
 		}
+
+		// 4️⃣ Global fallback (Defaults tab) — GEO, rotation, and this
+		// link's own target all failed to resolve to anything valid.
+		// Without this, the visitor would otherwise hit a blank page:
+		// the request has already matched a RARLink slug, so WordPress
+		// never gets a chance to render its own 404.
+		$global_fallback = class_exists( 'Cogito_RAR_Settings_Defaults' )
+			? (string) get_option( Cogito_RAR_Settings_Defaults::OPTION_FALLBACK_URL, '' )
+			: '';
+		if ( self::is_valid_redirect_url( $global_fallback ) ) {
+			$add_rel_header( $global_fallback );
+			Cogito_RAR_Click_Logger::log_click( $post->ID, $visitor_id, $had_cookie, $global_fallback );
+			wp_redirect( $global_fallback, $type );
+			exit;
+		}
 	}
 
 	/**

@@ -30,6 +30,15 @@ class Cogito_RAR_Click_Logger {
 	 *                                this stays backwards compatible.
 	 */
 	public static function log_click( $post_id, $visitor_id = '', $had_cookie = true, $destination_url = '' ) {
+		// Global kill-switch (Defaults tab) — the redirect itself is
+		// entirely unaffected either way; this only stops new rows being
+		// written to the Clicks Report.
+		if ( class_exists( 'Cogito_RAR_Settings_Defaults' )
+			&& get_option( Cogito_RAR_Settings_Defaults::OPTION_CLICK_TRACKING_ENABLED, '1' ) !== '1'
+		) {
+			return;
+		}
+
 		global $wpdb;
 
 		// 🌐 Capture IP address & validate it
@@ -63,19 +72,26 @@ class Cogito_RAR_Click_Logger {
 			error_log( '[RAR ERROR] ASN resolver file missing at: ' . $asn_path );
 		}
 
-		// 🧮 Classify using the shared detection waterfall
-		$result = self::classify( [
-			'ip_address'        => $ip_address,
-			'hostname'          => $hostname,
-			'org'               => $org,
-			'user_agent'        => $user_agent,
-			'referrer'          => $referrer,
-			'current_asn'       => $current_asn,
-			'had_cookie'        => $had_cookie,
-			'post_id'           => $post_id,
-			'click_date'        => current_time( 'Y-m-d' ),
-			'spamhaus_asn_data' => self::load_spamhaus_asn_data(),
-		] );
+		// 🧮 Classify using the shared detection waterfall — unless the
+		// Defaults tab's global bot-filtering toggle is off, in which case
+		// every click logs as Unknown rather than running detection at all.
+		$bot_filtering_enabled = ! class_exists( 'Cogito_RAR_Settings_Defaults' )
+			|| get_option( Cogito_RAR_Settings_Defaults::OPTION_BOT_FILTERING_ENABLED, '1' ) === '1';
+
+		$result = $bot_filtering_enabled
+			? self::classify( [
+				'ip_address'        => $ip_address,
+				'hostname'          => $hostname,
+				'org'               => $org,
+				'user_agent'        => $user_agent,
+				'referrer'          => $referrer,
+				'current_asn'       => $current_asn,
+				'had_cookie'        => $had_cookie,
+				'post_id'           => $post_id,
+				'click_date'        => current_time( 'Y-m-d' ),
+				'spamhaus_asn_data' => self::load_spamhaus_asn_data(),
+			] )
+			: [ 'bot_or_not' => 2, 'bot_name' => '' ];
 
 		// 📝 Insert into DB
 		$wpdb->insert(

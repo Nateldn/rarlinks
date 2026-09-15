@@ -28,6 +28,16 @@ class Cogito_RAR_SetCookie {
 
 		if ( headers_sent() ) return;
 
+		// Defaults tab privacy toggle: stop ISSUING new cookies, but don't
+		// touch/clear one a visitor already has — that would just churn
+		// their identifier on every request instead of actually removing
+		// tracking.
+		if ( class_exists( 'Cogito_RAR_Settings_Defaults' )
+			&& get_option( Cogito_RAR_Settings_Defaults::OPTION_DISABLE_VISITOR_COOKIE ) === '1'
+		) {
+			return;
+		}
+
 		if ( empty( $_COOKIE['rar_uid'] ) || ! preg_match( '/^[a-f0-9]{32}$/', $_COOKIE['rar_uid'] ) ) {
 			// 🎲 Generate a cryptographically secure 32-character hex token
 			$uid = bin2hex( random_bytes(16) );

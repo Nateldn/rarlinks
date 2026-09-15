@@ -22,13 +22,27 @@ class Cogito_RAR_Metabox_Basic_Fields {
         $target    = get_post_meta( $post->ID, '_rar_target', true );
         $type      = get_post_meta( $post->ID, '_rar_type', true );
         if ( empty( $type ) ) {
-            $type = 307;
+            $type = class_exists( 'Cogito_RAR_Settings_Defaults' )
+                ? (int) get_option( Cogito_RAR_Settings_Defaults::OPTION_REDIRECT_TYPE, 307 )
+                : 307;
         }
         $notes     = get_post_meta( $post->ID, '_rar_notes',  true );
-        $nofollow  = get_post_meta( $post->ID, '_rar_nofollow', true );
-        $sponsored = get_post_meta( $post->ID, '_rar_sponsored', true );
+        $nofollow_meta  = get_post_meta( $post->ID, '_rar_nofollow', true );
+        $sponsored_meta = get_post_meta( $post->ID, '_rar_sponsored', true );
+        // An unset (new post) meta falls back to the configured default;
+        // an EXISTING post's own saved value ('0' or '1') always wins.
+        $nofollow  = ( '' === $nofollow_meta )
+            ? ( ! class_exists( 'Cogito_RAR_Settings_Defaults' ) || get_option( Cogito_RAR_Settings_Defaults::OPTION_NOFOLLOW, '1' ) === '1' )
+            : ( $nofollow_meta !== '0' );
+        $sponsored = ( '' === $sponsored_meta )
+            ? ( ! class_exists( 'Cogito_RAR_Settings_Defaults' ) || get_option( Cogito_RAR_Settings_Defaults::OPTION_SPONSORED, '1' ) === '1' )
+            : ( $sponsored_meta !== '0' );
         $is_active = get_post_meta( $post->ID, '_rar_active', true );
-        if ( $is_active === '' ) $is_active = '1'; // Default to active
+        if ( $is_active === '' ) {
+            $is_active = class_exists( 'Cogito_RAR_Settings_Defaults' )
+                ? get_option( Cogito_RAR_Settings_Defaults::OPTION_ACTIVE, '1' )
+                : '1';
+        }
         $moto_partner = get_post_meta( $post->ID, '_rar_moto_partner', true ); // Homepage Moto Partner native ad flag
         $moto_status  = get_post_meta( $post->ID, '_rar_moto_partner_status', true ); // 'live' | 'archived' | '' (unset → no radio preselected)
 
@@ -71,8 +85,8 @@ class Cogito_RAR_Metabox_Basic_Fields {
         </label></p>';
 
         // --- rel="nofollow sponsored" header toggles ---
-        echo '<p><label><input type="checkbox" name="rar_nofollow" value="1"' . checked( $nofollow !== '0', true, false ) . '> Add <code>rel="nofollow"</code></label></p>';
-        echo '<p><label><input type="checkbox" name="rar_sponsored" value="1"' . checked( $sponsored !== '0', true, false ) . '> Add <code>rel="sponsored"</code></label></p>';
+        echo '<p><label><input type="checkbox" name="rar_nofollow" value="1"' . checked( $nofollow, true, false ) . '> Add <code>rel="nofollow"</code></label></p>';
+        echo '<p><label><input type="checkbox" name="rar_sponsored" value="1"' . checked( $sponsored, true, false ) . '> Add <code>rel="sponsored"</code></label></p>';
 
 // --- Moto Partner (Homepage Native Ad) flag ---
 // Marks this RARLink as a homepage native ad, used by bot detection

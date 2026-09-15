@@ -103,6 +103,10 @@ Cogito_RAR_Rescan::init();
 require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-settings-reports.php';
 Cogito_RAR_Settings_Reports::init();
 
+// Defaults settings tab
+require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-settings-defaults.php';
+Cogito_RAR_Settings_Defaults::init();
+
 // 💳 Conversions: provider-agnostic server-side conversion tracking (Meta
 // first, Pinterest intended next). Off by default (master toggle unchecked).
 require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-provider.php';
