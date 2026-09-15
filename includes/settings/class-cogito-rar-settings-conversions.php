@@ -52,6 +52,11 @@ class Cogito_RAR_Settings_Conversions {
             : '';
         update_option( Cogito_RAR_Conversion_Capture::OPTION_TRACKED_IDENTIFIERS, $identifiers_raw );
 
+        $domains_raw = isset( $_POST['rar_conversions_raw_link_domains'] )
+            ? sanitize_textarea_field( wp_unslash( $_POST['rar_conversions_raw_link_domains'] ) )
+            : '';
+        update_option( Cogito_RAR_Conversion_Raw_Link_Capture::OPTION_ALLOWED_DOMAINS, $domains_raw );
+
         wp_safe_redirect( add_query_arg( 'saved', 1, self::tab_url() ) );
         exit;
     }
@@ -96,6 +101,7 @@ class Cogito_RAR_Settings_Conversions {
         $hold             = (int) get_option( Cogito_RAR_Conversion_Capture::OPTION_HOLD_MINUTES, 0 );
         $identifiers_raw    = (string) get_option( Cogito_RAR_Conversion_Capture::OPTION_TRACKED_IDENTIFIERS, '' );
         $identifiers_parsed = Cogito_RAR_Conversion_Capture::get_tracked_identifiers();
+        $raw_link_domains   = (string) get_option( Cogito_RAR_Conversion_Raw_Link_Capture::OPTION_ALLOWED_DOMAINS, '' );
 
         echo '<div class="rar-conversions">';
 
@@ -129,7 +135,7 @@ class Cogito_RAR_Settings_Conversions {
         echo '<p class="description">One class name or element ID per line — no CSS syntax needed, just the bare name (e.g. <code>affi_btn</code> or <code>myButtonId</code>). ';
         echo 'Each line is checked against both the clicked element\'s classes and its ID, walking up through parent elements too. ';
         echo 'Add a new line whenever you create a new button/link style you want tracked. ';
-        echo 'This is the list the click-listener script (raw, non-RARLink affiliate links — not built yet) will match against; nothing consumes it yet, but it\'s safe to start curating now.</p>';
+        echo 'This is the list the click-listener script matches against for raw, non-RARLink affiliate links and buttons — a RARLink click is always captured regardless of class.</p>';
         if ( ! empty( $identifiers_parsed ) ) {
             echo '<p class="description">Currently parsed as:</p>';
             echo '<div class="rar-chip-row">';
@@ -138,6 +144,13 @@ class Cogito_RAR_Settings_Conversions {
             }
             echo '</div>';
         }
+        echo '</td></tr>';
+
+        echo '<tr><th scope="row">Allowed destination domains</th><td>';
+        echo '<textarea name="rar_conversions_raw_link_domains" rows="4" style="width:100%; max-width:500px; font-family:monospace;" placeholder="' . esc_attr( "revzilla.com\nsaltflatsclothing.co.uk" ) . '">' . esc_textarea( $raw_link_domains ) . '</textarea>';
+        echo '<p class="description">One domain per line (subdomains match automatically, e.g. <code>revzilla.com</code> also allows <code>imp.revzilla.com</code>). ';
+        echo 'Only applies to raw, non-RARLink links — a security check against a forged/malicious request claiming an arbitrary destination. ';
+        echo '<strong>Left blank, any HTTPS destination is allowed</strong> — tighten this once you know which merchant/network domains your tracked buttons actually point to.</p>';
         echo '</td></tr>';
 
         echo '</tbody></table>';
