@@ -33,6 +33,10 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
     // On individual link view: hide RARLink Name column and lead with Time
     $is_filtered = isset( $_GET['post_id'] ) && is_numeric( $_GET['post_id'] );
 
+    // This table is now human-only (View Clicks shows bot_or_not = 0 rows
+    // exclusively), so Type/Bot Name would be identical — and meaningless —
+    // on every row. Dropped here; the Bot Cleanup subclass, which still
+    // needs them, reinstates both via its own get_columns() override.
     if ( $is_filtered ) {
         return [
             'cb'         => '<input type="checkbox" />',
@@ -41,8 +45,6 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
             'ip_address' => 'IP',               // ✅ Matches DB column
             'hostname'   => 'Host',             // ✅ Matches DB column
             'org'        => 'Org',              // ✅ Matches DB column
-            'type'       => 'Type',             // ✅ Derived from `bot_or_not`
-            'bot_name'   => 'Bot Name',         // ✅ Matches DB column
             'referrer'   => 'Referrer',         // ✅ Matches DB column
             'browser'    => 'Browser',          // 🟡 Derived
             'os'         => 'OS',               // 🟡 Derived
@@ -59,8 +61,6 @@ class Cogito_RAR_Clicks_List_Table extends WP_List_Table {
         'ip_address'  => 'IP',                  // ✅ Matches DB column
         'hostname'    => 'Host',                // ✅ Matches DB column
         'org'         => 'Org',                 // ✅ Matches DB column
-        'type'        => 'Type',                // ✅ Derived from `bot_or_not`
-        'bot_name'    => 'Bot Name',            // ✅ Matches DB column
         'referrer'    => 'Referrer',            // ✅ Matches DB column
         'browser'     => 'Browser',             // 🟡 Derived
         'os'          => 'OS',                  // 🟡 Derived

@@ -61,8 +61,8 @@ class Cogito_RAR_Dashboard {
 	public static function add_dashboard_page() {
 		$hook = add_submenu_page(
 			'edit.php?post_type=rar_redirect',
-			'RARLinks Stats',
-			'View Clicks',
+			'Clicks Report',
+			'Clicks Report',
 			'manage_options',
 			'rar_dashboard',
 			[ self::class, 'render_dashboard' ]
@@ -136,7 +136,7 @@ class Cogito_RAR_Dashboard {
 
 		// 5. 🖥️ Output UI
 		echo '<div class="wrap rar_stat-sdash">';
-		echo '<h1>RARLinks Clicks</h1>';
+		echo '<h1>Clicks Report</h1>';
 
 		// Result notice after a bulk re-classification (redirect appends ?classified=N)
 		if ( isset( $_GET['classified'] ) ) {

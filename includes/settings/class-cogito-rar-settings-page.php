@@ -23,7 +23,7 @@ class Cogito_RAR_Settings_Page {
 
     /**
      * Add the Settings submenu under the RARLinks menu.
-     * Priority 11 + array order places it beneath "View Clicks".
+     * Priority 11 + array order places it beneath "Clicks Report".
      */
     public static function add_settings_page() {
         $hook = add_submenu_page(
@@ -112,8 +112,9 @@ class Cogito_RAR_Settings_Page {
      */
     private static function get_tabs() {
         return [
-            'defaults' => 'Defaults',
-            'reports'  => 'Reports',
+            'defaults'    => 'Defaults',
+            'reports'     => 'Reports',
+            'conversions' => 'Conversions',
         ];
     }
 

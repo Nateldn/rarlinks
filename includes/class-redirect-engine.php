@@ -171,7 +171,7 @@ class Cogito_RAR_Redirect_Engine {
 					$url = $g['url'] ?? '';
 					if ( strtoupper( $g['country'] ?? '' ) === $country && self::is_valid_redirect_url( $url ) ) {
 						$add_rel_header( $url );
-						Cogito_RAR_Click_Logger::log_click( $post->ID, $visitor_id, $had_cookie );
+						Cogito_RAR_Click_Logger::log_click( $post->ID, $visitor_id, $had_cookie, $url );
 						wp_redirect( $url, $type );
 						exit;
 					}
@@ -193,7 +193,7 @@ class Cogito_RAR_Redirect_Engine {
 					$rand -= $weight;
 					if ( $rand <= 0 ) {
 						$add_rel_header( $url );
-						Cogito_RAR_Click_Logger::log_click( $post->ID, $visitor_id, $had_cookie );
+						Cogito_RAR_Click_Logger::log_click( $post->ID, $visitor_id, $had_cookie, $url );
 						wp_redirect( $url, $type );
 						exit;
 					}
@@ -205,7 +205,7 @@ class Cogito_RAR_Redirect_Engine {
 		$target = get_post_meta( $post->ID, '_rar_target', true );
 		if ( self::is_valid_redirect_url( $target ) ) {
 			$add_rel_header( $target );
-			Cogito_RAR_Click_Logger::log_click( $post->ID, $visitor_id, $had_cookie );
+			Cogito_RAR_Click_Logger::log_click( $post->ID, $visitor_id, $had_cookie, $target );
 			wp_redirect( $target, $type );
 			exit;
 		}
