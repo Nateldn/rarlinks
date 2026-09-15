@@ -34,6 +34,32 @@ class Cogito_RAR_Conversion_Click_Context {
     public static function init() {
         add_action( 'rest_api_init', [ self::class, 'register_route' ] );
         add_action( 'wp_enqueue_scripts', [ self::class, 'enqueue' ] );
+
+        // This listener has to be attached before the FIRST click on the
+        // page, not deferred until "user interaction" — which is exactly
+        // what WP Rocket's "Delay JavaScript Execution" does to every
+        // script by default (it treats a click as the trigger to finally
+        // load deferred scripts, which is too late for a script whose job
+        // is to catch that same click). Excluded explicitly rather than
+        // relying on Nate to remember to configure this in WP Rocket.
+        add_filter( 'rocket_delay_js_exclusions', [ self::class, 'exclude_from_wp_rocket_delay' ] );
+        add_filter( 'rocket_exclude_defer_js', [ self::class, 'exclude_from_wp_rocket_delay' ] );
+        // Belt-and-braces: data-no-optimize is a convention several
+        // optimization plugins (Perfmatters included) honour directly on
+        // the <script> tag itself, independent of any filter name.
+        add_filter( 'script_loader_tag', [ self::class, 'tag_as_unoptimized' ], 10, 2 );
+    }
+
+    public static function exclude_from_wp_rocket_delay( $exclusions ) {
+        $exclusions[] = 'cogito-rar-click-context';
+        return $exclusions;
+    }
+
+    public static function tag_as_unoptimized( $tag, $handle ) {
+        if ( 'cogito-rar-click-context' !== $handle ) {
+            return $tag;
+        }
+        return str_replace( ' src=', ' data-no-optimize="1" data-cfasync="false" data-no-defer="1" data-no-delay="1" src=', $tag );
     }
 
     /**

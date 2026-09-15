@@ -667,4 +667,88 @@ body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
     list-style: disc;
     margin-left: 1.2em;
 }
+
+/* Card layout: each logical section (settings, status, log) gets its own
+   surface instead of running together as one long scroll of headings. */
+.rar-conversions .rar-card {
+    background: #fff;
+    border: 1px solid var(--rar-border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+}
+.rar-conversions .rar-card h3,
+.rar-conversions .rar-card h4 {
+    margin-top: 0;
+}
+.rar-conversions .rar-card > form:last-child {
+    margin-bottom: 0;
+}
+
+/* Tracked-identifiers preview: small pills instead of one long
+   comma-separated line, matching the Type pill used on the post list. */
+.rar-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 4px 0 8px;
+}
+.rar-chip {
+    display: inline-block;
+    padding: 0.15em 0.6em;
+    border-radius: 999px;
+    background: var(--rar-accent-soft);
+    color: var(--rar-accent-hover);
+    font-size: 0.85em;
+    font-family: Consolas, Monaco, monospace;
+}
+
+/* Queue counts as stat tiles rather than a single dense line of text —
+   the left border tone gives an at-a-glance read before the number does. */
+.rar-stat-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 12px 0 16px;
+}
+.rar-stat {
+    flex: 1 1 140px;
+    border: 1px solid var(--rar-border);
+    border-left-width: 4px;
+    border-radius: 6px;
+    padding: 10px 14px;
+    background: var(--rar-paper);
+}
+.rar-stat-value {
+    display: block;
+    font-size: 1.5em;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--rar-ink);
+}
+.rar-stat-label {
+    display: block;
+    font-size: 0.8em;
+    color: var(--rar-neutral);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.rar-stat--neutral { border-left-color: var(--rar-neutral); }
+.rar-stat--good    { border-left-color: var(--rar-good); }
+.rar-stat--warn    { border-left-color: var(--rar-warn); }
+.rar-stat--bad     { border-left-color: var(--rar-bad); }
+
+/* Recent-events status badges: the same locked traffic-light vocabulary
+   used everywhere else a click gets a verdict. */
+.rar-badge {
+    display: inline-block;
+    padding: 0.15em 0.7em;
+    border-radius: 999px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+.rar-badge--neutral { background: var(--rar-neutral-soft); color: var(--rar-neutral); }
+.rar-badge--good    { background: var(--rar-good-soft);    color: var(--rar-good); }
+.rar-badge--warn    { background: var(--rar-warn-soft);    color: var(--rar-warn); }
+.rar-badge--bad     { background: var(--rar-bad-soft);     color: var(--rar-bad); }
         

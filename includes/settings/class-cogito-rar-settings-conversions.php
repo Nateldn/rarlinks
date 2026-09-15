@@ -98,10 +98,15 @@ class Cogito_RAR_Settings_Conversions {
         $identifiers_parsed = Cogito_RAR_Conversion_Capture::get_tracked_identifiers();
 
         echo '<div class="rar-conversions">';
+
+        echo '<div class="rar-card">';
         echo '<h3>Conversions</h3>';
         echo '<p>Server-side conversion events for affiliate clicks, starting with Meta\'s Conversions API. ';
         echo '<strong>Off by default</strong> — nothing is captured or sent until enabled below. Bot clicks are never sent to Meta: every click is checked with the same bot-detection your Clicks Report already uses, and only clicks it marks as human get queued.</p>';
+        echo '</div>';
 
+        echo '<div class="rar-card">';
+        echo '<h4>Settings</h4>';
         echo '<form method="post" action="' . esc_url( self::tab_url() ) . '">';
         wp_nonce_field( 'rar_conversions_settings', 'rar_conversions_settings_nonce' );
         echo '<table class="form-table"><tbody>';
@@ -126,14 +131,21 @@ class Cogito_RAR_Settings_Conversions {
         echo 'Add a new line whenever you create a new button/link style you want tracked. ';
         echo 'This is the list the click-listener script (raw, non-RARLink affiliate links — not built yet) will match against; nothing consumes it yet, but it\'s safe to start curating now.</p>';
         if ( ! empty( $identifiers_parsed ) ) {
-            echo '<p class="description">Currently parsed as: <code>' . esc_html( implode( ', ', $identifiers_parsed ) ) . '</code></p>';
+            echo '<p class="description">Currently parsed as:</p>';
+            echo '<div class="rar-chip-row">';
+            foreach ( $identifiers_parsed as $identifier ) {
+                echo '<code class="rar-chip">' . esc_html( $identifier ) . '</code>';
+            }
+            echo '</div>';
         }
         echo '</td></tr>';
 
         echo '</tbody></table>';
         submit_button( 'Save Settings' );
         echo '</form>';
+        echo '</div>'; // .rar-card
 
+        echo '<div class="rar-card">';
         echo '<h4>Providers</h4><ul class="rar-conversions-providers">';
         foreach ( Cogito_RAR_Conversion_Providers::all() as $provider ) {
             $status = $provider->is_enabled()
@@ -143,38 +155,56 @@ class Cogito_RAR_Settings_Conversions {
         }
         echo '</ul>';
 
-        $counts = class_exists( 'Cogito_RAR_Conversion_Queue' ) ? Cogito_RAR_Conversion_Queue::get_counts() : [];
+        $counts     = class_exists( 'Cogito_RAR_Conversion_Queue' ) ? Cogito_RAR_Conversion_Queue::get_counts() : [];
+        $stat_defs  = [
+            'pending'             => [ 'label' => 'Pending', 'tone' => 'neutral' ],
+            'sent'                => [ 'label' => 'Sent', 'tone' => 'good' ],
+            'failed'              => [ 'label' => 'Failed (will retry)', 'tone' => 'warn' ],
+            'permanently_failed'  => [ 'label' => 'Permanently failed', 'tone' => 'bad' ],
+        ];
         echo '<h4>Queue</h4>';
-        echo '<p>';
-        echo 'Pending: <strong>' . esc_html( $counts['pending'] ?? 0 ) . '</strong> &nbsp; ';
-        echo 'Sent: <strong>' . esc_html( $counts['sent'] ?? 0 ) . '</strong> &nbsp; ';
-        echo 'Failed (will retry): <strong>' . esc_html( $counts['failed'] ?? 0 ) . '</strong> &nbsp; ';
-        echo 'Permanently failed: <strong>' . esc_html( $counts['permanently_failed'] ?? 0 ) . '</strong>';
-        echo '</p>';
+        echo '<div class="rar-stat-row">';
+        foreach ( $stat_defs as $key => $def ) {
+            echo '<div class="rar-stat rar-stat--' . esc_attr( $def['tone'] ) . '">';
+            echo '<span class="rar-stat-value">' . esc_html( $counts[ $key ] ?? 0 ) . '</span>';
+            echo '<span class="rar-stat-label">' . esc_html( $def['label'] ) . '</span>';
+            echo '</div>';
+        }
+        echo '</div>';
 
         echo '<p class="description">Events dispatch automatically roughly every minute — this button is only for triggering it immediately (e.g. while testing).</p>';
         echo '<form method="post" action="' . esc_url( self::tab_url() ) . '">';
         wp_nonce_field( 'rar_conversions_flush', 'rar_conversions_flush_nonce' );
         submit_button( 'Flush Now', 'secondary', 'submit', false );
         echo '</form>';
+        echo '</div>'; // .rar-card
 
         $recent = class_exists( 'Cogito_RAR_Conversion_Queue' ) ? Cogito_RAR_Conversion_Queue::get_recent( 20 ) : [];
         if ( ! empty( $recent ) ) {
+            $badge_tone = [
+                'sent'               => 'good',
+                'pending'            => 'neutral',
+                'failed'             => 'warn',
+                'permanently_failed' => 'bad',
+            ];
+            echo '<div class="rar-card">';
             echo '<h4>Recent events</h4>';
             echo '<table class="widefat striped"><thead><tr>';
             echo '<th>ID</th><th>Provider</th><th>Event</th><th>Status</th><th>Created</th><th>Error</th>';
             echo '</tr></thead><tbody>';
             foreach ( $recent as $row ) {
+                $tone = $badge_tone[ $row->status ] ?? 'neutral';
                 echo '<tr>';
                 echo '<td>' . esc_html( $row->id ) . '</td>';
                 echo '<td>' . esc_html( $row->provider ) . '</td>';
                 echo '<td>' . esc_html( $row->event_name ) . '</td>';
-                echo '<td>' . esc_html( $row->status ) . '</td>';
+                echo '<td><span class="rar-badge rar-badge--' . esc_attr( $tone ) . '">' . esc_html( $row->status ) . '</span></td>';
                 echo '<td>' . esc_html( $row->created_at ) . '</td>';
                 echo '<td>' . esc_html( $row->last_error ) . '</td>';
                 echo '</tr>';
             }
             echo '</tbody></table>';
+            echo '</div>'; // .rar-card
         }
 
         echo '</div>'; // .rar-conversions
