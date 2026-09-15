@@ -21,7 +21,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<label class="rar-event-field rar-event-field--identifiers">Tracked classes &amp; IDs<br>' +
                 '<textarea name="rar_conversions_events[' + idx + '][identifiers]" rows="2" style="width:100%; font-family:monospace;" placeholder="affi_btn\nrl_wrap rl_drift"></textarea></label>' +
                 '<button type="button" class="button-link rar-remove-event">Remove</button>' +
-                '</div>';
+                '</div>' +
+                '<details class="rar-event-field-names"><summary>Custom parameter names (optional)</summary>' +
+                '<div class="rar-event-row-fields">' +
+                '<label class="rar-event-field rar-event-field--param">Destination URL<br>' +
+                '<input type="text" name="rar_conversions_events[' + idx + '][field_destination_url]" placeholder="destination_url" style="width:100%; font-family:monospace;"></label>' +
+                '<label class="rar-event-field rar-event-field--param">Link text<br>' +
+                '<input type="text" name="rar_conversions_events[' + idx + '][field_link_text]" placeholder="link_text" style="width:100%; font-family:monospace;"></label>' +
+                '<label class="rar-event-field rar-event-field--param">Link classes<br>' +
+                '<input type="text" name="rar_conversions_events[' + idx + '][field_link_classes]" placeholder="link_classes" style="width:100%; font-family:monospace;"></label>' +
+                '<label class="rar-event-field rar-event-field--param">Page/Referrer URL<br>' +
+                '<input type="text" name="rar_conversions_events[' + idx + '][field_event_source_url]" placeholder="not sent unless named" style="width:100%; font-family:monospace;"></label>' +
+                '</div></details>';
             eventsRepeater.appendChild(row);
         });
 

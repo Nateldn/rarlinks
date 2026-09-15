@@ -745,6 +745,20 @@ body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
 .rar-event-row .rar-remove-event:hover {
     text-decoration: underline;
 }
+.rar-event-field--param {
+    flex: 1 1 140px;
+}
+.rar-event-field-names {
+    margin-top: 8px;
+}
+.rar-event-field-names summary {
+    cursor: pointer;
+    font-size: 0.85em;
+    color: var(--rar-neutral);
+}
+.rar-event-field-names .rar-event-row-fields {
+    margin-top: 8px;
+}
 
 /* Queue counts as stat tiles rather than a single dense line of text —
    the left border tone gives an at-a-glance read before the number does. */

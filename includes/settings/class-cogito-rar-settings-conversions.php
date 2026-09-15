@@ -42,13 +42,16 @@ class Cogito_RAR_Settings_Conversions {
      * row and matching between a row's own name/identifiers pair — so a
      * JS-added row can safely use something like Date.now().
      *
-     * @param string     $name
-     * @param string     $identifiers_raw
+     * @param array      $event Raw stored entry: name, identifiers, and
+     *                          optional field_destination_url/field_link_text/
+     *                          field_link_classes/field_event_source_url.
      * @param int|string $index
      */
-    private static function render_event_row( $name, $identifiers_raw, $index ) {
-        $parsed = '' !== trim( (string) $identifiers_raw ) ? Cogito_RAR_Conversion_Capture::parse_identifier_groups( $identifiers_raw ) : [];
-        $base   = 'rar_conversions_events[' . esc_attr( $index ) . ']';
+    private static function render_event_row( array $event, $index ) {
+        $name            = $event['name'] ?? '';
+        $identifiers_raw = $event['identifiers'] ?? '';
+        $parsed          = '' !== trim( (string) $identifiers_raw ) ? Cogito_RAR_Conversion_Capture::parse_identifier_groups( $identifiers_raw ) : [];
+        $base            = 'rar_conversions_events[' . esc_attr( $index ) . ']';
 
         echo '<div class="rar-event-row">';
         echo '<div class="rar-event-row-fields">';
@@ -65,8 +68,29 @@ class Cogito_RAR_Settings_Conversions {
             }
             echo '</div>';
         }
+
+        echo '<details class="rar-event-field-names"><summary>Custom parameter names (optional)</summary>';
+        echo '<div class="rar-event-row-fields">';
+        foreach ( Cogito_RAR_Conversion_Capture::DEFAULT_FIELD_NAMES as $signal => $default ) {
+            $label       = self::FIELD_NAME_LABELS[ $signal ] ?? $signal;
+            $placeholder = '' !== $default ? $default : 'not sent unless named';
+            echo '<label class="rar-event-field rar-event-field--param">' . esc_html( $label ) . '<br>';
+            echo '<input type="text" name="' . $base . '[field_' . esc_attr( $signal ) . ']" value="' . esc_attr( $event[ 'field_' . $signal ] ?? '' ) . '" placeholder="' . esc_attr( $placeholder ) . '" style="width:100%; font-family:monospace;"></label>';
+        }
+        echo '</div>';
+        echo '<p class="description">The custom_data field name(s) this event sends to Meta — matches how a GA4 event tag in GTM lets you name each parameter. Leave any blank to use the default shown as its placeholder; "Page/Referrer URL" is not sent at all unless named (it\'s already sent separately as a required standard field either way).</p>';
+        echo '</details>';
+
         echo '</div>';
     }
+
+    /** Human-readable labels for the DEFAULT_FIELD_NAMES signal keys. */
+    const FIELD_NAME_LABELS = [
+        'destination_url'  => 'Destination URL',
+        'link_text'        => 'Link text',
+        'link_classes'     => 'Link classes',
+        'event_source_url' => 'Page/Referrer URL',
+    ];
 
     /**
      * Saves the master toggle + hold-window setting.
@@ -106,7 +130,14 @@ class Cogito_RAR_Settings_Conversions {
                 continue;
             }
 
-            $events[] = [ 'name' => $name, 'identifiers' => $identifiers ];
+            $saved = [ 'name' => $name, 'identifiers' => $identifiers ];
+            foreach ( array_keys( Cogito_RAR_Conversion_Capture::DEFAULT_FIELD_NAMES ) as $signal ) {
+                $override = trim( (string) ( $entry[ 'field_' . $signal ] ?? '' ) );
+                if ( '' !== $override ) {
+                    $saved[ 'field_' . $signal ] = Cogito_RAR_Conversion_Capture::sanitize_event_name( $override );
+                }
+            }
+            $events[] = $saved;
 
             if ( count( $events ) >= Cogito_RAR_Conversion_Capture::MAX_EVENTS ) {
                 break;
@@ -195,10 +226,10 @@ class Cogito_RAR_Settings_Conversions {
         echo '<p class="description">Each event you define here is entirely self-service — add a new one, rename one, or remove one any time a landing page needs a new button/ad style tracked. No code change is ever needed.</p>';
         echo '<div id="rar-events-repeater">';
         if ( empty( $events_raw ) ) {
-            self::render_event_row( '', '', 0 );
+            self::render_event_row( [], 0 );
         } else {
             foreach ( array_values( $events_raw ) as $index => $event ) {
-                self::render_event_row( $event['name'] ?? '', $event['identifiers'] ?? '', $index );
+                self::render_event_row( $event, $index );
             }
         }
         echo '</div>';

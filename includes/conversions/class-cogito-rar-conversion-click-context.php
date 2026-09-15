@@ -165,9 +165,22 @@ class Cogito_RAR_Conversion_Click_Context {
             self::MAX_CLASSES
         );
 
+        // window.location.href from the click itself — more reliable than
+        // the eventual redirect request's $_SERVER['HTTP_REFERER'], which
+        // a strict Referrer-Policy can reduce to just the origin (no path).
+        // Restricted to our own host: this is meant to replace a same-site
+        // referrer value, not accept an arbitrary client-supplied URL.
+        $page_url      = isset( $params['page_url'] ) ? esc_url_raw( (string) $params['page_url'] ) : '';
+        $own_host      = wp_parse_url( home_url(), PHP_URL_HOST );
+        $page_url_host = $page_url ? wp_parse_url( $page_url, PHP_URL_HOST ) : '';
+        if ( '' === $page_url || ! $own_host || strcasecmp( $page_url_host, $own_host ) !== 0 ) {
+            $page_url = '';
+        }
+
         set_transient( self::TRANSIENT_PREFIX . $token, [
             'link_text'    => $link_text,
             'link_classes' => implode( ' ', $classes ),
+            'page_url'     => $page_url,
         ], self::TTL );
 
         return new WP_REST_Response( null, 204 );
@@ -199,6 +212,11 @@ class Cogito_RAR_Conversion_Click_Context {
         }
         if ( ! empty( $context['link_classes'] ) ) {
             $signals['link_classes'] = $context['link_classes'];
+        }
+        if ( ! empty( $context['page_url'] ) ) {
+            // Overrides the server-captured HTTP_REFERER — see the note in
+            // handle_request() on why the JS-sourced value is trusted more.
+            $signals['event_source_url'] = $context['page_url'];
         }
 
         return $signals;

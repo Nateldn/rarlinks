@@ -125,7 +125,11 @@
 				event_name: found.eventName,
 				destination_url: found.url.href,
 				link_text: ( found.anchor.textContent || '' ).trim().slice( 0, 150 ),
-				link_classes: found.anchor.className || ''
+				link_classes: found.anchor.className || '',
+				// Sent explicitly rather than relying on the server reading
+				// this same request's Referer header — a strict Referrer-
+				// Policy can reduce that to just the origin, no path.
+				page_url: window.location.href
 			} );
 
 			try {

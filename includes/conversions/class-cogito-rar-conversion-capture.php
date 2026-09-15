@@ -34,6 +34,23 @@ class Cogito_RAR_Conversion_Capture {
     const OPTION_TRACKED_IDENTIFIERS_LEGACY    = 'rar_conversions_tracked_identifiers';
     const OPTION_TRACKED_AD_IDENTIFIERS_LEGACY = 'rar_conversions_tracked_ad_identifiers';
 
+    /**
+     * Default custom_data field names — used whenever an event doesn't
+     * override them (i.e. every event before this feature existed keeps
+     * behaving exactly as it already did). event_source_url defaults to
+     * blank, meaning "don't duplicate it into custom_data at all" — it's
+     * already sent as a required top-level Meta field, so nothing is lost
+     * by leaving this blank; a name here just ALSO copies that same value
+     * into custom_data under an admin-chosen key (matching a GTM GA4 tag's
+     * own "Page URL" parameter, for anyone who wants that side-by-side).
+     */
+    const DEFAULT_FIELD_NAMES = [
+        'destination_url'  => 'destination_url',
+        'link_text'        => 'link_text',
+        'link_classes'     => 'link_classes',
+        'event_source_url' => '',
+    ];
+
     public static function init() {
         add_action( 'rar_click_logged', [ self::class, 'maybe_capture' ], 10, 4 );
     }
@@ -115,6 +132,10 @@ class Cogito_RAR_Conversion_Capture {
             // data (captured client-side, where the DOM is visible) gets
             // matched back up to this specific click at send time.
             'click_token'      => isset( $_GET['_rct'] ) ? sanitize_key( wp_unslash( $_GET['_rct'] ) ) : '',
+            // Snapshotted at capture time (not re-resolved at send time)
+            // so a later rename of the event's field names doesn't retroactively
+            // change what an already-queued-but-unsent row reports as.
+            'field_names'      => self::get_field_names_for_event( 'AffiliateClick' ),
         ];
     }
 
@@ -203,6 +224,40 @@ class Cogito_RAR_Conversion_Capture {
     public static function sanitize_event_name( $name ) {
         $name = preg_replace( '/[^A-Za-z0-9_]/', '', (string) $name );
         return mb_substr( $name, 0, 40 );
+    }
+
+    /**
+     * The custom_data field NAMES a given event should use — e.g. an
+     * AffiliateClick event Nate wants sent as "affiliate_url"/"call_to_
+     * action"/"type_of_click" to mirror an existing GA4 tag's own
+     * parameter names exactly, rather than this plugin's generic
+     * destination_url/link_text/link_classes. Falls back to
+     * DEFAULT_FIELD_NAMES for any override left blank, and for an event
+     * name with no matching definition at all (e.g. a RARLink click, which
+     * always reports as "AffiliateClick" regardless of whether that name
+     * still exists in the admin-defined list) — so this is always safe to
+     * call, never returns something incomplete.
+     *
+     * @param string $event_name Sanitised event name (see sanitize_event_name()).
+     * @return array Same shape as DEFAULT_FIELD_NAMES.
+     */
+    public static function get_field_names_for_event( $event_name ) {
+        foreach ( self::get_event_definitions_raw() as $event ) {
+            if ( self::sanitize_event_name( $event['name'] ?? '' ) !== $event_name ) {
+                continue;
+            }
+
+            $resolved = self::DEFAULT_FIELD_NAMES;
+            foreach ( self::DEFAULT_FIELD_NAMES as $signal => $default ) {
+                $override = trim( (string) ( $event[ 'field_' . $signal ] ?? '' ) );
+                if ( '' !== $override ) {
+                    $resolved[ $signal ] = self::sanitize_event_name( $override );
+                }
+            }
+            return $resolved;
+        }
+
+        return self::DEFAULT_FIELD_NAMES;
     }
 
     /**

@@ -47,7 +47,13 @@
 			var payload = JSON.stringify( {
 				token: token,
 				link_text: ( link.textContent || '' ).trim().slice( 0, 150 ),
-				link_classes: link.className || ''
+				link_classes: link.className || '',
+				// The server's own $_SERVER['HTTP_REFERER'] capture (for the
+				// eventual /go/ redirect request) can come back reduced to
+				// just the origin (e.g. "https://renchlist.com/" with no
+				// path) under a strict Referrer-Policy — window.location.href
+				// is what JS itself sees right now, unaffected by that policy.
+				page_url: window.location.href
 			} );
 
 			try {

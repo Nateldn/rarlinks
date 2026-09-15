@@ -61,6 +61,32 @@ class Cogito_RAR_Conversion_Provider_Meta extends Cogito_RAR_Conversion_Provider
     }
 
     public function map_payload( array $signals ) {
+        // Which KEYS to use in custom_data below — admin-configurable per
+        // event (see Cogito_RAR_Conversion_Capture::get_field_names_for_event()),
+        // so e.g. an AffiliateClick's destination can be sent as
+        // "affiliate_url" to mirror an existing GA4 tag's own parameter
+        // name. Falls back to the plugin's original generic names for any
+        // row queued before this feature existed.
+        $field_names = is_array( $signals['field_names'] ?? null )
+            ? array_merge( Cogito_RAR_Conversion_Capture::DEFAULT_FIELD_NAMES, $signals['field_names'] )
+            : Cogito_RAR_Conversion_Capture::DEFAULT_FIELD_NAMES;
+
+        // destination_url/link_text/link_classes (whatever they're actually
+        // named per-event) are not standard Meta fields — they live here as
+        // custom keys, which Meta explicitly supports for custom events.
+        $custom_data = array_filter( [
+            $field_names['destination_url'] => $signals['destination_url'] ?? '',
+            $field_names['link_text']       => $signals['link_text'] ?? '',
+            $field_names['link_classes']    => $signals['link_classes'] ?? '',
+        ] );
+
+        // event_source_url is ALSO required as its own top-level field
+        // regardless of the above — this only adds a DUPLICATE copy into
+        // custom_data, and only if a name for it was actually configured.
+        if ( '' !== $field_names['event_source_url'] ) {
+            $custom_data[ $field_names['event_source_url'] ] = $signals['event_source_url'] ?? '';
+        }
+
         $event = [
             'event_name'       => $signals['event_name'] ?? 'AffiliateClick',
             'event_time'       => (int) ( $signals['click_time'] ?? time() ), // seconds, not ms
@@ -73,14 +99,7 @@ class Cogito_RAR_Conversion_Provider_Meta extends Cogito_RAR_Conversion_Provider
                 'fbp'                => $signals['fbp'] ?? '',
                 'fbc'                => $signals['fbc'] ?? '',
             ] ),
-            // destination_url/link_text/link_classes are not standard Meta
-            // fields — they live here as custom keys, which Meta explicitly
-            // supports for custom events like AffiliateClick.
-            'custom_data'      => array_filter( [
-                'destination_url' => $signals['destination_url'] ?? '',
-                'link_text'       => $signals['link_text'] ?? '',
-                'link_classes'    => $signals['link_classes'] ?? '',
-            ] ),
+            'custom_data'      => $custom_data,
         ];
 
         // Optional appsecret_proof support — "Require app secret" is

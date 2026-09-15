@@ -185,7 +185,21 @@ class Cogito_RAR_Conversion_Raw_Link_Capture {
             $current_asn = ASNResolver::get_asn_number( $ip_address );
         }
 
-        $referrer   = sanitize_text_field( $_SERVER['HTTP_REFERER'] ?? '' );
+        // Prefer the JS-supplied window.location.href over this request's
+        // own Referer header — a strict site-wide Referrer-Policy can
+        // reduce even a same-origin Referer to just the origin (no path),
+        // which would also throw off classify()'s own referrer+cookie
+        // check below, not only the event_source_url we report. Restricted
+        // to our own host: this replaces a same-site referrer value, not
+        // an arbitrary client-supplied one.
+        $referrer      = sanitize_text_field( $_SERVER['HTTP_REFERER'] ?? '' );
+        $page_url      = isset( $params['page_url'] ) ? esc_url_raw( (string) $params['page_url'] ) : '';
+        $own_host      = wp_parse_url( home_url(), PHP_URL_HOST );
+        $page_url_host = $page_url ? wp_parse_url( $page_url, PHP_URL_HOST ) : '';
+        if ( '' !== $page_url && $own_host && 0 === strcasecmp( $page_url_host, $own_host ) ) {
+            $referrer = $page_url;
+        }
+
         $user_agent = substr( sanitize_text_field( $_SERVER['HTTP_USER_AGENT'] ?? '' ), 0, 255 );
         $had_cookie = class_exists( 'Cogito_RAR_SetCookie' ) ? Cogito_RAR_SetCookie::was_present() : true;
 
@@ -246,6 +260,10 @@ class Cogito_RAR_Conversion_Raw_Link_Capture {
             'hostname'         => $hostname,
             'org'              => $org,
             'click_date'       => current_time( 'Y-m-d' ),
+            // Snapshotted now (not re-resolved at send time) so a later
+            // rename of this event's field names doesn't retroactively
+            // change what an already-queued-but-unsent row reports as.
+            'field_names'      => Cogito_RAR_Conversion_Capture::get_field_names_for_event( $event_name ),
         ];
 
         $hold_minutes = (int) get_option( Cogito_RAR_Conversion_Capture::OPTION_HOLD_MINUTES, 0 );
