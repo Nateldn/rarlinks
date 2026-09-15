@@ -23,6 +23,15 @@ class Cogito_RAR_Conversion_Dispatcher {
     const CRON_HOOK = 'rar_conversions_cron_dispatch';
 
     /**
+     * The click listener's beacon is a same-tick, near-instant request, but
+     * with the hold at 0 minutes, cron can legitimately pick a row up within
+     * seconds of the click — sometimes before the beacon has actually
+     * finished landing under real network conditions. Rows still waiting on
+     * enrichment get one short grace period rather than sending "bare".
+     */
+    const ENRICHMENT_GRACE_SECONDS = 10;
+
+    /**
      * Registers the automatic dispatch schedule. Events are meant to go out
      * as soon as they occur, not sit waiting for someone to click "Flush
      * Now" — WP-Cron only checks for due events on incoming page requests
@@ -103,6 +112,18 @@ class Cogito_RAR_Conversion_Dispatcher {
                 // Fills in link_text/link_classes from the click listener's
                 // beacon, if it landed — a no-op otherwise.
                 $signals = Cogito_RAR_Conversion_Click_Context::enrich( $signals );
+            }
+
+            // A click_token means the beacon is expected to fill link_text/
+            // link_classes in; if it hasn't yet (still blank after enrich())
+            // and the click is very fresh, give it one more tick rather than
+            // sending it bare — the beacon almost always lands within a
+            // second or two, well inside this window.
+            if ( ! empty( $signals['click_token'] ) && empty( $signals['link_text'] ) && empty( $signals['link_classes'] ) ) {
+                $age = time() - (int) ( $signals['click_time'] ?? 0 );
+                if ( $age >= 0 && $age < self::ENRICHMENT_GRACE_SECONDS ) {
+                    continue; // Left pending — picked up again on the next tick.
+                }
             }
 
             if ( (int) ( $signals['click_time'] ?? 0 ) < $stale_cutoff ) {

@@ -42,7 +42,7 @@ class Cogito_RAR_Conversion_Capture {
             return;
         }
 
-        $hold_minutes = (int) get_option( self::OPTION_HOLD_MINUTES, 60 );
+        $hold_minutes = (int) get_option( self::OPTION_HOLD_MINUTES, 0 );
 
         $event_signals = array_merge(
             self::build_meta_click_signals( $destination_url ),
