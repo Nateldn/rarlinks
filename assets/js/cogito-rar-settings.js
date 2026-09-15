@@ -1,5 +1,32 @@
 document.addEventListener('DOMContentLoaded', function () {
 
+    // --- Conversions: self-service tracked-events repeater ---
+    // Field names use empty "[]" array brackets (see class-cogito-rar-
+    // settings-conversions.php), so a new row just needs to exist in the
+    // DOM at submit time — no index bookkeeping required on add or remove.
+    const eventsRepeater = document.getElementById('rar-events-repeater');
+    const addEventBtn    = document.getElementById('rar-add-event');
+
+    if ( eventsRepeater && addEventBtn ) {
+        addEventBtn.addEventListener('click', function () {
+            const row = document.createElement('div');
+            row.className = 'rar-event-row';
+            row.innerHTML =
+                '<p><label>Event name<br>' +
+                '<input type="text" name="rar_conversions_events[][name]" placeholder="AffiliateClick" style="width:100%; max-width:300px; font-family:monospace;"></label></p>' +
+                '<p><label>Tracked classes &amp; IDs<br>' +
+                '<textarea name="rar_conversions_events[][identifiers]" rows="4" style="width:100%; max-width:500px; font-family:monospace;" placeholder="affi_btn\naffi_group\nrl_wrap rl_drift"></textarea></label></p>' +
+                '<button type="button" class="button-link rar-remove-event">Remove this event</button>';
+            eventsRepeater.appendChild(row);
+        });
+
+        eventsRepeater.addEventListener('click', function (e) {
+            if ( ! e.target.classList.contains('rar-remove-event') ) return;
+            const row = e.target.closest('.rar-event-row');
+            if ( row ) row.remove();
+        });
+    }
+
     // --- Moto Partner List Logic ---
     // Handles AJAX disabling of individual partners on the Reports settings tab.
     const motoPanel = document.querySelector('.rar-moto-panel');

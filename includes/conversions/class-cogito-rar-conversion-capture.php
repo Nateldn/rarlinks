@@ -13,11 +13,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Cogito_RAR_Conversion_Capture {
 
-    const OPTION_ENABLED                = 'rar_conversions_enabled';
-    const OPTION_HOLD_MINUTES            = 'rar_conversions_hold_minutes';
-    const OPTION_TRACKED_IDENTIFIERS    = 'rar_conversions_tracked_identifiers';
-    const OPTION_TRACKED_AD_IDENTIFIERS = 'rar_conversions_tracked_ad_identifiers';
-    const MAX_TRACKED_IDENTIFIERS       = 50;
+    const OPTION_ENABLED             = 'rar_conversions_enabled';
+    const OPTION_HOLD_MINUTES         = 'rar_conversions_hold_minutes';
+    const MAX_TRACKED_IDENTIFIERS    = 50;
+
+    /**
+     * Admin-defined list of raw-link events: [ [ 'name' => 'AffiliateClick',
+     * 'identifiers' => "affi_btn\naffi_group" ], ... ]. Fully self-service —
+     * adding a new event (its own name + its own tracked classes/IDs) never
+     * requires a code change.
+     */
+    const OPTION_EVENT_DEFINITIONS = 'rar_conversions_event_definitions';
+    const MAX_EVENTS               = 20;
+
+    /**
+     * One-time-migrated-away-from fields (kept only so the migration in
+     * get_event_definitions_raw() has somewhere to read Nate's already-
+     * curated lists from). Never written to again after that migration.
+     */
+    const OPTION_TRACKED_IDENTIFIERS_LEGACY    = 'rar_conversions_tracked_identifiers';
+    const OPTION_TRACKED_AD_IDENTIFIERS_LEGACY = 'rar_conversions_tracked_ad_identifiers';
 
     public static function init() {
         add_action( 'rar_click_logged', [ self::class, 'maybe_capture' ], 10, 4 );
@@ -130,25 +145,64 @@ class Cogito_RAR_Conversion_Capture {
     }
 
     /**
-     * The class names / element IDs the raw-link click listener matches
-     * against for AffiliateClick — Nate's own admin-editable list, not a
-     * hardcoded assumption baked into code.
+     * The admin-defined raw-link events, parsed and ready for matching.
      *
-     * @return string[][] See parse_identifier_groups().
+     * @return array [ [ 'name' => 'AffiliateClick', 'groups' => string[][] ], ... ]
      */
-    public static function get_tracked_identifiers() {
-        return self::parse_identifier_groups( (string) get_option( self::OPTION_TRACKED_IDENTIFIERS, '' ) );
+    public static function get_event_definitions() {
+        $events = [];
+        foreach ( self::get_event_definitions_raw() as $event ) {
+            $groups = self::parse_identifier_groups( (string) ( $event['identifiers'] ?? '' ) );
+            if ( '' !== ( $event['name'] ?? '' ) && ! empty( $groups ) ) {
+                $events[] = [ 'name' => $event['name'], 'groups' => $groups ];
+            }
+        }
+        return $events;
     }
 
     /**
-     * Same idea, for the separate AdvertisementClick class/ID list (native
-     * ad units — a click matching this list is reported as
-     * AdvertisementClick instead of AffiliateClick).
+     * The raw stored event list — name plus the identifiers textarea's raw
+     * text, unparsed — for the settings form to round-trip exactly what
+     * was typed. Migrates the old two-field (AffiliateClick/
+     * AdvertisementClick-only) setup to this generic list, ONCE, the first
+     * time this is ever called after upgrading — so Nate's already-curated
+     * lists carry forward instead of starting blank.
      *
-     * @return string[][]
+     * @return array [ [ 'name' => string, 'identifiers' => string ], ... ]
      */
-    public static function get_tracked_ad_identifiers() {
-        return self::parse_identifier_groups( (string) get_option( self::OPTION_TRACKED_AD_IDENTIFIERS, '' ) );
+    public static function get_event_definitions_raw() {
+        $stored = get_option( self::OPTION_EVENT_DEFINITIONS, false );
+        if ( false !== $stored ) {
+            return is_array( $stored ) ? $stored : [];
+        }
+
+        $migrated  = [];
+        $affiliate = (string) get_option( self::OPTION_TRACKED_IDENTIFIERS_LEGACY, '' );
+        $ad        = (string) get_option( self::OPTION_TRACKED_AD_IDENTIFIERS_LEGACY, '' );
+
+        if ( '' !== trim( $affiliate ) ) {
+            $migrated[] = [ 'name' => 'AffiliateClick', 'identifiers' => $affiliate ];
+        }
+        if ( '' !== trim( $ad ) ) {
+            $migrated[] = [ 'name' => 'AdvertisementClick', 'identifiers' => $ad ];
+        }
+
+        update_option( self::OPTION_EVENT_DEFINITIONS, $migrated );
+        return $migrated;
+    }
+
+    /**
+     * Sanitises a raw-link event name: Meta event names are conventionally
+     * alphanumeric (CamelCase or snake_case), so anything else is stripped
+     * rather than escaped — this string is used both as an HTML attribute
+     * value and sent literally as the Conversions API event_name.
+     *
+     * @param string $name
+     * @return string Empty if nothing valid remains.
+     */
+    public static function sanitize_event_name( $name ) {
+        $name = preg_replace( '/[^A-Za-z0-9_]/', '', (string) $name );
+        return mb_substr( $name, 0, 40 );
     }
 
     /**
@@ -180,7 +234,7 @@ class Cogito_RAR_Conversion_Capture {
      * @param string $raw
      * @return string[][] Array of groups; each group an array of 1+ sanitised tokens.
      */
-    private static function parse_identifier_groups( $raw ) {
+    public static function parse_identifier_groups( $raw ) {
         $lines  = preg_split( '/\r\n|\r|\n/', $raw );
         $groups = [];
 

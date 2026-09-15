@@ -86,9 +86,8 @@ class Cogito_RAR_Conversion_Raw_Link_Capture {
             return;
         }
 
-        $identifiers    = Cogito_RAR_Conversion_Capture::get_tracked_identifiers();
-        $ad_identifiers = Cogito_RAR_Conversion_Capture::get_tracked_ad_identifiers();
-        if ( empty( $identifiers ) && empty( $ad_identifiers ) ) {
+        $events = Cogito_RAR_Conversion_Capture::get_event_definitions();
+        if ( empty( $events ) ) {
             return;
         }
 
@@ -107,14 +106,13 @@ class Cogito_RAR_Conversion_Raw_Link_Capture {
         );
 
         wp_localize_script( 'cogito-rar-raw-link-capture', 'rarRawLinkCapture', [
-            'restUrl'         => esc_url_raw( rest_url( 'rar/v1/raw-link-click' ) ),
-            'nonce'           => wp_create_nonce( self::NONCE_ACTION ),
-            // AdvertisementClick checked first client-side — a class listed
-            // in both lists (shouldn't normally happen) resolves as an ad.
-            'adIdentifiers'   => $ad_identifiers,
-            'identifiers'     => $identifiers,
-            'goPrefix'        => '/' . ( class_exists( 'Cogito_RAR_Redirect_Engine' ) ? Cogito_RAR_Redirect_Engine::PREFIX : 'go' ) . '/',
-            'homeHost'        => wp_parse_url( home_url(), PHP_URL_HOST ),
+            'restUrl'  => esc_url_raw( rest_url( 'rar/v1/raw-link-click' ) ),
+            'nonce'    => wp_create_nonce( self::NONCE_ACTION ),
+            // Checked in this order client-side; first one whose groups
+            // match a given click wins.
+            'events'   => $events,
+            'goPrefix' => '/' . ( class_exists( 'Cogito_RAR_Redirect_Engine' ) ? Cogito_RAR_Redirect_Engine::PREFIX : 'go' ) . '/',
+            'homeHost' => wp_parse_url( home_url(), PHP_URL_HOST ),
         ] );
     }
 
@@ -223,12 +221,15 @@ class Cogito_RAR_Conversion_Raw_Link_Capture {
             self::MAX_CLASSES
         );
 
-        // Client reports which list matched (Advertisement vs Affiliate);
-        // never trust it blindly — whitelist against the only two event
-        // names this route is allowed to produce.
-        $event_name = isset( $params['event_name'] ) && in_array( $params['event_name'], [ 'AffiliateClick', 'AdvertisementClick' ], true )
-            ? $params['event_name']
-            : 'AffiliateClick';
+        // Client reports which admin-defined event list matched; never
+        // trust it blindly — whitelist against whatever event names are
+        // CURRENTLY configured (this list is admin-editable, so there's no
+        // fixed set, and no safe hardcoded fallback to default to either).
+        $configured_names = wp_list_pluck( Cogito_RAR_Conversion_Capture::get_event_definitions(), 'name' );
+        $event_name        = isset( $params['event_name'] ) ? Cogito_RAR_Conversion_Capture::sanitize_event_name( $params['event_name'] ) : '';
+        if ( '' === $event_name || ! in_array( $event_name, $configured_names, true ) ) {
+            return $reject( 'event_name not currently configured' );
+        }
 
         $event_signals = [
             'event_name'       => $event_name,

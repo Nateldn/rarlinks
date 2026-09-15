@@ -703,6 +703,25 @@ body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
     font-family: Consolas, Monaco, monospace;
 }
 
+/* Self-service tracked-events repeater: each event gets its own bordered
+   block so an arbitrary, admin-grown list of them still reads as distinct
+   entries rather than one long run-on form. */
+.rar-event-row {
+    border: 1px solid var(--rar-border);
+    border-radius: 6px;
+    padding: 12px 16px 4px;
+    margin-bottom: 12px;
+    background: var(--rar-paper);
+}
+.rar-event-row .rar-remove-event {
+    color: var(--rar-bad);
+    text-decoration: none;
+    font-size: 0.85em;
+}
+.rar-event-row .rar-remove-event:hover {
+    text-decoration: underline;
+}
+
 /* Queue counts as stat tiles rather than a single dense line of text —
    the left border tone gives an at-a-glance read before the number does. */
 .rar-stat-row {

@@ -5,28 +5,27 @@
  * navigates straight to the destination — so this reports the FULL event
  * in one beacon rather than just enriching one already being created.
  *
- * A click only counts if it matches one of Nate's own tracked class
- * names/IDs (curated on the Conversions settings tab) and resolves to an
+ * A click only counts if it matches one of the admin-defined events
+ * (rarRawLinkCapture.events — curated on the Conversions settings tab,
+ * add as many as needed, no code change ever required) and resolves to an
  * external https:// link — internal navigation and RARLinks (already
  * handled by cogito-rar-click-context.js) are ignored.
  *
- * Matching is against TWO separate lists: rarRawLinkCapture.adIdentifiers
- * (native ad units → reported as AdvertisementClick) and .identifiers
- * (affiliate buttons/links → AffiliateClick). Each list is an array of
- * "groups" — a group is itself an array of 1+ class/id tokens that must
- * ALL be found somewhere in the clicked element's own classes/id or its
- * ancestors' (a "chained" match, not necessarily all on the same element);
- * a group with just one token behaves like a plain identifier always has.
- * Matching ANY one group in a list is enough for that list.
+ * Each event is { name: 'SomeEventName', groups: [...] } — a group is
+ * itself an array of 1+ class/id tokens that must ALL be found somewhere
+ * in the clicked element's own classes/id or its ancestors' (a "chained"
+ * match, not necessarily all on the same element); a group with just one
+ * token behaves like a plain identifier always has. Matching ANY one
+ * group is enough for that event. Events are checked in the order given;
+ * the FIRST one whose groups match wins.
  */
 ( function () {
 	if ( typeof rarRawLinkCapture === 'undefined' || ! navigator.sendBeacon ) {
 		return;
 	}
 
-	var adGroups        = rarRawLinkCapture.adIdentifiers || [];
-	var affiliateGroups = rarRawLinkCapture.identifiers || [];
-	if ( ! adGroups.length && ! affiliateGroups.length ) {
+	var events = rarRawLinkCapture.events || [];
+	if ( ! events.length ) {
 		return;
 	}
 
@@ -35,8 +34,8 @@
 
 	// Walks up from the clicked element (up to 10 levels), collecting every
 	// class/id encountered along the way into one set, and separately
-	// noting the nearest enclosing <a>. One pass serves every group in
-	// both lists, rather than re-walking the DOM per group.
+	// noting the nearest enclosing <a>. One pass serves every event's
+	// groups, rather than re-walking the DOM per event.
 	function collectAncestorTokens( target ) {
 		var tokens = {};
 		var anchor = null;
@@ -85,13 +84,12 @@
 			return null;
 		}
 
-		// Ad checked first — the two lists shouldn't overlap in practice,
-		// but if a class somehow appears in both, treat it as an ad.
 		var eventName = null;
-		if ( groupsMatch( adGroups, collected.tokens ) ) {
-			eventName = 'AdvertisementClick';
-		} else if ( groupsMatch( affiliateGroups, collected.tokens ) ) {
-			eventName = 'AffiliateClick';
+		for ( var i = 0; i < events.length; i++ ) {
+			if ( groupsMatch( events[ i ].groups || [], collected.tokens ) ) {
+				eventName = events[ i ].name;
+				break;
+			}
 		}
 		if ( ! eventName ) {
 			return null;

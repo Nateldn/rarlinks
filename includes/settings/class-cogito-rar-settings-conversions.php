@@ -26,6 +26,36 @@ class Cogito_RAR_Settings_Conversions {
     }
 
     /**
+     * Renders one event's name + identifiers block. Field names use empty
+     * "[]" array brackets rather than numeric indexes — however many rows
+     * actually exist in the DOM at submit time (rows can be added/removed
+     * freely via JS) arrive as a plain sequential array in $_POST, no
+     * client-side re-indexing required.
+     *
+     * @param string $name
+     * @param string $identifiers_raw
+     */
+    private static function render_event_row( $name, $identifiers_raw ) {
+        $parsed = '' !== trim( (string) $identifiers_raw ) ? Cogito_RAR_Conversion_Capture::parse_identifier_groups( $identifiers_raw ) : [];
+
+        echo '<div class="rar-event-row">';
+        echo '<p><label>Event name<br>';
+        echo '<input type="text" name="rar_conversions_events[][name]" value="' . esc_attr( $name ) . '" placeholder="AffiliateClick" style="width:100%; max-width:300px; font-family:monospace;"></label></p>';
+        echo '<p><label>Tracked classes &amp; IDs<br>';
+        echo '<textarea name="rar_conversions_events[][identifiers]" rows="4" style="width:100%; max-width:500px; font-family:monospace;" placeholder="' . esc_attr( "affi_btn\naffi_group\nrl_wrap rl_drift" ) . '">' . esc_textarea( $identifiers_raw ) . '</textarea></label></p>';
+        if ( ! empty( $parsed ) ) {
+            echo '<p class="description">Currently parsed as:</p>';
+            echo '<div class="rar-chip-row">';
+            foreach ( $parsed as $group ) {
+                echo '<code class="rar-chip">' . esc_html( implode( ' + ', $group ) ) . '</code>';
+            }
+            echo '</div>';
+        }
+        echo '<button type="button" class="button-link rar-remove-event">Remove this event</button>';
+        echo '</div>';
+    }
+
+    /**
      * Saves the master toggle + hold-window setting.
      */
     public static function maybe_handle_save() {
@@ -44,18 +74,32 @@ class Cogito_RAR_Settings_Conversions {
         $hold = isset( $_POST['rar_conversions_hold_minutes'] ) ? absint( $_POST['rar_conversions_hold_minutes'] ) : 0;
         update_option( Cogito_RAR_Conversion_Capture::OPTION_HOLD_MINUTES, $hold );
 
-        // Stored as raw text (sanitised per-line, not per-textarea) so the
-        // form shows back exactly what was typed, including blank spacer
-        // lines — get_tracked_identifiers() does the real cleanup on read.
-        $identifiers_raw = isset( $_POST['rar_conversions_tracked_identifiers'] )
-            ? sanitize_textarea_field( wp_unslash( $_POST['rar_conversions_tracked_identifiers'] ) )
-            : '';
-        update_option( Cogito_RAR_Conversion_Capture::OPTION_TRACKED_IDENTIFIERS, $identifiers_raw );
+        // Self-service event list — add/remove/rename freely, no code
+        // change ever needed. Each entry keeps its raw textarea text
+        // (sanitised per-line, not per-textarea) so the form shows back
+        // exactly what was typed; get_event_definitions() does the real
+        // parsing on read. A row missing either a name or any identifiers
+        // is dropped rather than saved as a dead/unmatchable entry.
+        $events_posted = isset( $_POST['rar_conversions_events'] ) && is_array( $_POST['rar_conversions_events'] )
+            ? $_POST['rar_conversions_events']
+            : [];
 
-        $ad_identifiers_raw = isset( $_POST['rar_conversions_tracked_ad_identifiers'] )
-            ? sanitize_textarea_field( wp_unslash( $_POST['rar_conversions_tracked_ad_identifiers'] ) )
-            : '';
-        update_option( Cogito_RAR_Conversion_Capture::OPTION_TRACKED_AD_IDENTIFIERS, $ad_identifiers_raw );
+        $events = [];
+        foreach ( $events_posted as $entry ) {
+            $name        = Cogito_RAR_Conversion_Capture::sanitize_event_name( $entry['name'] ?? '' );
+            $identifiers = sanitize_textarea_field( wp_unslash( (string) ( $entry['identifiers'] ?? '' ) ) );
+
+            if ( '' === $name || '' === trim( $identifiers ) ) {
+                continue;
+            }
+
+            $events[] = [ 'name' => $name, 'identifiers' => $identifiers ];
+
+            if ( count( $events ) >= Cogito_RAR_Conversion_Capture::MAX_EVENTS ) {
+                break;
+            }
+        }
+        update_option( Cogito_RAR_Conversion_Capture::OPTION_EVENT_DEFINITIONS, $events );
 
         $domains_raw = isset( $_POST['rar_conversions_raw_link_domains'] )
             ? sanitize_textarea_field( wp_unslash( $_POST['rar_conversions_raw_link_domains'] ) )
@@ -104,11 +148,8 @@ class Cogito_RAR_Settings_Conversions {
 
         $enabled          = get_option( Cogito_RAR_Conversion_Capture::OPTION_ENABLED ) === '1';
         $hold             = (int) get_option( Cogito_RAR_Conversion_Capture::OPTION_HOLD_MINUTES, 0 );
-        $identifiers_raw    = (string) get_option( Cogito_RAR_Conversion_Capture::OPTION_TRACKED_IDENTIFIERS, '' );
-        $identifiers_parsed = Cogito_RAR_Conversion_Capture::get_tracked_identifiers();
-        $ad_identifiers_raw    = (string) get_option( Cogito_RAR_Conversion_Capture::OPTION_TRACKED_AD_IDENTIFIERS, '' );
-        $ad_identifiers_parsed = Cogito_RAR_Conversion_Capture::get_tracked_ad_identifiers();
-        $raw_link_domains   = (string) get_option( Cogito_RAR_Conversion_Raw_Link_Capture::OPTION_ALLOWED_DOMAINS, '' );
+        $events_raw       = Cogito_RAR_Conversion_Capture::get_event_definitions_raw();
+        $raw_link_domains = (string) get_option( Cogito_RAR_Conversion_Raw_Link_Capture::OPTION_ALLOWED_DOMAINS, '' );
 
         echo '<div class="rar-conversions">';
 
@@ -137,35 +178,22 @@ class Cogito_RAR_Settings_Conversions {
         echo '<p class="description">Kept at 0 by default — events go out automatically roughly every minute rather than waiting. Whenever a queued event is actually sent, it\'s re-checked against your current bot-detection data (not just the click-time snapshot) — a free safety net that needs no action from you. Raise this only if you want more of a buffer before that re-check happens.</p>';
         echo '</td></tr>';
 
-        echo '<tr><th scope="row">Tracked buttons &amp; links</th><td>';
-        echo '<textarea name="rar_conversions_tracked_identifiers" rows="6" style="width:100%; max-width:500px; font-family:monospace;" placeholder="' . esc_attr( "affi_btn\naffi_group\nlr-button" ) . '">' . esc_textarea( $identifiers_raw ) . '</textarea>';
-        echo '<p class="description">One class name or element ID per line — no CSS syntax needed, just the bare name (e.g. <code>affi_btn</code> or <code>myButtonId</code>). ';
-        echo 'Each one is checked against both the clicked element\'s classes and its ID, walking up through parent elements too. ';
+        echo '<tr><th scope="row">Tracked events</th><td>';
+        echo '<p class="description">Each event you define here is entirely self-service — add a new one, rename one, or remove one any time a landing page needs a new button/ad style tracked. No code change is ever needed.</p>';
+        echo '<div id="rar-events-repeater">';
+        if ( empty( $events_raw ) ) {
+            self::render_event_row( '', '' );
+        } else {
+            foreach ( $events_raw as $event ) {
+                self::render_event_row( $event['name'] ?? '', $event['identifiers'] ?? '' );
+            }
+        }
+        echo '</div>';
+        echo '<p><button type="button" class="button" id="rar-add-event">+ Add another event</button></p>';
+        echo '<p class="description">Per event: a name (sent to Meta literally as its event_name — letters, numbers and underscores only, e.g. <code>AffiliateClick</code>), and its tracked classes/IDs, one per line. ';
+        echo 'No CSS syntax needed, just the bare name (e.g. <code>affi_btn</code> or <code>myButtonId</code>) — each is checked against the clicked element\'s classes and ID, walking up through parent elements too. ';
         echo 'Put multiple names on the same line, separated by a space, to require them ALL together (chained) — e.g. <code>rl_wrap rl_drift</code> only matches when both are found somewhere in the same click, not necessarily on the same element. ';
-        echo 'Add a new line whenever you create a new button/link style you want tracked. ';
-        echo 'This is the list the click-listener script matches against for raw, non-RARLink affiliate links and buttons, reported as <strong>AffiliateClick</strong> — a RARLink click is always captured regardless of class.</p>';
-        if ( ! empty( $identifiers_parsed ) ) {
-            echo '<p class="description">Currently parsed as:</p>';
-            echo '<div class="rar-chip-row">';
-            foreach ( $identifiers_parsed as $group ) {
-                echo '<code class="rar-chip">' . esc_html( implode( ' + ', $group ) ) . '</code>';
-            }
-            echo '</div>';
-        }
-        echo '</td></tr>';
-
-        echo '<tr><th scope="row">Tracked ad units</th><td>';
-        echo '<textarea name="rar_conversions_tracked_ad_identifiers" rows="6" style="width:100%; max-width:500px; font-family:monospace;" placeholder="' . esc_attr( "rench-ad-img\nrl-drift\nrl_wrap rl_sidecar" ) . '">' . esc_textarea( $ad_identifiers_raw ) . '</textarea>';
-        echo '<p class="description">Same format and matching rules as Tracked buttons &amp; links above (one class/ID per line, space-separate to chain), but reported as <strong>AdvertisementClick</strong> instead — for native/display ad units rather than affiliate buttons. ';
-        echo 'A class listed here takes priority over the same class also appearing above.</p>';
-        if ( ! empty( $ad_identifiers_parsed ) ) {
-            echo '<p class="description">Currently parsed as:</p>';
-            echo '<div class="rar-chip-row">';
-            foreach ( $ad_identifiers_parsed as $group ) {
-                echo '<code class="rar-chip">' . esc_html( implode( ' + ', $group ) ) . '</code>';
-            }
-            echo '</div>';
-        }
+        echo 'Events are checked top-to-bottom; the first one whose classes match wins — a RARLink click is unaffected either way, always captured as AffiliateClick regardless of class.</p>';
         echo '</td></tr>';
 
         echo '<tr><th scope="row">Allowed destination domains</th><td>';
