@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
             row.innerHTML =
                 '<div class="rar-event-row-fields">' +
                 '<label class="rar-event-field rar-event-field--name">Event name<br>' +
-                '<input type="text" name="rar_conversions_events[' + idx + '][name]" placeholder="AffiliateClick" style="width:100%; font-family:monospace;"></label>' +
+                '<input type="text" name="rar_conversions_events[' + idx + '][name]" placeholder="e.g. NewsletterClick" style="width:100%; font-family:monospace;"></label>' +
                 '<label class="rar-event-field rar-event-field--identifiers">Tracked classes &amp; IDs<br>' +
                 '<textarea name="rar_conversions_events[' + idx + '][identifiers]" rows="2" style="width:100%; font-family:monospace;" placeholder="affi_btn\nrl_wrap rl_drift"></textarea></label>' +
                 '<button type="button" class="button-link rar-remove-event">Remove</button>' +

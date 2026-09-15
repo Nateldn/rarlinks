@@ -56,7 +56,7 @@ class Cogito_RAR_Settings_Conversions {
         echo '<div class="rar-event-row">';
         echo '<div class="rar-event-row-fields">';
         echo '<label class="rar-event-field rar-event-field--name">Event name<br>';
-        echo '<input type="text" name="' . $base . '[name]" value="' . esc_attr( $name ) . '" placeholder="AffiliateClick" style="width:100%; font-family:monospace;"></label>';
+        echo '<input type="text" name="' . $base . '[name]" value="' . esc_attr( $name ) . '" placeholder="e.g. NewsletterClick" style="width:100%; font-family:monospace;"></label>';
         echo '<label class="rar-event-field rar-event-field--identifiers">Tracked classes &amp; IDs<br>';
         echo '<textarea name="' . $base . '[identifiers]" rows="2" style="width:100%; font-family:monospace;" placeholder="' . esc_attr( "affi_btn\nrl_wrap rl_drift" ) . '">' . esc_textarea( $identifiers_raw ) . '</textarea></label>';
         echo '<button type="button" class="button-link rar-remove-event">Remove</button>';
@@ -126,7 +126,12 @@ class Cogito_RAR_Settings_Conversions {
             $name        = Cogito_RAR_Conversion_Capture::sanitize_event_name( $entry['name'] ?? '' );
             $identifiers = sanitize_textarea_field( wp_unslash( (string) ( $entry['identifiers'] ?? '' ) ) );
 
-            if ( '' === $name || '' === trim( $identifiers ) ) {
+            // Only drop a row that's COMPLETELY empty (an unused blank "add
+            // another event" row). A name typed in before its classes/IDs
+            // — or vice versa — is real in-progress work; dropping it on
+            // save just because it isn't finished yet would look like the
+            // row "disappeared" the moment you save mid-edit.
+            if ( '' === $name && '' === trim( $identifiers ) ) {
                 continue;
             }
 
