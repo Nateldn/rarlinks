@@ -59,6 +59,10 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/helpers/timestamp-localiser
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-dashboard.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-click-logger.php';
 
+// 🧹 Daily retention: purges old click-log rows and resolved conversion-queue rows
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-retention.php';
+Cogito_RAR_Retention::init();
+
 // 🚩 Live bot list (user-flagged signals; written by Flag-as-bot, read by the click logger)
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-live-bot-list.php';
 
@@ -161,12 +165,15 @@ function cogito_rar_on_activate() {
 register_activation_hook( __FILE__, 'cogito_rar_on_activate' );
 
 /**
- * Stops the Conversions dispatch cron from firing (and failing) once this
- * plugin's hook callbacks are no longer registered.
+ * Stops this plugin's cron jobs from firing (and failing) once their hook
+ * callbacks are no longer registered.
  */
 function cogito_rar_on_deactivate() {
 	if ( class_exists( 'Cogito_RAR_Conversion_Dispatcher' ) ) {
 		Cogito_RAR_Conversion_Dispatcher::unschedule();
+	}
+	if ( class_exists( 'Cogito_RAR_Retention' ) ) {
+		Cogito_RAR_Retention::unschedule();
 	}
 }
 register_deactivation_hook( __FILE__, 'cogito_rar_on_deactivate' );
@@ -198,7 +205,8 @@ function cogito_rar_create_click_log_table() {
 	bot_name VARCHAR(255) NULL,
 	bot_or_not TINYINT(1) DEFAULT 0,
 	PRIMARY KEY (id),
-	KEY post_id (post_id)
+	KEY post_id (post_id),
+	KEY timestamp (timestamp)
 ) $charset_collate;";
 
 
@@ -206,6 +214,20 @@ function cogito_rar_create_click_log_table() {
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 	dbDelta( $sql );
 }
+
+/**
+ * Self-healing schema upgrade: this plugin is already active on live sites,
+ * so register_activation_hook alone would never re-fire the timestamp
+ * index added above onto an existing installation. dbDelta is safely
+ * re-runnable, so this just checks a stored version and re-runs it once.
+ */
+function cogito_rar_maybe_upgrade_click_log_table() {
+	if ( get_option( 'rar_click_table_db_version' ) !== '1.1' ) {
+		cogito_rar_create_click_log_table();
+		update_option( 'rar_click_table_db_version', '1.1' );
+	}
+}
+add_action( 'admin_init', 'cogito_rar_maybe_upgrade_click_log_table' );
 
     // /**
     //  * 🧱 Ensures new columns exist on plugin update.
