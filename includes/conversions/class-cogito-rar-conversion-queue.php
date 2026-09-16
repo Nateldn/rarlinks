@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Cogito_RAR_Conversion_Queue {
 
-    const DB_VERSION        = '1.0';
+    const DB_VERSION        = '1.1';
     const DB_VERSION_OPTION = 'rar_conversion_queue_db_version';
     const MAX_ATTEMPTS      = 5;
 
@@ -25,6 +25,13 @@ class Cogito_RAR_Conversion_Queue {
     /**
      * Creates (or updates) the queue table. dbDelta is idempotent, so this
      * is safe to call unconditionally from maybe_upgrade().
+     *
+     * The created_at column's CURRENT_TIMESTAMP default below is
+     * vestigial — enqueue() always sets it explicitly via PHP's gmdate()
+     * instead, never relying on MySQL's default. That matters because
+     * this host's DB session timezone (whatever CURRENT_TIMESTAMP would
+     * actually use) isn't UTC, unlike sent_at/eligible_at, which are
+     * always set via UTC-explicit calls (UTC_TIMESTAMP()/gmdate()).
      */
     public static function create_table() {
         global $wpdb;
@@ -62,9 +69,36 @@ class Cogito_RAR_Conversion_Queue {
      * cycle (register_activation_hook alone never re-fires on an update).
      */
     public static function maybe_upgrade() {
-        if ( get_option( self::DB_VERSION_OPTION ) !== self::DB_VERSION ) {
-            self::create_table();
+        $current = get_option( self::DB_VERSION_OPTION );
+        if ( $current === self::DB_VERSION ) {
+            return;
         }
+
+        self::create_table();
+
+        if ( '1.0' === $current ) {
+            self::fix_created_at_timezone();
+        }
+    }
+
+    /**
+     * One-time correction for every row inserted under 1.0, whose
+     * created_at came from MySQL's own CURRENT_TIMESTAMP default — this
+     * host's DB session timezone for that is America/Los_Angeles, not UTC
+     * (confirmed from the ~7-hour-off "Created" column Nate reported).
+     * A fixed +7 hours is safe here specifically because this table is
+     * brand new: every existing row was created within the last couple of
+     * days, entirely within Pacific Daylight Time (UTC-7) — there are no
+     * older rows that would have been on Pacific Standard Time (UTC-8)
+     * needing a different offset. Deliberately NOT using MySQL's
+     * CONVERT_TZ() with named zones: the mysql.time_zone_name tables it
+     * needs are frequently empty on shared hosting (including, as far as
+     * we know, this one), which would make it silently return NULL rather
+     * than error — a fixed-hour shift has no such failure mode.
+     */
+    private static function fix_created_at_timezone() {
+        global $wpdb;
+        $wpdb->query( 'UPDATE ' . self::table_name() . ' SET created_at = created_at + INTERVAL 7 HOUR' );
     }
 
     /**
@@ -90,9 +124,13 @@ class Cogito_RAR_Conversion_Queue {
                 'post_id'     => $post_id ? (int) $post_id : null,
                 'signals'     => wp_json_encode( $signals ),
                 'status'      => 'pending',
+                // Explicit, rather than relying on the column's own
+                // CURRENT_TIMESTAMP default — see create_table()'s
+                // docblock for why that default isn't trustworthy here.
+                'created_at'  => gmdate( 'Y-m-d H:i:s' ),
                 'eligible_at' => gmdate( 'Y-m-d H:i:s', time() + ( max( 0, (int) $hold_minutes ) * MINUTE_IN_SECONDS ) ),
             ],
-            [ '%s', '%s', '%s', '%d', '%s', '%s', '%s' ]
+            [ '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s' ]
         );
 
         return (int) $wpdb->insert_id;
