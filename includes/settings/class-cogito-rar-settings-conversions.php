@@ -239,10 +239,8 @@ class Cogito_RAR_Settings_Conversions {
         }
         echo '</div>';
         echo '<p><button type="button" class="button" id="rar-add-event">+ Add another event</button></p>';
-        echo '<p class="description">Per event: a name (sent to Meta literally as its event_name — letters, numbers and underscores only, e.g. <code>AffiliateClick</code>), and its tracked classes/IDs, one per line. ';
-        echo 'No CSS syntax needed, just the bare name (e.g. <code>affi_btn</code> or <code>myButtonId</code>) — each is checked against the clicked element\'s classes and ID, walking up through parent elements too. ';
-        echo 'Put multiple names on the same line, separated by a space, to require them ALL together (chained) — e.g. <code>rl_wrap rl_drift</code> only matches when both are found somewhere in the same click, not necessarily on the same element. ';
-        echo 'Events are checked top-to-bottom; the first one whose classes match wins — a RARLink click is unaffected either way, always captured as AffiliateClick regardless of class.</p>';
+        echo '<p class="description">One class or ID per line, no CSS syntax — just the plain name. Put more than one on a line (space-separated) to require them all together. ';
+        echo 'First matching event wins. A RARLink click always counts as AffiliateClick regardless of this list. See the README for the full explanation.</p>';
         echo '</td></tr>';
 
         echo '<tr><th scope="row">Allowed destination domains</th><td>';
