@@ -175,6 +175,17 @@ class Cogito_RAR_Conversion_Click_Context {
             self::MAX_CLASSES
         );
 
+        // The FULL set of classes/IDs found walking up from the clicked
+        // element — broader than link_classes above (which is just the
+        // anchor's own class, for accurate Meta reporting). Used only to
+        // decide WHICH event this click should be reported as.
+        $match_raw     = isset( $params['match_tokens'] ) ? (string) $params['match_tokens'] : '';
+        $match_tokens  = array_slice(
+            array_values( array_filter( array_map( 'sanitize_html_class', preg_split( '/\s+/', trim( $match_raw ) ) ) ) ),
+            0,
+            self::MAX_CLASSES
+        );
+
         // window.location.href from the click itself — more reliable than
         // the eventual redirect request's $_SERVER['HTTP_REFERER'], which
         // a strict Referrer-Policy can reduce to just the origin (no path).
@@ -190,6 +201,7 @@ class Cogito_RAR_Conversion_Click_Context {
         set_transient( self::TRANSIENT_PREFIX . $token, [
             'link_text'    => $link_text,
             'link_classes' => implode( ' ', $classes ),
+            'match_tokens' => $match_tokens,
             'page_url'     => $page_url,
         ], self::TTL );
 
@@ -227,6 +239,24 @@ class Cogito_RAR_Conversion_Click_Context {
             // Overrides the server-captured HTTP_REFERER — see the note in
             // handle_request() on why the JS-sourced value is trusted more.
             $signals['event_source_url'] = $context['page_url'];
+        }
+
+        // A RARLink is ALWAYS captured (build_meta_click_signals() already
+        // defaults event_name to AffiliateClick) — but WHICH event it's
+        // reported as can still depend on class, since the same rl-*/
+        // native-ad classes get put directly on RARLink anchors too (e.g.
+        // the homepage "Moto Partners" cards). Override only if the
+        // clicked element's classes actually match a DIFFERENT admin-
+        // defined event; otherwise leave the AffiliateClick default alone.
+        if ( ! empty( $context['match_tokens'] ) && class_exists( 'Cogito_RAR_Conversion_Capture' ) ) {
+            $matched_name = Cogito_RAR_Conversion_Capture::match_event_name( $context['match_tokens'] );
+            if ( null !== $matched_name && $matched_name !== $signals['event_name'] ) {
+                $signals['event_name']  = $matched_name;
+                // Field names are per-event — re-resolve for the NEW event
+                // rather than keeping AffiliateClick's, which may name its
+                // parameters completely differently.
+                $signals['field_names'] = Cogito_RAR_Conversion_Capture::get_field_names_for_event( $matched_name );
+            }
         }
 
         return $signals;

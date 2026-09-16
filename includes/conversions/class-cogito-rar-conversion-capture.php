@@ -182,6 +182,40 @@ class Cogito_RAR_Conversion_Capture {
     }
 
     /**
+     * Matches a set of class/id tokens against the admin-defined events,
+     * checked in order — the first event whose groups match wins. Used
+     * both by the raw-link route (client-side, mirrored in JS) AND by a
+     * RARLink click's own class list, at dispatch time — a RARLink is
+     * ALWAYS captured (that's never in question), but WHICH event it's
+     * reported as can still depend on class, exactly like a raw link,
+     * since Nate puts the same rl-* / native-ad classes directly on
+     * RARLink anchors too (e.g. the homepage "Moto Partners" cards).
+     *
+     * @param string[] $tokens Lowercase class/id tokens actually present.
+     * @return string|null The matching event's name, or null if nothing matched.
+     */
+    public static function match_event_name( array $tokens ) {
+        $tokens = array_flip( $tokens ); // O(1) lookups below
+
+        foreach ( self::get_event_definitions() as $event ) {
+            foreach ( $event['groups'] as $group ) {
+                $all_found = true;
+                foreach ( $group as $token ) {
+                    if ( ! isset( $tokens[ $token ] ) ) {
+                        $all_found = false;
+                        break;
+                    }
+                }
+                if ( $all_found ) {
+                    return $event['name'];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * The raw stored event list — name plus the identifiers textarea's raw
      * text, unparsed — for the settings form to round-trip exactly what
      * was typed. Migrates the old two-field (AffiliateClick/
