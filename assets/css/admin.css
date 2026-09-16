@@ -702,6 +702,22 @@ body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
     font-size: 0.85em;
     font-family: Consolas, Monaco, monospace;
 }
+.rar-chip--removable {
+    display: inline-flex;
+    align-items: center;
+}
+.rar-remove-group {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--rar-accent-hover);
+    font-size: 1.1em;
+    line-height: 1;
+    padding: 0 0 0 2px;
+}
+.rar-remove-group:hover {
+    color: var(--rar-bad);
+}
 
 /* Self-service tracked-events repeater: each event gets its own bordered
    block so an arbitrary, admin-grown list of them still reads as distinct
@@ -715,6 +731,35 @@ body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
     margin-bottom: 10px;
     background: var(--rar-paper);
 }
+.rar-event-row-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+.rar-event-name {
+    font-family: Consolas, Monaco, monospace;
+    font-size: 1em;
+}
+.rar-event-row .rar-remove-event {
+    flex: 0 0 auto;
+    color: var(--rar-bad);
+    text-decoration: none;
+    font-size: 0.85em;
+}
+.rar-event-row .rar-remove-event:hover {
+    text-decoration: underline;
+}
+.rar-add-group-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.rar-add-group-input {
+    flex: 0 1 240px;
+    font-family: Consolas, Monaco, monospace;
+}
 .rar-event-row-fields {
     display: flex;
     flex-wrap: wrap;
@@ -724,26 +769,6 @@ body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
 .rar-event-field {
     display: block;
     font-size: 0.9em;
-}
-.rar-event-field--name {
-    flex: 1 1 160px;
-    max-width: 220px;
-}
-.rar-event-field--identifiers {
-    flex: 2 1 260px;
-}
-.rar-event-field textarea {
-    resize: vertical;
-}
-.rar-event-row .rar-remove-event {
-    flex: 0 0 auto;
-    color: var(--rar-bad);
-    text-decoration: none;
-    font-size: 0.85em;
-    padding-bottom: 6px;
-}
-.rar-event-row .rar-remove-event:hover {
-    text-decoration: underline;
 }
 .rar-event-field--param {
     flex: 1 1 140px;
@@ -758,6 +783,19 @@ body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
 }
 .rar-event-field-names .rar-event-row-fields {
     margin-top: 8px;
+}
+.rar-new-event-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.rar-new-event-form input {
+    font-family: Consolas, Monaco, monospace;
+}
+.rar-save-status {
+    font-size: 0.85em;
+    color: var(--rar-neutral);
 }
 
 /* Queue counts as stat tiles rather than a single dense line of text —

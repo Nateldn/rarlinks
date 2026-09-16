@@ -1,46 +1,207 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     // --- Conversions: self-service tracked-events repeater ---
-    // Each row's name/identifiers fields share one EXPLICIT index (see
-    // class-cogito-rar-settings-conversions.php for why empty "[]"
-    // brackets don't actually pair them together). Date.now() is good
-    // enough here — it only needs to be unique among rows in THIS form
-    // submission, not stable or sequential.
+    // Every action here (create/remove an event, add/remove a tracked
+    // class, save parameter names) is AJAX — see
+    // class-cogito-rar-tracked-events-ajax.php — so nothing in this
+    // section is a field posted by the page's main Save Settings form.
+    // An event's name is never editable once created; it's the lookup
+    // key every AJAX action below uses.
     const eventsRepeater = document.getElementById('rar-events-repeater');
     const addEventBtn    = document.getElementById('rar-add-event');
 
-    if ( eventsRepeater && addEventBtn ) {
-        addEventBtn.addEventListener('click', function () {
-            const idx = 'new' + Date.now();
-            const row = document.createElement('div');
-            row.className = 'rar-event-row';
-            row.innerHTML =
-                '<div class="rar-event-row-fields">' +
-                '<label class="rar-event-field rar-event-field--name">Event name<br>' +
-                '<input type="text" name="rar_conversions_events[' + idx + '][name]" placeholder="e.g. NewsletterClick" style="width:100%; font-family:monospace;"></label>' +
-                '<label class="rar-event-field rar-event-field--identifiers">Tracked classes &amp; IDs<br>' +
-                '<textarea name="rar_conversions_events[' + idx + '][identifiers]" rows="2" style="width:100%; font-family:monospace;" placeholder="affi_btn\nrl_wrap rl_drift"></textarea></label>' +
-                '<button type="button" class="button-link rar-remove-event">Remove</button>' +
-                '</div>' +
-                '<details class="rar-event-field-names"><summary>Custom parameter names (optional)</summary>' +
-                '<div class="rar-event-row-fields">' +
-                '<label class="rar-event-field rar-event-field--param">Destination URL<br>' +
-                '<input type="text" name="rar_conversions_events[' + idx + '][field_destination_url]" placeholder="destination_url" style="width:100%; font-family:monospace;"></label>' +
-                '<label class="rar-event-field rar-event-field--param">Link text<br>' +
-                '<input type="text" name="rar_conversions_events[' + idx + '][field_link_text]" placeholder="link_text" style="width:100%; font-family:monospace;"></label>' +
-                '<label class="rar-event-field rar-event-field--param">Link classes<br>' +
-                '<input type="text" name="rar_conversions_events[' + idx + '][field_link_classes]" placeholder="link_classes" style="width:100%; font-family:monospace;"></label>' +
-                '<label class="rar-event-field rar-event-field--param">Page/Referrer URL<br>' +
-                '<input type="text" name="rar_conversions_events[' + idx + '][field_event_source_url]" placeholder="not sent unless named" style="width:100%; font-family:monospace;"></label>' +
-                '</div></details>';
-            eventsRepeater.appendChild(row);
-        });
+    const FIELD_NAME_LABELS = {
+        destination_url:  'Destination URL',
+        link_text:        'Link text',
+        link_classes:     'Link classes',
+        event_source_url: 'Page/Referrer URL'
+    };
+    const FIELD_PLACEHOLDERS = {
+        destination_url:  'destination_url',
+        link_text:        'link_text',
+        link_classes:     'link_classes',
+        event_source_url: 'not sent unless named'
+    };
 
-        eventsRepeater.addEventListener('click', function (e) {
-            if ( ! e.target.classList.contains('rar-remove-event') ) return;
-            const row = e.target.closest('.rar-event-row');
-            if ( row ) row.remove();
-        });
+    function rarEventsAjax( action, data ) {
+        const body = new URLSearchParams( Object.assign( {
+            action: action,
+            nonce: eventsRepeater ? eventsRepeater.dataset.nonce : ''
+        }, data ) );
+
+        return fetch( ajaxurl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body
+        } ).then( function ( r ) { return r.json(); } );
+    }
+
+    function buildGroupPill( group ) {
+        const pill = document.createElement( 'span' );
+        pill.className = 'rar-chip rar-chip--removable';
+        pill.dataset.group = group.join( ' ' );
+        pill.textContent = group.join( ' + ' ) + ' ';
+        const remove = document.createElement( 'button' );
+        remove.type = 'button';
+        remove.className = 'rar-remove-group';
+        remove.setAttribute( 'aria-label', 'Remove' );
+        remove.innerHTML = '&times;';
+        pill.appendChild( remove );
+        return pill;
+    }
+
+    function buildEventRow( eventName ) {
+        const row = document.createElement( 'div' );
+        row.className = 'rar-event-row';
+        row.dataset.eventName = eventName;
+
+        let fieldsHtml = '';
+        Object.keys( FIELD_NAME_LABELS ).forEach( function ( signal ) {
+            fieldsHtml +=
+                '<label class="rar-event-field rar-event-field--param">' + FIELD_NAME_LABELS[ signal ] + '<br>' +
+                '<input type="text" class="rar-field-input" data-field="' + signal + '" value="" placeholder="' + FIELD_PLACEHOLDERS[ signal ] + '" style="width:100%; font-family:monospace;"></label>';
+        } );
+
+        row.innerHTML =
+            '<div class="rar-event-row-header">' +
+            '<strong class="rar-event-name"></strong>' +
+            '<button type="button" class="button-link rar-remove-event">Remove this event</button>' +
+            '</div>' +
+            '<div class="rar-chip-row rar-tracked-groups"></div>' +
+            '<div class="rar-add-group-row">' +
+            '<input type="text" class="rar-add-group-input" placeholder="e.g. affi_btn or rl_wrap rl_drift">' +
+            '<button type="button" class="button rar-add-group-btn">Add</button>' +
+            '</div>' +
+            '<details class="rar-event-field-names"><summary>Custom parameter names (optional)</summary>' +
+            '<div class="rar-event-row-fields">' + fieldsHtml + '</div>' +
+            '<p><button type="button" class="button rar-save-fields-btn">Save parameter names</button> <span class="rar-save-status"></span></p>' +
+            '<p class="description">The custom_data field name(s) this event sends to Meta &mdash; matches how a GA4 event tag in GTM lets you name each parameter. Leave any blank to use the default shown as its placeholder; &quot;Page/Referrer URL&quot; is not sent at all unless named (it\'s already sent separately as a required standard field either way).</p>' +
+            '</details>';
+
+        row.querySelector( '.rar-event-name' ).textContent = eventName;
+        return row;
+    }
+
+    function showNewEventForm() {
+        if ( eventsRepeater.querySelector( '.rar-new-event-form' ) ) {
+            return;
+        }
+        const form = document.createElement( 'div' );
+        form.className = 'rar-new-event-form';
+        form.innerHTML =
+            '<input type="text" class="rar-new-event-name" placeholder="e.g. NewsletterClick" style="font-family:monospace;">' +
+            '<button type="button" class="button button-primary rar-create-event-btn">Create event</button>' +
+            '<button type="button" class="button rar-cancel-new-event">Cancel</button>' +
+            '<span class="rar-save-status"></span>';
+        eventsRepeater.appendChild( form );
+        addEventBtn.style.display = 'none';
+        form.querySelector( '.rar-new-event-name' ).focus();
+    }
+
+    function hideNewEventForm() {
+        const form = eventsRepeater.querySelector( '.rar-new-event-form' );
+        if ( form ) form.remove();
+        addEventBtn.style.display = '';
+    }
+
+    function createEvent( form ) {
+        const input  = form.querySelector( '.rar-new-event-name' );
+        const status = form.querySelector( '.rar-save-status' );
+        const name   = input.value.trim();
+        if ( '' === name ) {
+            input.focus();
+            return;
+        }
+        status.textContent = 'Saving…';
+        rarEventsAjax( 'rar_create_tracked_event', { name: name } ).then( function ( res ) {
+            if ( ! res.success ) {
+                status.textContent = res.data && res.data.message ? res.data.message : 'Could not create event.';
+                return;
+            }
+            const row = buildEventRow( res.data.name );
+            eventsRepeater.insertBefore( row, form );
+            hideNewEventForm();
+        } ).catch( function () {
+            status.textContent = 'Could not create event — check your connection.';
+        } );
+    }
+
+    if ( eventsRepeater && addEventBtn ) {
+        addEventBtn.addEventListener( 'click', showNewEventForm );
+
+        eventsRepeater.addEventListener( 'keydown', function ( e ) {
+            if ( 'Enter' !== e.key ) return;
+            if ( e.target.classList.contains( 'rar-new-event-name' ) ) {
+                e.preventDefault();
+                createEvent( e.target.closest( '.rar-new-event-form' ) );
+            } else if ( e.target.classList.contains( 'rar-add-group-input' ) ) {
+                e.preventDefault();
+                e.target.nextElementSibling.click();
+            }
+        } );
+
+        eventsRepeater.addEventListener( 'click', function ( e ) {
+            const target = e.target;
+
+            if ( target.classList.contains( 'rar-create-event-btn' ) ) {
+                createEvent( target.closest( '.rar-new-event-form' ) );
+                return;
+            }
+
+            if ( target.classList.contains( 'rar-cancel-new-event' ) ) {
+                hideNewEventForm();
+                return;
+            }
+
+            const row       = target.closest( '.rar-event-row' );
+            const eventName = row ? row.dataset.eventName : '';
+
+            if ( target.classList.contains( 'rar-remove-event' ) ) {
+                if ( ! window.confirm( 'Remove the "' + eventName + '" event and all its tracked classes?' ) ) return;
+                rarEventsAjax( 'rar_delete_tracked_event', { event_name: eventName } ).then( function ( res ) {
+                    if ( res.success ) row.remove();
+                } );
+                return;
+            }
+
+            if ( target.classList.contains( 'rar-add-group-btn' ) ) {
+                const input = row.querySelector( '.rar-add-group-input' );
+                const value = input.value.trim();
+                if ( '' === value ) { input.focus(); return; }
+                rarEventsAjax( 'rar_add_tracked_group', { event_name: eventName, group: value } ).then( function ( res ) {
+                    if ( ! res.success ) {
+                        window.alert( res.data && res.data.message ? res.data.message : 'Could not add that class.' );
+                        return;
+                    }
+                    row.querySelector( '.rar-tracked-groups' ).appendChild( buildGroupPill( res.data.group ) );
+                    input.value = '';
+                } );
+                return;
+            }
+
+            if ( target.classList.contains( 'rar-remove-group' ) ) {
+                const pill = target.closest( '.rar-chip' );
+                rarEventsAjax( 'rar_remove_tracked_group', { event_name: eventName, group: pill.dataset.group } ).then( function ( res ) {
+                    if ( res.success ) pill.remove();
+                } );
+                return;
+            }
+
+            if ( target.classList.contains( 'rar-save-fields-btn' ) ) {
+                const status = row.querySelector( '.rar-save-status' );
+                const data   = { event_name: eventName };
+                row.querySelectorAll( '.rar-field-input' ).forEach( function ( input ) {
+                    data[ 'field_' + input.dataset.field ] = input.value.trim();
+                } );
+                status.textContent = 'Saving…';
+                rarEventsAjax( 'rar_save_tracked_event_fields', data ).then( function ( res ) {
+                    status.textContent = res.success ? 'Saved.' : ( res.data && res.data.message ? res.data.message : 'Could not save.' );
+                } ).catch( function () {
+                    status.textContent = 'Could not save — check your connection.';
+                } );
+            }
+        } );
     }
 
     // --- Moto Partner List Logic ---

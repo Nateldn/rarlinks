@@ -26,48 +26,39 @@ class Cogito_RAR_Settings_Conversions {
     }
 
     /**
-     * Renders one event's name + identifiers block, laid out inline
-     * (name, classes/IDs, and remove all on one row).
+     * Renders one event: its name (plain text — immutable once created,
+     * since Cogito_RAR_Tracked_Events_Ajax looks events up BY name),
+     * its tracked classes/IDs as removable pills plus an add-one input,
+     * and its custom parameter names. Every interaction here (add/remove
+     * a class, save parameter names, remove the whole event) is AJAX —
+     * see assets/js/cogito-rar-settings.js — so nothing here is a form
+     * field posted by the page's main Save Settings button.
      *
-     * Field names carry an EXPLICIT, matching index — "rar_conversions_
-     * events[$index][name]" and "[$index][identifiers]" — rather than
-     * empty "[]" brackets. Empty brackets look like they'd auto-pair a
-     * row's fields together, but PHP actually assigns each "[]" occurrence
-     * its OWN new top-level index regardless of which subkey follows, so
-     * a name input and identifiers textarea declared as two separate "[]"
-     * fields land in DIFFERENT array entries — never paired, and both
-     * missing their other half, so every row is silently dropped on save.
-     * An explicit shared index avoids this entirely. PHP doesn't need
-     * these indices to be sequential or even numeric — just unique per
-     * row and matching between a row's own name/identifiers pair — so a
-     * JS-added row can safely use something like Date.now().
-     *
-     * @param array      $event Raw stored entry: name, identifiers, and
-     *                          optional field_destination_url/field_link_text/
-     *                          field_link_classes/field_event_source_url.
-     * @param int|string $index
+     * @param array $event Raw stored entry: name, identifiers, and
+     *                     optional field_destination_url/field_link_text/
+     *                     field_link_classes/field_event_source_url.
      */
-    private static function render_event_row( array $event, $index ) {
-        $name            = $event['name'] ?? '';
-        $identifiers_raw = $event['identifiers'] ?? '';
-        $parsed          = '' !== trim( (string) $identifiers_raw ) ? Cogito_RAR_Conversion_Capture::parse_identifier_groups( $identifiers_raw ) : [];
-        $base            = 'rar_conversions_events[' . esc_attr( $index ) . ']';
+    private static function render_event_row( array $event ) {
+        $name   = $event['name'] ?? '';
+        $groups = '' !== trim( (string) ( $event['identifiers'] ?? '' ) ) ? Cogito_RAR_Conversion_Capture::parse_identifier_groups( $event['identifiers'] ) : [];
 
-        echo '<div class="rar-event-row">';
-        echo '<div class="rar-event-row-fields">';
-        echo '<label class="rar-event-field rar-event-field--name">Event name<br>';
-        echo '<input type="text" name="' . $base . '[name]" value="' . esc_attr( $name ) . '" placeholder="e.g. NewsletterClick" style="width:100%; font-family:monospace;"></label>';
-        echo '<label class="rar-event-field rar-event-field--identifiers">Tracked classes &amp; IDs<br>';
-        echo '<textarea name="' . $base . '[identifiers]" rows="2" style="width:100%; font-family:monospace;" placeholder="' . esc_attr( "affi_btn\nrl_wrap rl_drift" ) . '">' . esc_textarea( $identifiers_raw ) . '</textarea></label>';
-        echo '<button type="button" class="button-link rar-remove-event">Remove</button>';
+        echo '<div class="rar-event-row" data-event-name="' . esc_attr( $name ) . '">';
+
+        echo '<div class="rar-event-row-header">';
+        echo '<strong class="rar-event-name">' . esc_html( $name ) . '</strong>';
+        echo '<button type="button" class="button-link rar-remove-event">Remove this event</button>';
         echo '</div>';
-        if ( ! empty( $parsed ) ) {
-            echo '<div class="rar-chip-row">';
-            foreach ( $parsed as $group ) {
-                echo '<code class="rar-chip">' . esc_html( implode( ' + ', $group ) ) . '</code>';
-            }
-            echo '</div>';
+
+        echo '<div class="rar-chip-row rar-tracked-groups">';
+        foreach ( $groups as $group ) {
+            echo '<span class="rar-chip rar-chip--removable" data-group="' . esc_attr( implode( ' ', $group ) ) . '">' . esc_html( implode( ' + ', $group ) ) . ' <button type="button" class="rar-remove-group" aria-label="Remove">&times;</button></span>';
         }
+        echo '</div>';
+
+        echo '<div class="rar-add-group-row">';
+        echo '<input type="text" class="rar-add-group-input" placeholder="e.g. affi_btn or rl_wrap rl_drift">';
+        echo '<button type="button" class="button rar-add-group-btn">Add</button>';
+        echo '</div>';
 
         echo '<details class="rar-event-field-names"><summary>Custom parameter names (optional)</summary>';
         echo '<div class="rar-event-row-fields">';
@@ -75,9 +66,10 @@ class Cogito_RAR_Settings_Conversions {
             $label       = self::FIELD_NAME_LABELS[ $signal ] ?? $signal;
             $placeholder = '' !== $default ? $default : 'not sent unless named';
             echo '<label class="rar-event-field rar-event-field--param">' . esc_html( $label ) . '<br>';
-            echo '<input type="text" name="' . $base . '[field_' . esc_attr( $signal ) . ']" value="' . esc_attr( $event[ 'field_' . $signal ] ?? '' ) . '" placeholder="' . esc_attr( $placeholder ) . '" style="width:100%; font-family:monospace;"></label>';
+            echo '<input type="text" class="rar-field-input" data-field="' . esc_attr( $signal ) . '" value="' . esc_attr( $event[ 'field_' . $signal ] ?? '' ) . '" placeholder="' . esc_attr( $placeholder ) . '" style="width:100%; font-family:monospace;"></label>';
         }
         echo '</div>';
+        echo '<p><button type="button" class="button rar-save-fields-btn">Save parameter names</button> <span class="rar-save-status"></span></p>';
         echo '<p class="description">The custom_data field name(s) this event sends to Meta — matches how a GA4 event tag in GTM lets you name each parameter. Leave any blank to use the default shown as its placeholder; "Page/Referrer URL" is not sent at all unless named (it\'s already sent separately as a required standard field either way).</p>';
         echo '</details>';
 
@@ -111,44 +103,11 @@ class Cogito_RAR_Settings_Conversions {
         $hold = isset( $_POST['rar_conversions_hold_minutes'] ) ? absint( $_POST['rar_conversions_hold_minutes'] ) : 0;
         update_option( Cogito_RAR_Conversion_Capture::OPTION_HOLD_MINUTES, $hold );
 
-        // Self-service event list — add/remove/rename freely, no code
-        // change ever needed. Each entry keeps its raw textarea text
-        // (sanitised per-line, not per-textarea) so the form shows back
-        // exactly what was typed; get_event_definitions() does the real
-        // parsing on read. A row missing either a name or any identifiers
-        // is dropped rather than saved as a dead/unmatchable entry.
-        $events_posted = isset( $_POST['rar_conversions_events'] ) && is_array( $_POST['rar_conversions_events'] )
-            ? $_POST['rar_conversions_events']
-            : [];
-
-        $events = [];
-        foreach ( $events_posted as $entry ) {
-            $name        = Cogito_RAR_Conversion_Capture::sanitize_event_name( $entry['name'] ?? '' );
-            $identifiers = sanitize_textarea_field( wp_unslash( (string) ( $entry['identifiers'] ?? '' ) ) );
-
-            // Only drop a row that's COMPLETELY empty (an unused blank "add
-            // another event" row). A name typed in before its classes/IDs
-            // — or vice versa — is real in-progress work; dropping it on
-            // save just because it isn't finished yet would look like the
-            // row "disappeared" the moment you save mid-edit.
-            if ( '' === $name && '' === trim( $identifiers ) ) {
-                continue;
-            }
-
-            $saved = [ 'name' => $name, 'identifiers' => $identifiers ];
-            foreach ( array_keys( Cogito_RAR_Conversion_Capture::DEFAULT_FIELD_NAMES ) as $signal ) {
-                $override = trim( (string) ( $entry[ 'field_' . $signal ] ?? '' ) );
-                if ( '' !== $override ) {
-                    $saved[ 'field_' . $signal ] = Cogito_RAR_Conversion_Capture::sanitize_event_name( $override );
-                }
-            }
-            $events[] = $saved;
-
-            if ( count( $events ) >= Cogito_RAR_Conversion_Capture::MAX_EVENTS ) {
-                break;
-            }
-        }
-        update_option( Cogito_RAR_Conversion_Capture::OPTION_EVENT_DEFINITIONS, $events );
+        // Tracked events are no longer part of this form at all — every
+        // change to one (add/remove a class, rename... well, not rename,
+        // see Cogito_RAR_Tracked_Events_Ajax; add/remove a class, save
+        // parameter names, delete the event) saves itself immediately via
+        // AJAX, so there's nothing to read from $_POST for them here.
 
         $domains_raw = isset( $_POST['rar_conversions_raw_link_domains'] )
             ? sanitize_textarea_field( wp_unslash( $_POST['rar_conversions_raw_link_domains'] ) )
@@ -227,22 +186,6 @@ class Cogito_RAR_Settings_Conversions {
         echo '<p class="description">Kept at 0 by default — events go out automatically roughly every minute rather than waiting. Whenever a queued event is actually sent, it\'s re-checked against your current bot-detection data (not just the click-time snapshot) — a free safety net that needs no action from you. Raise this only if you want more of a buffer before that re-check happens.</p>';
         echo '</td></tr>';
 
-        echo '<tr><th scope="row">Tracked events</th><td>';
-        echo '<p class="description">Each event you define here is entirely self-service — add a new one, rename one, or remove one any time a landing page needs a new button/ad style tracked. No code change is ever needed.</p>';
-        echo '<div id="rar-events-repeater">';
-        if ( empty( $events_raw ) ) {
-            self::render_event_row( [], 0 );
-        } else {
-            foreach ( array_values( $events_raw ) as $index => $event ) {
-                self::render_event_row( $event, $index );
-            }
-        }
-        echo '</div>';
-        echo '<p><button type="button" class="button" id="rar-add-event">+ Add another event</button></p>';
-        echo '<p class="description">One class or ID per line, no CSS syntax — just the plain name. Put more than one on a line (space-separated) to require them all together. ';
-        echo 'First matching event wins. A RARLink click always counts as AffiliateClick regardless of this list. See the README for the full explanation.</p>';
-        echo '</td></tr>';
-
         echo '<tr><th scope="row">Allowed destination domains</th><td>';
         echo '<textarea name="rar_conversions_raw_link_domains" rows="4" style="width:100%; max-width:500px; font-family:monospace;" placeholder="' . esc_attr( "revzilla.com\nsaltflatsclothing.co.uk" ) . '">' . esc_textarea( $raw_link_domains ) . '</textarea>';
         echo '<p class="description">One domain per line (subdomains match automatically, e.g. <code>revzilla.com</code> also allows <code>imp.revzilla.com</code>). ';
@@ -287,6 +230,17 @@ class Cogito_RAR_Settings_Conversions {
         wp_nonce_field( 'rar_conversions_flush', 'rar_conversions_flush_nonce' );
         submit_button( 'Flush Now', 'secondary', 'submit', false );
         echo '</form>';
+        echo '</div>'; // .rar-card
+
+        echo '<div class="rar-card">';
+        echo '<h4>Tracked events</h4>';
+        echo '<p class="description">Each event fires when a click matches one of its tracked classes/IDs below. AffiliateClick is used for any RARLink click that doesn\'t match anything more specific. See the plugin README for how chaining and match order work.</p>';
+        echo '<div id="rar-events-repeater" data-nonce="' . esc_attr( wp_create_nonce( Cogito_RAR_Tracked_Events_Ajax::NONCE_ACTION ) ) . '">';
+        foreach ( $events_raw as $event ) {
+            self::render_event_row( $event );
+        }
+        echo '</div>';
+        echo '<p><button type="button" class="button" id="rar-add-event">+ Add another event</button></p>';
         echo '</div>'; // .rar-card
 
         $recent = class_exists( 'Cogito_RAR_Conversion_Queue' ) ? Cogito_RAR_Conversion_Queue::get_recent( 20 ) : [];

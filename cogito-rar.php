@@ -135,6 +135,9 @@ add_action( 'admin_init', [ 'Cogito_RAR_Conversion_Queue', 'maybe_upgrade' ] );
 require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-settings-conversions.php';
 Cogito_RAR_Settings_Conversions::init();
 
+require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-tracked-events-ajax.php';
+Cogito_RAR_Tracked_Events_Ajax::init();
+
 // We can now optionally remove traffic-filter if no longer needed, but keeping it commented out for safety or reference if you prefer.
 // require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-dashboard-traffic-filter.php'; 
 
