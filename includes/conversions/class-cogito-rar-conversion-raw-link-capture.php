@@ -41,10 +41,12 @@ class Cogito_RAR_Conversion_Raw_Link_Capture {
         add_action( 'rest_api_init', [ self::class, 'register_route' ] );
         add_action( 'wp_enqueue_scripts', [ self::class, 'enqueue' ] );
 
-        // Same sendBeacon/cookie-nonce and JS-delay considerations as the
-        // click-context listener (see that class for the full reasoning) —
-        // this listener equally has to be attached before the first click.
-        add_filter( 'rest_authentication_errors', [ self::class, 'bypass_cookie_nonce_for_route' ], 101 );
+        // Same sendBeacon/auth-bypass and JS-delay considerations as the
+        // click-context listener (see that class for the full reasoning,
+        // including why this isn't scoped to one specific error code, and
+        // why it runs at PHP_INT_MAX) — this listener equally has to be
+        // attached before the first click.
+        add_filter( 'rest_authentication_errors', [ self::class, 'bypass_cookie_nonce_for_route' ], PHP_INT_MAX );
         add_filter( 'rocket_delay_js_exclusions', [ self::class, 'exclude_from_wp_rocket_delay' ] );
         add_filter( 'rocket_exclude_defer_js', [ self::class, 'exclude_from_wp_rocket_delay' ] );
         add_filter( 'script_loader_tag', [ self::class, 'tag_as_unoptimized' ], 10, 2 );
@@ -62,8 +64,14 @@ class Cogito_RAR_Conversion_Raw_Link_Capture {
         return str_replace( ' src=', ' data-no-optimize="1" data-cfasync="false" data-no-defer="1" data-no-delay="1" src=', $tag );
     }
 
+    /**
+     * See the equivalent method in class-cogito-rar-conversion-click-context.php
+     * for the full reasoning: not scoped to one error code, since a
+     * "rest_authentication_error" from something other than core's own
+     * cookie-nonce check has been confirmed live blocking this too.
+     */
     public static function bypass_cookie_nonce_for_route( $result ) {
-        if ( ! is_wp_error( $result ) || 'rest_cookie_invalid_nonce' !== $result->get_error_code() ) {
+        if ( ! is_wp_error( $result ) ) {
             return $result;
         }
 

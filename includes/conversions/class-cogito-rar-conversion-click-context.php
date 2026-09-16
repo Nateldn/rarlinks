@@ -41,15 +41,17 @@ class Cogito_RAR_Conversion_Click_Context {
         // navigator.sendBeacon() cannot send custom headers, so it can
         // never carry the X-WP-Nonce WordPress's core REST auth demands
         // from any request that happens to carry valid login cookies —
-        // which every request from an already-logged-in browser does,
-        // regardless of this endpoint's own permission_callback. Without
-        // this, the beacon gets a silent 403 from ANY logged-in browser
-        // (exactly what was happening while testing as an admin), while
-        // a real logged-out visitor was never affected in the first
-        // place. Priority 101 to run after core's own check (100) and
-        // override its verdict, only for this one public, non-sensitive,
-        // non-destructive route.
-        add_filter( 'rest_authentication_errors', [ self::class, 'bypass_cookie_nonce_for_route' ], 101 );
+        // regardless of this endpoint's own permission_callback. On top
+        // of that, some OTHER filter on this same hook (confirmed live:
+        // a "rest_authentication_error" — a different error code than
+        // core's own "rest_cookie_invalid_nonce" — most likely from a
+        // security/hardening plugin blocking anonymous REST access
+        // broadly) can independently reject the request too. Force-allow
+        // regardless of error code, and run at the very last priority, so
+        // this is the final word for this one public, non-sensitive,
+        // non-destructive route — whatever else runs on this hook, ours
+        // wins for this specific route.
+        add_filter( 'rest_authentication_errors', [ self::class, 'bypass_cookie_nonce_for_route' ], PHP_INT_MAX );
 
         // This listener has to be attached before the FIRST click on the
         // page, not deferred until "user interaction" — which is exactly
@@ -79,12 +81,20 @@ class Cogito_RAR_Conversion_Click_Context {
     }
 
     /**
-     * Clears WordPress core's "logged in but no nonce" REST error, but
-     * only for this specific route — every other endpoint keeps the
-     * normal protection.
+     * Clears ANY REST authentication error for this specific route only —
+     * every other endpoint keeps whatever protection core/other plugins
+     * already apply. Deliberately not restricted to one error code:
+     * confirmed live that at least two different sources reject an
+     * anonymous POST here (core's "rest_cookie_invalid_nonce" when a login
+     * cookie is present with no nonce, and a separately-sourced
+     * "rest_authentication_error" blocking anonymous REST access
+     * outright) — this route's own real security (nonce in the body,
+     * origin/referer check, rate limiting) already runs inside
+     * handle_request() regardless, so bypassing this generic layer here
+     * doesn't weaken anything.
      */
     public static function bypass_cookie_nonce_for_route( $result ) {
-        if ( ! is_wp_error( $result ) || 'rest_cookie_invalid_nonce' !== $result->get_error_code() ) {
+        if ( ! is_wp_error( $result ) ) {
             return $result;
         }
 
