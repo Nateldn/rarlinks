@@ -200,6 +200,28 @@ class Cogito_RAR_Conversion_Queue {
     }
 
     /**
+     * Corrects a row's stored event_name once dispatch-time enrichment
+     * (Cogito_RAR_Conversion_Click_Context::enrich()) resolves it to
+     * something other than the AffiliateClick default it was queued
+     * under — otherwise the admin UI's own "Event" column would always
+     * show AffiliateClick even for a click actually sent to the provider
+     * as AdvertisementClick (or any other matched event).
+     *
+     * @param int    $id
+     * @param string $event_name
+     */
+    public static function update_event_name( $id, $event_name ) {
+        global $wpdb;
+        $wpdb->update(
+            self::table_name(),
+            [ 'event_name' => sanitize_text_field( $event_name ) ],
+            [ 'id' => (int) $id ],
+            [ '%s' ],
+            [ '%d' ]
+        );
+    }
+
+    /**
      * Records a failed attempt. After MAX_ATTEMPTS the row stops retrying
      * (permanently_failed) so one bad event can't loop forever or block
      * newer ones behind it — mirrors the same reasoning as the historical

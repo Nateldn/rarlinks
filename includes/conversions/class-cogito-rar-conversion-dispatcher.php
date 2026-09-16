@@ -126,6 +126,18 @@ class Cogito_RAR_Conversion_Dispatcher {
                 }
             }
 
+            // enrich() may have just resolved this click to a different
+            // event than the AffiliateClick default it was queued under
+            // (e.g. AdvertisementClick, once its beacon's classes arrived)
+            // — persist that back to the row now so the admin UI's Event
+            // column reflects what's actually about to be sent, not just
+            // the enqueue-time guess.
+            $resolved_name = $signals['event_name'] ?? $row->event_name;
+            if ( $resolved_name !== $row->event_name ) {
+                Cogito_RAR_Conversion_Queue::update_event_name( $row->id, $resolved_name );
+                $row->event_name = $resolved_name;
+            }
+
             if ( (int) ( $signals['click_time'] ?? 0 ) < $stale_cutoff ) {
                 // Too old for the provider's event-time window — give up
                 // rather than let one ancient row block newer ones forever.

@@ -254,14 +254,24 @@ class Cogito_RAR_Settings_Conversions {
             echo '<div class="rar-card">';
             echo '<h4>Recent events</h4>';
             echo '<table class="widefat striped"><thead><tr>';
-            echo '<th>ID</th><th>Provider</th><th>Event</th><th>Status</th><th>Created</th><th>Error</th>';
+            echo '<th>ID</th><th>Provider</th><th>Event</th><th>Source</th><th>Link text</th><th>Classes</th><th>Destination</th><th>Status</th><th>Created</th><th>Error</th>';
             echo '</tr></thead><tbody>';
             foreach ( $recent as $row ) {
-                $tone = $badge_tone[ $row->status ] ?? 'neutral';
+                $tone    = $badge_tone[ $row->status ] ?? 'neutral';
+                $signals = json_decode( (string) $row->signals, true );
+                $signals = is_array( $signals ) ? $signals : [];
+
+                $destination = (string) ( $signals['destination_url'] ?? '' );
+                $dest_host   = $destination ? wp_parse_url( $destination, PHP_URL_HOST ) : '';
+
                 echo '<tr>';
                 echo '<td>' . esc_html( $row->id ) . '</td>';
                 echo '<td>' . esc_html( $row->provider ) . '</td>';
                 echo '<td>' . esc_html( $row->event_name ) . '</td>';
+                echo '<td>' . esc_html( $row->source ) . '</td>';
+                echo '<td>' . esc_html( mb_strimwidth( (string) ( $signals['link_text'] ?? '' ), 0, 40, '…' ) ) . '</td>';
+                echo '<td><code>' . esc_html( $signals['link_classes'] ?? '' ) . '</code></td>';
+                echo '<td>' . ( $destination ? '<a href="' . esc_url( $destination ) . '" target="_blank" rel="noopener noreferrer" title="' . esc_attr( $destination ) . '">' . esc_html( $dest_host ) . '</a>' : '' ) . '</td>';
                 echo '<td><span class="rar-badge rar-badge--' . esc_attr( $tone ) . '">' . esc_html( $row->status ) . '</span></td>';
                 echo '<td>' . esc_html( cogito_rar_localise_utc_timestamp( $row->created_at ) ) . '</td>';
                 echo '<td>' . esc_html( $row->last_error ) . '</td>';
