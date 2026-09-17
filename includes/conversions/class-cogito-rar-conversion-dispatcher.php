@@ -105,8 +105,9 @@ class Cogito_RAR_Conversion_Dispatcher {
         $stale_cutoff = time() - ( self::STALE_DAYS * DAY_IN_SECONDS );
 
         foreach ( $rows as $row ) {
-            $signals = json_decode( (string) $row->signals, true );
-            $signals = is_array( $signals ) ? $signals : [];
+            $signals          = json_decode( (string) $row->signals, true );
+            $signals          = is_array( $signals ) ? $signals : [];
+            $signals_at_queue = $signals;
 
             if ( class_exists( 'Cogito_RAR_Conversion_Click_Context' ) ) {
                 // Fills in link_text/link_classes from the click listener's
@@ -126,16 +127,18 @@ class Cogito_RAR_Conversion_Dispatcher {
                 }
             }
 
-            // enrich() may have just resolved this click to a different
-            // event than the AffiliateClick default it was queued under
-            // (e.g. AdvertisementClick, once its beacon's classes arrived)
-            // — persist that back to the row now so the admin UI's Event
-            // column reflects what's actually about to be sent, not just
-            // the enqueue-time guess.
-            $resolved_name = $signals['event_name'] ?? $row->event_name;
-            if ( $resolved_name !== $row->event_name ) {
-                Cogito_RAR_Conversion_Queue::update_event_name( $row->id, $resolved_name );
-                $row->event_name = $resolved_name;
+            // enrich() may have just filled in link_text/link_classes and/or
+            // resolved this click to a different event than the
+            // AffiliateClick default it was queued under (e.g.
+            // AdvertisementClick) — persist the enriched signals AND the
+            // resolved event name back to the row now, so the admin UI
+            // reflects what's actually about to be sent rather than the
+            // enqueue-time snapshot (which never sees the beacon's data,
+            // since enrich() only ever ran against an in-memory copy before
+            // this point).
+            if ( $signals !== $signals_at_queue ) {
+                Cogito_RAR_Conversion_Queue::update_signals( $row->id, $signals );
+                $row->event_name = $signals['event_name'] ?? $row->event_name;
             }
 
             if ( (int) ( $signals['click_time'] ?? 0 ) < $stale_cutoff ) {
