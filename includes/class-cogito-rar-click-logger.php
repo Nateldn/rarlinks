@@ -443,21 +443,37 @@ class Cogito_RAR_Click_Logger {
 				$bot_or_not = 2;
 				$bot_name   = 'No referrer or cookie';
 			} elseif ( $ref_norm === $home_norm && '' !== $ref_norm ) {
-				// Bare homepage referrer: only legitimate when this link was a
-				// LIVE homepage native ad on the click's date. Archived/former
-				// partners (and never-partners) producing a homepage referrer
-				// are spoofed/replayed. The period model honours history, so a
-				// re-scanned click from when the ad WAS live still passes.
-				$was_live_partner = class_exists( 'Cogito_RAR_Moto_Partner' )
-					? Cogito_RAR_Moto_Partner::was_live_on( $post_id, $click_date )
-					: ( get_post_meta( $post_id, '_rar_moto_partner', true ) === '1' );
-
-				if ( $was_live_partner ) {
-					$bot_or_not = 0; // Genuine homepage native ad click
+				if ( $had_cookie ) {
+					// A returning visitor's site cookie already proves this
+					// isn't a cold direct hit — no need to restrict a bare
+					// homepage referrer to Moto Partner ads specifically.
+					// Sidebar/in-content ad widgets (rench_ad_widget,
+					// rench_ad_container) render on the homepage too, not
+					// just the Moto Partners module, and a returning
+					// visitor clicking any of them from there is normal.
+					$bot_or_not = 0;
 					$bot_name   = '';
 				} else {
-					$bot_or_not = 1;
-					$bot_name   = 'Homepage referrer (non-partner)';
+					// No cookie yet (a cold, first-ever hit): only the Moto
+					// Partners module has an established history of genuine
+					// first-visit homepage clicks (ads/social linking
+					// straight to a card someone clicks immediately). The
+					// period model honours history, so a re-scanned click
+					// from when the ad WAS live still passes. Anything else
+					// this defensive, without a cookie, stays flagged —
+					// archived/former partners (and never-partners)
+					// producing a homepage referrer are spoofed/replayed.
+					$was_live_partner = class_exists( 'Cogito_RAR_Moto_Partner' )
+						? Cogito_RAR_Moto_Partner::was_live_on( $post_id, $click_date )
+						: ( get_post_meta( $post_id, '_rar_moto_partner', true ) === '1' );
+
+					if ( $was_live_partner ) {
+						$bot_or_not = 0; // Genuine homepage native ad click
+						$bot_name   = '';
+					} else {
+						$bot_or_not = 1;
+						$bot_name   = 'Homepage referrer (non-partner, no cookie)';
+					}
 				}
 			} elseif ( '' !== $ref_norm && strpos( $ref_norm, $home_norm . '/' ) === 0 && $had_cookie ) {
 				// Referred from a site page AND carrying the site cookie
