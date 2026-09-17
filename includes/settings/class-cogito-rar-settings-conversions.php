@@ -54,8 +54,9 @@ class Cogito_RAR_Settings_Conversions {
      *                     field_link_classes/field_event_source_url.
      */
     private static function render_event_row( array $event ) {
-        $name   = $event['name'] ?? '';
-        $groups = '' !== trim( (string) ( $event['identifiers'] ?? '' ) ) ? Cogito_RAR_Conversion_Capture::parse_identifier_groups( $event['identifiers'] ) : [];
+        $name        = $event['name'] ?? '';
+        $groups      = '' !== trim( (string) ( $event['identifiers'] ?? '' ) ) ? Cogito_RAR_Conversion_Capture::parse_identifier_groups( $event['identifiers'] ) : [];
+        $group_notes = is_array( $event['group_notes'] ?? null ) ? $event['group_notes'] : [];
 
         echo '<div class="rar-event-row" data-event-name="' . esc_attr( $name ) . '">';
 
@@ -66,17 +67,17 @@ class Cogito_RAR_Settings_Conversions {
 
         echo '<div class="rar-chip-row rar-tracked-groups">';
         foreach ( $groups as $group ) {
-            echo '<span class="rar-chip rar-chip--removable" data-group="' . esc_attr( implode( ' ', $group ) ) . '">' . esc_html( implode( ' + ', $group ) ) . ' <button type="button" class="rar-remove-group" aria-label="Remove">&times;</button></span>';
+            $signature = implode( ' ', $group );
+            $note      = $group_notes[ $signature ] ?? '';
+            echo '<span class="rar-chip rar-chip--removable" data-group="' . esc_attr( $signature ) . '"' . ( $note ? ' title="' . esc_attr( $note ) . '"' : '' ) . '>' . esc_html( implode( ' + ', $group ) ) . ' <button type="button" class="rar-remove-group" aria-label="Remove">&times;</button></span>';
         }
         echo '</div>';
 
         echo '<div class="rar-add-group-row">';
         echo '<input type="text" class="rar-add-group-input" placeholder="e.g. affi_btn or rl_wrap rl_drift">';
+        echo '<input type="text" class="rar-add-group-tooltip" placeholder="Tooltip, e.g. Native ad card">';
         echo '<button type="button" class="button rar-add-group-btn">Add</button>';
         echo '</div>';
-
-        echo '<label class="rar-event-notes-label">Notes<br>';
-        echo '<textarea class="rar-notes-textarea" rows="2" style="width:100%;" placeholder="e.g. which page/placement this covers, why these classes were chosen…">' . esc_textarea( $event['notes'] ?? '' ) . '</textarea></label>';
 
         echo '<details class="rar-event-field-names"><summary>Custom parameter names (optional)</summary>';
         echo '<div class="rar-event-row-fields">';
@@ -89,6 +90,10 @@ class Cogito_RAR_Settings_Conversions {
         echo '</div>';
         echo '<p class="description">The custom_data field name(s) this event sends to Meta — matches how a GA4 event tag in GTM lets you name each parameter. Leave any blank to use the default shown as its placeholder; "Page/Referrer URL" is not sent at all unless named (it\'s already sent separately as a required standard field either way).</p>';
         echo '</details>';
+
+        echo '<label class="rar-event-notes-label">Notes<br>';
+        echo '<textarea class="rar-notes-textarea" rows="2" style="width:100%;">' . esc_textarea( $event['notes'] ?? '' ) . '</textarea></label>';
+
         echo '<p><button type="button" class="button rar-save-fields-btn">Save</button> <span class="rar-save-status"></span></p>';
 
         echo '</div>';

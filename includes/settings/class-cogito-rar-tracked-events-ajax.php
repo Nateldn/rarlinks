@@ -99,6 +99,12 @@ class Cogito_RAR_Tracked_Events_Ajax {
 
         $event_name = self::posted_event_name();
         $group_raw  = isset( $_POST['group'] ) ? sanitize_text_field( wp_unslash( $_POST['group'] ) ) : '';
+        // The same class often covers several visually-distinct ad units
+        // deliberately given non-descriptive HTML classes (so scrapers/bot
+        // clickers can't target them by name) — this note is how Nate
+        // tells them apart again, shown as a tooltip wherever the class
+        // itself is displayed.
+        $note       = isset( $_POST['note'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['note'] ) ) ) : '';
 
         $events = self::load_events();
         $index  = self::find_event_index( $events, $event_name );
@@ -113,15 +119,21 @@ class Cogito_RAR_Tracked_Events_Ajax {
             wp_send_json_error( [ 'message' => 'Enter a class name or ID first.' ], 400 );
         }
         $new_group = $groups[0];
+        $signature = implode( ' ', $new_group );
 
         $existing_raw = rtrim( (string) ( $events[ $index ]['identifiers'] ?? '' ), "\r\n" );
-        $events[ $index ]['identifiers'] = ( '' === $existing_raw ? '' : $existing_raw . "\n" ) . implode( ' ', $new_group );
+        $events[ $index ]['identifiers'] = ( '' === $existing_raw ? '' : $existing_raw . "\n" ) . $signature;
+
+        if ( '' !== $note ) {
+            $events[ $index ]['group_notes'][ $signature ] = $note;
+        }
 
         self::save_events( $events );
 
         wp_send_json_success( [
             'group' => $new_group,
             'label' => implode( ' + ', $new_group ),
+            'note'  => $note,
         ] );
     }
 
@@ -150,6 +162,11 @@ class Cogito_RAR_Tracked_Events_Ajax {
         $events[ $index ]['identifiers'] = implode( "\n", array_map( function ( $group ) {
             return implode( ' ', $group );
         }, $filtered ) );
+
+        // Drop its tooltip note too, if it had one — otherwise it'd sit
+        // orphaned in group_notes and could resurface if the exact same
+        // class string is ever re-added.
+        unset( $events[ $index ]['group_notes'][ $group_match ] );
 
         self::save_events( $events );
 

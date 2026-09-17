@@ -760,6 +760,9 @@ body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
     flex: 0 1 240px;
     font-family: Consolas, Monaco, monospace;
 }
+.rar-add-group-tooltip {
+    flex: 0 1 200px;
+}
 .rar-event-notes-label {
     display: block;
     font-size: 0.9em;

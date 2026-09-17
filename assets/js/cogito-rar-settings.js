@@ -37,10 +37,11 @@ document.addEventListener('DOMContentLoaded', function () {
         } ).then( function ( r ) { return r.json(); } );
     }
 
-    function buildGroupPill( group ) {
+    function buildGroupPill( group, note ) {
         const pill = document.createElement( 'span' );
         pill.className = 'rar-chip rar-chip--removable';
         pill.dataset.group = group.join( ' ' );
+        if ( note ) pill.title = note;
         pill.textContent = group.join( ' + ' ) + ' ';
         const remove = document.createElement( 'button' );
         remove.type = 'button';
@@ -71,14 +72,15 @@ document.addEventListener('DOMContentLoaded', function () {
             '<div class="rar-chip-row rar-tracked-groups"></div>' +
             '<div class="rar-add-group-row">' +
             '<input type="text" class="rar-add-group-input" placeholder="e.g. affi_btn or rl_wrap rl_drift">' +
+            '<input type="text" class="rar-add-group-tooltip" placeholder="Tooltip, e.g. Native ad card">' +
             '<button type="button" class="button rar-add-group-btn">Add</button>' +
             '</div>' +
-            '<label class="rar-event-notes-label">Notes<br>' +
-            '<textarea class="rar-notes-textarea" rows="2" style="width:100%;" placeholder="e.g. which page/placement this covers, why these classes were chosen…"></textarea></label>' +
             '<details class="rar-event-field-names"><summary>Custom parameter names (optional)</summary>' +
             '<div class="rar-event-row-fields">' + fieldsHtml + '</div>' +
             '<p class="description">The custom_data field name(s) this event sends to Meta &mdash; matches how a GA4 event tag in GTM lets you name each parameter. Leave any blank to use the default shown as its placeholder; &quot;Page/Referrer URL&quot; is not sent at all unless named (it\'s already sent separately as a required standard field either way).</p>' +
             '</details>' +
+            '<label class="rar-event-notes-label">Notes<br>' +
+            '<textarea class="rar-notes-textarea" rows="2" style="width:100%;"></textarea></label>' +
             '<p><button type="button" class="button rar-save-fields-btn">Save</button> <span class="rar-save-status"></span></p>';
 
         row.querySelector( '.rar-event-name' ).textContent = eventName;
@@ -137,9 +139,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if ( e.target.classList.contains( 'rar-new-event-name' ) ) {
                 e.preventDefault();
                 createEvent( e.target.closest( '.rar-new-event-form' ) );
-            } else if ( e.target.classList.contains( 'rar-add-group-input' ) ) {
+            } else if ( e.target.classList.contains( 'rar-add-group-input' ) || e.target.classList.contains( 'rar-add-group-tooltip' ) ) {
                 e.preventDefault();
-                e.target.nextElementSibling.click();
+                e.target.closest( '.rar-add-group-row' ).querySelector( '.rar-add-group-btn' ).click();
             }
         } );
 
@@ -168,16 +170,18 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             if ( target.classList.contains( 'rar-add-group-btn' ) ) {
-                const input = row.querySelector( '.rar-add-group-input' );
-                const value = input.value.trim();
+                const input       = row.querySelector( '.rar-add-group-input' );
+                const tooltipInput = row.querySelector( '.rar-add-group-tooltip' );
+                const value       = input.value.trim();
                 if ( '' === value ) { input.focus(); return; }
-                rarEventsAjax( 'rar_add_tracked_group', { event_name: eventName, group: value } ).then( function ( res ) {
+                rarEventsAjax( 'rar_add_tracked_group', { event_name: eventName, group: value, note: tooltipInput.value.trim() } ).then( function ( res ) {
                     if ( ! res.success ) {
                         window.alert( res.data && res.data.message ? res.data.message : 'Could not add that class.' );
                         return;
                     }
-                    row.querySelector( '.rar-tracked-groups' ).appendChild( buildGroupPill( res.data.group ) );
+                    row.querySelector( '.rar-tracked-groups' ).appendChild( buildGroupPill( res.data.group, res.data.note ) );
                     input.value = '';
+                    tooltipInput.value = '';
                 } );
                 return;
             }
