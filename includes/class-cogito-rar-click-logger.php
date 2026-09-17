@@ -443,37 +443,36 @@ class Cogito_RAR_Click_Logger {
 				$bot_or_not = 2;
 				$bot_name   = 'No referrer or cookie';
 			} elseif ( $ref_norm === $home_norm && '' !== $ref_norm ) {
+				// A bare homepage referrer used to be trusted only for Moto
+				// Partner listings, on the assumption that no other ad
+				// appeared on the homepage — that assumption no longer
+				// holds now that RenchAds (a separate plugin, built after
+				// this rule) places sidebar banners and an in-feed ad grid
+				// there too. Treat it exactly like any other site-page
+				// referrer instead of singling it out as suspicious.
 				if ( $had_cookie ) {
 					// A returning visitor's site cookie already proves this
-					// isn't a cold direct hit — no need to restrict a bare
-					// homepage referrer to Moto Partner ads specifically.
-					// Sidebar/in-content ad widgets (rench_ad_widget,
-					// rench_ad_container) render on the homepage too, not
-					// just the Moto Partners module, and a returning
-					// visitor clicking any of them from there is normal.
+					// isn't a cold direct hit.
 					$bot_or_not = 0;
 					$bot_name   = '';
 				} else {
-					// No cookie yet (a cold, first-ever hit): only the Moto
-					// Partners module has an established history of genuine
-					// first-visit homepage clicks (ads/social linking
-					// straight to a card someone clicks immediately). The
-					// period model honours history, so a re-scanned click
-					// from when the ad WAS live still passes. Anything else
-					// this defensive, without a cookie, stays flagged —
-					// archived/former partners (and never-partners)
-					// producing a homepage referrer are spoofed/replayed.
 					$was_live_partner = class_exists( 'Cogito_RAR_Moto_Partner' )
 						? Cogito_RAR_Moto_Partner::was_live_on( $post_id, $click_date )
 						: ( get_post_meta( $post_id, '_rar_moto_partner', true ) === '1' );
 
 					if ( $was_live_partner ) {
-						$bot_or_not = 0; // Genuine homepage native ad click
+						// Known-legitimate case fast-tracked straight to
+						// human, same as always — no need to wait on the
+						// org checks below for this one.
+						$bot_or_not = 0;
 						$bot_name   = '';
-					} else {
-						$bot_or_not = 1;
-						$bot_name   = 'Homepage referrer (non-partner, no cookie)';
 					}
+					// No cookie AND not a Moto Partner click: left as
+					// Unknown (2) here, falling through to the org checks
+					// below — the same treatment a first-time visitor
+					// lands with on any other page of the site. A bare
+					// homepage referrer, on its own, is no longer evidence
+					// of spoofing.
 				}
 			} elseif ( '' !== $ref_norm && strpos( $ref_norm, $home_norm . '/' ) === 0 && $had_cookie ) {
 				// Referred from a site page AND carrying the site cookie
