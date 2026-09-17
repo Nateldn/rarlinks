@@ -99,6 +99,56 @@ class Cogito_RAR_Settings_Conversions {
         echo '</div>';
     }
 
+    /**
+     * The tooltip note for whichever tracked group matches this row's own
+     * link_classes, if any. Deliberately only checks the anchor's own
+     * class (not the fuller ancestor list used to decide the event in the
+     * first place) — that's all this row's stored signals actually keep,
+     * and it's enough since a note is only useful when the class it
+     * explains is one Nate can already see in this same cell.
+     *
+     * @param string $event_name
+     * @param string $link_classes Space-separated, as stored on the row.
+     * @return string Empty if no tracked group (with a note) matches.
+     */
+    private static function note_for_link_classes( $event_name, $link_classes ) {
+        $tokens = array_filter( preg_split( '/\s+/', trim( (string) $link_classes ) ) );
+        if ( empty( $tokens ) ) {
+            return '';
+        }
+        $tokens = array_flip( $tokens );
+
+        foreach ( Cogito_RAR_Conversion_Capture::get_event_definitions_raw() as $event ) {
+            if ( Cogito_RAR_Conversion_Capture::sanitize_event_name( $event['name'] ?? '' ) !== $event_name ) {
+                continue;
+            }
+
+            $group_notes = is_array( $event['group_notes'] ?? null ) ? $event['group_notes'] : [];
+            if ( empty( $group_notes ) ) {
+                return '';
+            }
+
+            $groups = Cogito_RAR_Conversion_Capture::parse_identifier_groups( (string) ( $event['identifiers'] ?? '' ) );
+            foreach ( $groups as $group ) {
+                $all_found = true;
+                foreach ( $group as $token ) {
+                    if ( ! isset( $tokens[ $token ] ) ) {
+                        $all_found = false;
+                        break;
+                    }
+                }
+                if ( $all_found ) {
+                    $signature = implode( ' ', $group );
+                    if ( ! empty( $group_notes[ $signature ] ) ) {
+                        return $group_notes[ $signature ];
+                    }
+                }
+            }
+        }
+
+        return '';
+    }
+
     /** Human-readable labels for the DEFAULT_FIELD_NAMES signal keys. */
     const FIELD_NAME_LABELS = [
         'destination_url'  => 'Destination URL',
@@ -291,7 +341,9 @@ class Cogito_RAR_Settings_Conversions {
                 $signals = json_decode( (string) $row->signals, true );
                 $signals = is_array( $signals ) ? $signals : [];
 
-                $destination = (string) ( $signals['destination_url'] ?? '' );
+                $destination  = (string) ( $signals['destination_url'] ?? '' );
+                $link_classes = (string) ( $signals['link_classes'] ?? '' );
+                $classes_note = self::note_for_link_classes( $row->event_name, $link_classes );
 
                 echo '<tr>';
                 echo '<td>' . esc_html( $row->id ) . '</td>';
@@ -299,7 +351,7 @@ class Cogito_RAR_Settings_Conversions {
                 echo '<td>' . esc_html( $row->event_name ) . '</td>';
                 echo '<td>' . esc_html( $row->source ) . '</td>';
                 echo '<td>' . esc_html( mb_strimwidth( (string) ( $signals['link_text'] ?? '' ), 0, 40, '…' ) ) . '</td>';
-                echo '<td><code>' . esc_html( $signals['link_classes'] ?? '' ) . '</code></td>';
+                echo '<td><code' . ( $classes_note ? ' title="' . esc_attr( $classes_note ) . '"' : '' ) . '>' . esc_html( $link_classes ) . '</code></td>';
                 echo '<td class="rar-destination-cell">' . ( $destination ? '<a href="' . esc_url( $destination ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $destination ) . '</a>' : '' ) . '</td>';
                 echo '<td><span class="rar-badge rar-badge--' . esc_attr( $tone ) . '">' . esc_html( $row->status ) . '</span></td>';
                 echo '<td>' . esc_html( cogito_rar_localise_utc_timestamp( $row->created_at ) ) . '</td>';
