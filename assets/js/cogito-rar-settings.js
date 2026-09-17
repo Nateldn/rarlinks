@@ -73,11 +73,13 @@ document.addEventListener('DOMContentLoaded', function () {
             '<input type="text" class="rar-add-group-input" placeholder="e.g. affi_btn or rl_wrap rl_drift">' +
             '<button type="button" class="button rar-add-group-btn">Add</button>' +
             '</div>' +
+            '<label class="rar-event-notes-label">Notes<br>' +
+            '<textarea class="rar-notes-textarea" rows="2" style="width:100%;" placeholder="e.g. which page/placement this covers, why these classes were chosen…"></textarea></label>' +
             '<details class="rar-event-field-names"><summary>Custom parameter names (optional)</summary>' +
             '<div class="rar-event-row-fields">' + fieldsHtml + '</div>' +
-            '<p><button type="button" class="button rar-save-fields-btn">Save parameter names</button> <span class="rar-save-status"></span></p>' +
             '<p class="description">The custom_data field name(s) this event sends to Meta &mdash; matches how a GA4 event tag in GTM lets you name each parameter. Leave any blank to use the default shown as its placeholder; &quot;Page/Referrer URL&quot; is not sent at all unless named (it\'s already sent separately as a required standard field either way).</p>' +
-            '</details>';
+            '</details>' +
+            '<p><button type="button" class="button rar-save-fields-btn">Save</button> <span class="rar-save-status"></span></p>';
 
         row.querySelector( '.rar-event-name' ).textContent = eventName;
         return row;
@@ -194,6 +196,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 row.querySelectorAll( '.rar-field-input' ).forEach( function ( input ) {
                     data[ 'field_' + input.dataset.field ] = input.value.trim();
                 } );
+                const notesInput = row.querySelector( '.rar-notes-textarea' );
+                if ( notesInput ) data.notes = notesInput.value.trim();
                 status.textContent = 'Saving…';
                 rarEventsAjax( 'rar_save_tracked_event_fields', data ).then( function ( res ) {
                     status.textContent = res.success ? 'Saved.' : ( res.data && res.data.message ? res.data.message : 'Could not save.' );

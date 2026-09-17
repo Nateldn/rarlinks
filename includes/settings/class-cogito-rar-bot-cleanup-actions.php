@@ -167,13 +167,12 @@ class Cogito_RAR_Bot_Cleanup_Actions {
             $affected     = self::apply_action( $action, "id IN ($placeholders) AND bot_or_not IN (1, 2)", $ids );
         }
 
-        // 🔁 Redirect back to the Reports tab (PRG: a refresh can't re-run)
+        // 🔁 Redirect back to the Bot Report page (PRG: a refresh can't re-run)
         $result_param = self::result_param( $action );
 
         wp_safe_redirect( add_query_arg( [
             'post_type'    => 'rar_redirect',
-            'page'         => 'rar_settings',
-            'tab'          => 'reports',
+            'page'         => Cogito_RAR_Settings_Reports::PAGE_SLUG,
             $result_param  => $affected,
         ], admin_url( 'edit.php' ) ) );
         exit;
@@ -210,11 +209,10 @@ class Cogito_RAR_Bot_Cleanup_Actions {
         $affected     = self::apply_action( $action, 'id = %d AND bot_or_not IN (1, 2)', [ $id ] );
         $result_param = self::result_param( $action );
 
-        // 🔁 PRG redirect back to the Reports tab
+        // 🔁 PRG redirect back to the Bot Report page
         wp_safe_redirect( add_query_arg( [
             'post_type'   => 'rar_redirect',
-            'page'        => 'rar_settings',
-            'tab'         => 'reports',
+            'page'        => Cogito_RAR_Settings_Reports::PAGE_SLUG,
             $result_param => $affected,
         ], admin_url( 'edit.php' ) ) );
         exit;

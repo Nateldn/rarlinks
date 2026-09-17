@@ -105,8 +105,7 @@ class Cogito_RAR_Bot_Cleanup_Table extends Cogito_RAR_Clicks_List_Table {
         $id   = absint( $item->id );
         $base = add_query_arg( [
             'post_type' => 'rar_redirect',
-            'page'      => 'rar_settings',
-            'tab'       => 'reports',
+            'page'      => Cogito_RAR_Settings_Reports::PAGE_SLUG,
         ], admin_url( 'edit.php' ) );
 
         // One nonce action per row id covers both the no-JS links and the AJAX path

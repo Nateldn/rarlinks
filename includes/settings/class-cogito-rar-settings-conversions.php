@@ -1,7 +1,9 @@
 <?php
 /**
- * Renders the Conversions tab on the RARLinks settings page: master
- * toggle, provider status, queue visibility, and a manual flush trigger.
+ * The CAPI page: master toggle, provider status, queue visibility, a
+ * manual flush trigger, and the Tracked Events UI for Meta's Conversions
+ * API. Its own admin page (not a Settings tab) since this is a whole
+ * feature area, not a setting.
  *
  * @package Cogito_RAR
  */
@@ -12,15 +14,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Cogito_RAR_Settings_Conversions {
 
+    const PAGE_SLUG = 'rar_capi';
+
     public static function init() {
-        add_action( 'rar_settings_render_tab_conversions', [ self::class, 'render' ] );
+        add_action( 'admin_menu', [ self::class, 'add_page' ] );
         add_action( 'admin_init', [ self::class, 'maybe_handle_save' ] );
         add_action( 'admin_init', [ self::class, 'maybe_handle_flush' ] );
     }
 
+    public static function add_page() {
+        add_submenu_page(
+            'edit.php?post_type=rar_redirect',
+            'CAPI',
+            'CAPI',
+            'manage_options',
+            self::PAGE_SLUG,
+            [ self::class, 'render' ]
+        );
+    }
+
     private static function tab_url() {
         return add_query_arg(
-            [ 'post_type' => 'rar_redirect', 'page' => 'rar_settings', 'tab' => 'conversions' ],
+            [ 'post_type' => 'rar_redirect', 'page' => self::PAGE_SLUG ],
             admin_url( 'edit.php' )
         );
     }
@@ -60,6 +75,9 @@ class Cogito_RAR_Settings_Conversions {
         echo '<button type="button" class="button rar-add-group-btn">Add</button>';
         echo '</div>';
 
+        echo '<label class="rar-event-notes-label">Notes<br>';
+        echo '<textarea class="rar-notes-textarea" rows="2" style="width:100%;" placeholder="e.g. which page/placement this covers, why these classes were chosen…">' . esc_textarea( $event['notes'] ?? '' ) . '</textarea></label>';
+
         echo '<details class="rar-event-field-names"><summary>Custom parameter names (optional)</summary>';
         echo '<div class="rar-event-row-fields">';
         foreach ( Cogito_RAR_Conversion_Capture::DEFAULT_FIELD_NAMES as $signal => $default ) {
@@ -69,9 +87,9 @@ class Cogito_RAR_Settings_Conversions {
             echo '<input type="text" class="rar-field-input" data-field="' . esc_attr( $signal ) . '" value="' . esc_attr( $event[ 'field_' . $signal ] ?? '' ) . '" placeholder="' . esc_attr( $placeholder ) . '" style="width:100%; font-family:monospace;"></label>';
         }
         echo '</div>';
-        echo '<p><button type="button" class="button rar-save-fields-btn">Save parameter names</button> <span class="rar-save-status"></span></p>';
         echo '<p class="description">The custom_data field name(s) this event sends to Meta — matches how a GA4 event tag in GTM lets you name each parameter. Leave any blank to use the default shown as its placeholder; "Page/Referrer URL" is not sent at all unless named (it\'s already sent separately as a required standard field either way).</p>';
         echo '</details>';
+        echo '<p><button type="button" class="button rar-save-fields-btn">Save</button> <span class="rar-save-status"></span></p>';
 
         echo '</div>';
     }
@@ -142,6 +160,13 @@ class Cogito_RAR_Settings_Conversions {
     }
 
     public static function render() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        echo '<div class="wrap">';
+        echo '<h1>CAPI</h1>';
+
         if ( isset( $_GET['saved'] ) ) {
             echo '<div class="notice notice-success is-dismissible"><p>Settings saved.</p></div>';
         }
@@ -281,5 +306,6 @@ class Cogito_RAR_Settings_Conversions {
         }
 
         echo '</div>'; // .rar-conversions
+        echo '</div>'; // .wrap
     }
 }

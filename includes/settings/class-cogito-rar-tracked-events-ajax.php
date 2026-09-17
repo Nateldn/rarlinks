@@ -157,7 +157,9 @@ class Cogito_RAR_Tracked_Events_Ajax {
     }
 
     /**
-     * Updates just the custom parameter-name overrides for one event.
+     * Updates the custom parameter-name overrides AND the freeform notes
+     * field for one event — the settings page saves both together with
+     * one button, since neither needs its own round trip.
      */
     public static function save_fields() {
         self::authorize();
@@ -178,6 +180,16 @@ class Cogito_RAR_Tracked_Events_Ajax {
             } else {
                 $events[ $index ][ $key ] = Cogito_RAR_Conversion_Capture::sanitize_event_name( $override );
             }
+        }
+
+        // Freeform, unlike the field-name overrides above — never run
+        // through sanitize_event_name() (which strips anything but
+        // [A-Za-z0-9_]), or a real sentence would come back mangled.
+        $notes = isset( $_POST['notes'] ) ? trim( sanitize_textarea_field( wp_unslash( $_POST['notes'] ) ) ) : '';
+        if ( '' === $notes ) {
+            unset( $events[ $index ]['notes'] );
+        } else {
+            $events[ $index ]['notes'] = $notes;
         }
 
         self::save_events( $events );

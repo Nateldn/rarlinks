@@ -66,8 +66,7 @@ class Cogito_RAR_Bot_Cleanup_Filters {
 
         echo '<form method="get" class="rar-bot-cleanup-filter-form">';
         echo '<input type="hidden" name="post_type" value="rar_redirect">';
-        echo '<input type="hidden" name="page" value="rar_settings">';
-        echo '<input type="hidden" name="tab" value="reports">';
+        echo '<input type="hidden" name="page" value="' . esc_attr( Cogito_RAR_Settings_Reports::PAGE_SLUG ) . '">';
 
         echo '<div style="display:flex; flex-wrap:wrap; gap:15px; align-items:center; margin:10px 0;">';
 

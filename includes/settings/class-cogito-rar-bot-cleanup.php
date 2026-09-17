@@ -92,11 +92,10 @@ class Cogito_RAR_Bot_Cleanup {
         $total = (int) $table->get_pagination_arg( 'total_items' );
 
         // POST form: deletion is destructive, so it must never travel by GET.
-        // Action URL pins the form back to this tab.
+        // Action URL pins the form back to this page.
         $form_url = add_query_arg( [
             'post_type' => 'rar_redirect',
-            'page'      => 'rar_settings',
-            'tab'       => 'reports',
+            'page'      => Cogito_RAR_Settings_Reports::PAGE_SLUG,
         ], admin_url( 'edit.php' ) );
 
         echo '<div class="rarlinks-table-wrapper">';

@@ -136,7 +136,11 @@ class Cogito_RAR_Dashboard {
 
 		// 5. 🖥️ Output UI
 		echo '<div class="wrap rar_stat-sdash">';
-		echo '<h1>Clicks Report</h1>';
+		echo '<h1>Clicks Report ';
+		if ( class_exists( 'Cogito_RAR_Settings_Reports' ) ) {
+			echo '<a href="' . esc_url( Cogito_RAR_Settings_Reports::page_url() ) . '" class="page-title-action">Bot Report</a>';
+		}
+		echo '</h1>';
 
 		// Result notice after a bulk re-classification (redirect appends ?classified=N)
 		if ( isset( $_GET['classified'] ) ) {

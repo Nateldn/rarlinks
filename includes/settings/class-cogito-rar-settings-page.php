@@ -17,8 +17,6 @@ class Cogito_RAR_Settings_Page {
     public static function init() {
         add_action( 'admin_menu', [ self::class, 'add_settings_page' ], 11 );
         add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_assets' ] );
-        // Persist the "Bot rows per page" Screen Option (Reports tab) to user meta
-        add_filter( 'set-screen-option', [ self::class, 'save_screen_option' ], 10, 3 );
     }
 
     /**
@@ -26,7 +24,7 @@ class Cogito_RAR_Settings_Page {
      * Priority 11 + array order places it beneath "Clicks Report".
      */
     public static function add_settings_page() {
-        $hook = add_submenu_page(
+        add_submenu_page(
             'edit.php?post_type=rar_redirect',
             'RARLinks Settings',
             'Settings',
@@ -34,32 +32,6 @@ class Cogito_RAR_Settings_Page {
             'rar_settings',
             [ self::class, 'render' ]
         );
-
-        // Register the Screen Option only on this page's load
-        add_action( "load-$hook", [ self::class, 'add_screen_options' ] );
-    }
-
-    /**
-     * Registers the "Bot rows per page" Screen Option — only on the Reports
-     * tab, where the Bot Cleanup table lives. The table reads this value via
-     * get_items_per_page( 'rar_bot_cleanup_per_page' ).
-     */
-    public static function add_screen_options() {
-        if ( ( $_GET['tab'] ?? '' ) !== 'reports' ) {
-            return;
-        }
-        add_screen_option( 'per_page', [
-            'label'   => 'Bot rows per page',
-            'default' => 100,
-            'option'  => 'rar_bot_cleanup_per_page',
-        ] );
-    }
-
-    /**
-     * Saves the per-page value (WP discards it unless a filter returns it).
-     */
-    public static function save_screen_option( $status, $option, $value ) {
-        return ( 'rar_bot_cleanup_per_page' === $option ) ? (int) $value : $status;
     }
 
     /**
@@ -70,7 +42,16 @@ class Cogito_RAR_Settings_Page {
     public static function enqueue_assets( $hook ) {
         // Only load on our settings page. The hook suffix for a submenu under
         // edit.php?post_type=rar_redirect is 'rar_redirect_page_rar_settings'.
-        if ( $hook !== 'rar_redirect_page_rar_settings' ) {
+        // Shared across the three admin pages built from what used to be
+        // one tabbed Settings screen: this page (Defaults), CAPI (the
+        // Tracked Events repeater) and Bot Report (Moto Partner list +
+        // Bot Cleanup + Re-scan).
+        $our_hooks = [
+            'rar_redirect_page_rar_settings',
+            'rar_redirect_page_' . Cogito_RAR_Settings_Conversions::PAGE_SLUG,
+            'rar_redirect_page_' . Cogito_RAR_Settings_Reports::PAGE_SLUG,
+        ];
+        if ( ! in_array( $hook, $our_hooks, true ) ) {
             return;
         }
 
@@ -85,36 +66,16 @@ class Cogito_RAR_Settings_Page {
             filemtime( dirname( __FILE__, 3 ) . '/assets/js/cogito-rar-settings.js' ),
             true // Load in footer
         );
-
-        // Reports tab: Chart.js + the shared chart renderer, fed bot/unknown
-        // click data for the spike-spotting line graph on Bot Cleanup.
-        if ( ( $_GET['tab'] ?? '' ) === 'reports'
-            && class_exists( 'Cogito_RAR_Line_Chart' )
-            && class_exists( 'Cogito_RAR_Bot_Cleanup_Filters' ) ) {
-
-            wp_enqueue_script( 'chartjs', 'https://cdn.jsdelivr.net/npm/chart.js', [], null, true );
-            wp_enqueue_script(
-                'rar-charts-js',
-                plugin_dir_url( dirname( __FILE__, 2 ) ) . 'includes/charts/js/rar-charts.js',
-                [ 'chartjs' ],
-                filemtime( dirname( __FILE__, 3 ) . '/includes/charts/js/rar-charts.js' ),
-                true
-            );
-
-            // Same filters as the table, so the chart and rows agree
-            $line = Cogito_RAR_Line_Chart::get_data( Cogito_RAR_Bot_Cleanup_Filters::get_filters() );
-            wp_localize_script( 'rar-charts-js', 'rarChartData', [ 'line' => $line ] );
-        }
     }
 
     /**
-     * Defines the available tabs as slug => label.
+     * Defines the available tabs as slug => label. Reports (now the
+     * standalone Bot Report page) and Conversions (now the standalone
+     * CAPI page) no longer live here.
      */
     private static function get_tabs() {
         return [
-            'defaults'    => 'Defaults',
-            'reports'     => 'Reports',
-            'conversions' => 'Conversions',
+            'defaults' => 'Defaults',
         ];
     }
 
