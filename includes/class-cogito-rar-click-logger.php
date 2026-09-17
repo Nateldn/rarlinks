@@ -444,15 +444,17 @@ class Cogito_RAR_Click_Logger {
 				$bot_name   = 'No referrer or cookie';
 			} elseif ( $ref_norm === $home_norm && '' !== $ref_norm ) {
 				// A bare homepage referrer used to be trusted only for Moto
-				// Partner listings, on the assumption that no other ad
-				// appeared on the homepage — that assumption no longer
-				// holds now that RenchAds (a separate plugin, built after
-				// this rule) places sidebar banners and an in-feed ad grid
-				// there too. Treat it exactly like any other site-page
-				// referrer instead of singling it out as suspicious.
+				// Partner listings — that no longer needs to be so narrow
+				// now that RenchAds also places sidebar banners and an
+				// in-feed ad grid on the homepage. But the rar_uid cookie
+				// (see Cogito_RAR_SetCookie) is set via Set-Cookie on that
+				// same homepage response, so it's already attached to the
+				// very next request a real browser makes — including
+				// clicking an ad right there on the page. A genuine click
+				// should essentially always carry it; arriving without one
+				// is still the harvested-URL/scraper signature this rule
+				// exists to catch, for any ad type, not just non-partners.
 				if ( $had_cookie ) {
-					// A returning visitor's site cookie already proves this
-					// isn't a cold direct hit.
 					$bot_or_not = 0;
 					$bot_name   = '';
 				} else {
@@ -461,18 +463,12 @@ class Cogito_RAR_Click_Logger {
 						: ( get_post_meta( $post_id, '_rar_moto_partner', true ) === '1' );
 
 					if ( $was_live_partner ) {
-						// Known-legitimate case fast-tracked straight to
-						// human, same as always — no need to wait on the
-						// org checks below for this one.
-						$bot_or_not = 0;
+						$bot_or_not = 0; // Genuine homepage native ad click
 						$bot_name   = '';
+					} else {
+						$bot_or_not = 1;
+						$bot_name   = 'Homepage referrer (non-partner, no cookie)';
 					}
-					// No cookie AND not a Moto Partner click: left as
-					// Unknown (2) here, falling through to the org checks
-					// below — the same treatment a first-time visitor
-					// lands with on any other page of the site. A bare
-					// homepage referrer, on its own, is no longer evidence
-					// of spoofing.
 				}
 			} elseif ( '' !== $ref_norm && strpos( $ref_norm, $home_norm . '/' ) === 0 && $had_cookie ) {
 				// Referred from a site page AND carrying the site cookie
