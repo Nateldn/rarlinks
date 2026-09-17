@@ -262,7 +262,6 @@ class Cogito_RAR_Settings_Conversions {
                 $signals = is_array( $signals ) ? $signals : [];
 
                 $destination = (string) ( $signals['destination_url'] ?? '' );
-                $dest_host   = $destination ? wp_parse_url( $destination, PHP_URL_HOST ) : '';
 
                 echo '<tr>';
                 echo '<td>' . esc_html( $row->id ) . '</td>';
@@ -271,7 +270,7 @@ class Cogito_RAR_Settings_Conversions {
                 echo '<td>' . esc_html( $row->source ) . '</td>';
                 echo '<td>' . esc_html( mb_strimwidth( (string) ( $signals['link_text'] ?? '' ), 0, 40, '…' ) ) . '</td>';
                 echo '<td><code>' . esc_html( $signals['link_classes'] ?? '' ) . '</code></td>';
-                echo '<td>' . ( $destination ? '<a href="' . esc_url( $destination ) . '" target="_blank" rel="noopener noreferrer" title="' . esc_attr( $destination ) . '">' . esc_html( $dest_host ) . '</a>' : '' ) . '</td>';
+                echo '<td class="rar-destination-cell">' . ( $destination ? '<a href="' . esc_url( $destination ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $destination ) . '</a>' : '' ) . '</td>';
                 echo '<td><span class="rar-badge rar-badge--' . esc_attr( $tone ) . '">' . esc_html( $row->status ) . '</span></td>';
                 echo '<td>' . esc_html( cogito_rar_localise_utc_timestamp( $row->created_at ) ) . '</td>';
                 echo '<td>' . esc_html( $row->last_error ) . '</td>';

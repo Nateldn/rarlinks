@@ -846,4 +846,12 @@ body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
 .rar-badge--good    { background: var(--rar-good-soft);    color: var(--rar-good); }
 .rar-badge--warn    { background: var(--rar-warn-soft);    color: var(--rar-warn); }
 .rar-badge--bad     { background: var(--rar-bad-soft);     color: var(--rar-bad); }
+
+/* Recent events' Destination column shows the full URL rather than just
+   the host — wrap it instead of letting one long link force the whole
+   table to scroll horizontally. */
+.rar-destination-cell {
+    max-width: 320px;
+    word-break: break-all;
+}
         
