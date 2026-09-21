@@ -132,7 +132,9 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-ra
 require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-click-context.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-raw-link-capture.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-conversion-capture.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/conversions/class-cogito-rar-meta-cookies.php';
 Cogito_RAR_Conversion_Capture::init();
+Cogito_RAR_Meta_Cookies::init();
 Cogito_RAR_Conversion_Dispatcher::init();
 Cogito_RAR_Conversion_Click_Context::init();
 Cogito_RAR_Conversion_Raw_Link_Capture::init();
