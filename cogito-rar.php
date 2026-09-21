@@ -252,8 +252,9 @@ function cogito_rar_create_click_log_table() {
  * re-runnable, so this just checks a stored version and re-runs it once.
  *
  * 1.2 widens ip_address from VARCHAR(45) (sized for a raw IPv6 address) to
- * VARCHAR(64), since it now stores a SHA-256 hash instead — see
- * cogito_rar_hash_ip() and its docblock for why.
+ * VARCHAR(64), since a row's value is eventually overwritten in place
+ * with a SHA-256 hex hash (see Cogito_RAR_Retention::redact_old_ips() and
+ * cogito_rar_hash_ip() for why and when).
  */
 function cogito_rar_maybe_upgrade_click_log_table() {
 	if ( get_option( 'rar_click_table_db_version' ) !== '1.2' ) {
