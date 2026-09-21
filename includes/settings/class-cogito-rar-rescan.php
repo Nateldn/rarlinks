@@ -74,6 +74,12 @@ class Cogito_RAR_Rescan {
         $processed = 0;
         $last_id   = $after_id;
 
+        // Loaded once per batch, not per row — same data applies to every
+        // row in this run.
+        $spamhaus_drop_data = class_exists( 'Cogito_RAR_Spamhaus_Drop' ) ? Cogito_RAR_Spamhaus_Drop::load() : [];
+        $datacenter_ip_data = Cogito_RAR_Click_Logger::load_datacenter_ip_data();
+        $private_relay_data = Cogito_RAR_Click_Logger::load_private_relay_data();
+
         foreach ( $rows as $row ) {
             $result = Cogito_RAR_Click_Logger::classify( [
                 'ip_address'        => $row->ip_address,
@@ -86,6 +92,9 @@ class Cogito_RAR_Rescan {
                 'post_id'           => (int) $row->post_id,
                 'click_date'        => (string) $row->click_date,
                 'spamhaus_asn_data' => [],
+                'spamhaus_drop_data' => $spamhaus_drop_data,
+                'datacenter_ip_data' => $datacenter_ip_data,
+                'private_relay_data' => $private_relay_data,
             ] );
 
             $wpdb->update(

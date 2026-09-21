@@ -70,6 +70,12 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-live-bot-l
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-spamhaus-drop.php';
 Cogito_RAR_Spamhaus_Drop::init();
 
+// 🏢 Datacenter/cloud-provider IP feed (broader net than Spamhaus — off by
+// default, see the class docblock for the false-positive tradeoff) plus
+// the Apple Private Relay allowlist it's paired with.
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-datacenter-ip-feed.php';
+Cogito_RAR_Datacenter_IP_Feed::init();
+
 // Dashboard Components
 // New consolidated filters class
 require_once plugin_dir_path( __FILE__ ) . 'includes/dashboard/class-dashboard-filters.php';
@@ -188,6 +194,9 @@ function cogito_rar_on_deactivate() {
 	}
 	if ( class_exists( 'Cogito_RAR_Spamhaus_Drop' ) ) {
 		Cogito_RAR_Spamhaus_Drop::unschedule();
+	}
+	if ( class_exists( 'Cogito_RAR_Datacenter_IP_Feed' ) ) {
+		Cogito_RAR_Datacenter_IP_Feed::unschedule();
 	}
 }
 register_deactivation_hook( __FILE__, 'cogito_rar_on_deactivate' );

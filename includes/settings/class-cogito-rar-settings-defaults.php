@@ -61,6 +61,10 @@ class Cogito_RAR_Settings_Defaults {
         update_option( self::OPTION_DISABLE_VISITOR_COOKIE, isset( $_POST['rar_disable_visitor_cookie'] ) ? '1' : '0' );
         update_option( self::OPTION_BOT_FILTERING_ENABLED, isset( $_POST['rar_bot_filtering_enabled'] ) ? '1' : '0' );
 
+        if ( class_exists( 'Cogito_RAR_Datacenter_IP_Feed' ) ) {
+            update_option( Cogito_RAR_Datacenter_IP_Feed::OPTION_ENABLED, isset( $_POST['rar_datacenter_ip_filtering_enabled'] ) ? '1' : '0' );
+        }
+
         if ( class_exists( 'Cogito_RAR_Retention' ) ) {
             $days = isset( $_POST['rar_clicks_retention_days'] ) ? absint( $_POST['rar_clicks_retention_days'] ) : Cogito_RAR_Retention::DEFAULT_CLICKS_RETENTION_DAYS;
             update_option( Cogito_RAR_Retention::OPTION_CLICKS_RETENTION_DAYS, max( 1, $days ) );
@@ -114,6 +118,8 @@ class Cogito_RAR_Settings_Defaults {
         $click_tracking    = get_option( self::OPTION_CLICK_TRACKING_ENABLED, '1' ) === '1';
         $disable_cookie    = get_option( self::OPTION_DISABLE_VISITOR_COOKIE, '0' ) === '1';
         $bot_filtering     = get_option( self::OPTION_BOT_FILTERING_ENABLED, '1' ) === '1';
+        $datacenter_ip     = class_exists( 'Cogito_RAR_Datacenter_IP_Feed' )
+            && get_option( Cogito_RAR_Datacenter_IP_Feed::OPTION_ENABLED ) === '1';
         $retention_days    = class_exists( 'Cogito_RAR_Retention' )
             ? (int) get_option( Cogito_RAR_Retention::OPTION_CLICKS_RETENTION_DAYS, Cogito_RAR_Retention::DEFAULT_CLICKS_RETENTION_DAYS )
             : 180;
@@ -172,6 +178,11 @@ class Cogito_RAR_Settings_Defaults {
         echo '<tr><th scope="row">Bot filtering</th><td>';
         echo '<div class="rartoggle"><input type="checkbox" id="rar_bot_filtering_enabled" name="rar_bot_filtering_enabled" value="1"' . checked( $bot_filtering, true, false ) . '><label for="rar_bot_filtering_enabled"></label><span>Run the bot-detection waterfall on every click</span></div>';
         echo '<p class="description">Off logs every click as Unknown rather than running detection — bots and humans become indistinguishable in the Clicks Report, and nothing is ever queued for Conversions (that gate requires a click classified as human).</p>';
+        echo '</td></tr>';
+
+        echo '<tr><th scope="row">Datacenter IP filtering</th><td>';
+        echo '<div class="rartoggle"><input type="checkbox" id="rar_datacenter_ip_filtering_enabled" name="rar_datacenter_ip_filtering_enabled" value="1"' . checked( $datacenter_ip, true, false ) . '><label for="rar_datacenter_ip_filtering_enabled"></label><span>Flag clicks from known cloud/hosting-provider IP ranges (AWS, Google Cloud, Cloudflare, DigitalOcean, Linode, Vultr, Oracle, Hetzner, Fastly)</span></div>';
+        echo '<p class="description"><strong>Off by default.</strong> Unlike the other bot-detection checks, this one carries a real risk of also flagging a genuine visitor on a VPN or corporate proxy hosted on one of these providers — Apple iCloud Private Relay traffic is specifically exempted, but nothing else is. Only enable this if you\'re actively seeing hosting-provider IPs in your Bot Report, and check back there afterwards to confirm it isn\'t catching real visitors.</p>';
         echo '</td></tr>';
 
         echo '<tr><th scope="row">Visitor cookie</th><td>';

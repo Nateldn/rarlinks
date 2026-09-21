@@ -91,6 +91,8 @@ class Cogito_RAR_Click_Logger {
 				'click_date'        => current_time( 'Y-m-d' ),
 				'spamhaus_asn_data' => self::load_spamhaus_asn_data(),
 				'spamhaus_drop_data' => class_exists( 'Cogito_RAR_Spamhaus_Drop' ) ? Cogito_RAR_Spamhaus_Drop::load() : [],
+				'datacenter_ip_data' => self::load_datacenter_ip_data(),
+				'private_relay_data' => self::load_private_relay_data(),
 			] )
 			: [ 'bot_or_not' => 2, 'bot_name' => '' ];
 
@@ -152,6 +154,41 @@ class Cogito_RAR_Click_Logger {
 	}
 
 	/**
+	 * Loads the datacenter-IP blocklist, but only if its own setting is
+	 * actually enabled — unlike Spamhaus DROP (always-on, high-confidence),
+	 * this one carries a real false-positive risk (see
+	 * Cogito_RAR_Datacenter_IP_Feed's docblock) and is off by default, so
+	 * there's no reason to even decode the cache file on every click while
+	 * it's off.
+	 *
+	 * @return array
+	 */
+	public static function load_datacenter_ip_data() {
+		if ( ! class_exists( 'Cogito_RAR_Datacenter_IP_Feed' )
+			|| get_option( Cogito_RAR_Datacenter_IP_Feed::OPTION_ENABLED ) !== '1'
+		) {
+			return [];
+		}
+		return Cogito_RAR_Datacenter_IP_Feed::load();
+	}
+
+	/**
+	 * Loads the Apple Private Relay allowlist — only ever consulted
+	 * alongside the datacenter check above, so gated behind the same
+	 * setting rather than always decoding a cache file nothing will use.
+	 *
+	 * @return array
+	 */
+	public static function load_private_relay_data() {
+		if ( ! class_exists( 'Cogito_RAR_Datacenter_IP_Feed' )
+			|| get_option( Cogito_RAR_Datacenter_IP_Feed::OPTION_ENABLED ) !== '1'
+		) {
+			return [];
+		}
+		return Cogito_RAR_Datacenter_IP_Feed::load_private_relay();
+	}
+
+	/**
 	 * Classifies a click from its signals.
 	 *
 	 * Returns [ 'bot_or_not' => 0|1|2, 'bot_name' => string ]. Used at log time
@@ -162,7 +199,7 @@ class Cogito_RAR_Click_Logger {
 	 *
 	 * @param array $signals ip_address, hostname, org, user_agent, referrer,
 	 *                       current_asn, had_cookie, post_id, spamhaus_asn_data,
-	 *                       spamhaus_drop_data.
+	 *                       spamhaus_drop_data, datacenter_ip_data, private_relay_data.
 	 * @return array
 	 */
 	public static function classify( array $signals ) {
@@ -176,6 +213,8 @@ class Cogito_RAR_Click_Logger {
 		$post_id            = (int) ( $signals['post_id'] ?? 0 );
 		$spamhaus_asn_data  = is_array( $signals['spamhaus_asn_data'] ?? null ) ? $signals['spamhaus_asn_data'] : [];
 		$spamhaus_drop_data = is_array( $signals['spamhaus_drop_data'] ?? null ) ? $signals['spamhaus_drop_data'] : [];
+		$datacenter_ip_data = is_array( $signals['datacenter_ip_data'] ?? null ) ? $signals['datacenter_ip_data'] : [];
+		$private_relay_data = is_array( $signals['private_relay_data'] ?? null ) ? $signals['private_relay_data'] : [];
 		// The click's date (site timezone, Y-m-d). Live logging passes today;
 		// the re-scan passes the row's logged date. Used by the Moto Partner
 		// "was this a live homepage ad on that day?" check below.
@@ -417,6 +456,26 @@ class Cogito_RAR_Click_Logger {
 			if ( Cogito_RAR_Spamhaus_Drop::matches( $ip_address, $spamhaus_drop_data ) ) {
 				$bot_or_not = 1;
 				$bot_name   = 'Spamhaus DROP';
+			}
+		}
+
+		// 🏢 4.6. Datacenter/cloud-provider IP check if still Unknown — off
+		// by default (see Cogito_RAR_Datacenter_IP_Feed's docblock for why:
+		// unlike Spamhaus DROP above, this is a broader net with a real
+		// chance of catching a genuine visitor on a VPN/proxy hosted on one
+		// of these providers). $datacenter_ip_data is only ever non-empty
+		// when the setting is on, so this is naturally a no-op otherwise.
+		// Apple Private Relay egress is checked FIRST and, if matched,
+		// skips the datacenter check entirely — those are real iOS/macOS
+		// visitors, not bots, even though Private Relay itself runs on
+		// datacenter-owned IP space.
+		if ( $bot_or_not === 2 && ! empty( $ip_address ) && ! empty( $datacenter_ip_data ) && class_exists( 'Cogito_RAR_Datacenter_IP_Feed' ) ) {
+			$is_private_relay = ! empty( $private_relay_data )
+				&& Cogito_RAR_Datacenter_IP_Feed::matches( $ip_address, $private_relay_data );
+
+			if ( ! $is_private_relay && Cogito_RAR_Datacenter_IP_Feed::matches( $ip_address, $datacenter_ip_data ) ) {
+				$bot_or_not = 1;
+				$bot_name   = 'Datacenter IP';
 			}
 		}
 
