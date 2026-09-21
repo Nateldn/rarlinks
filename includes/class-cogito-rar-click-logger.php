@@ -96,7 +96,12 @@ class Cogito_RAR_Click_Logger {
 			] )
 			: [ 'bot_or_not' => 2, 'bot_name' => '' ];
 
-		// 📝 Insert into DB
+		// 📝 Insert into DB — ip_address is stored raw here (needed for
+		// near-term admin review: WHOIS lookups, deciding whether to flag
+		// a click, in Clicks Report/Bot Cleanup). It's irreversibly hashed
+		// in place by the daily retention cron once it's old enough that
+		// operational review no longer needs it — see
+		// Cogito_RAR_Retention::redact_old_ips() and cogito_rar_hash_ip().
 		$wpdb->insert(
 			$wpdb->prefix . 'rarlinks_clicks',
 			[

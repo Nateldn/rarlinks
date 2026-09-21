@@ -68,6 +68,9 @@ class Cogito_RAR_Settings_Defaults {
         if ( class_exists( 'Cogito_RAR_Retention' ) ) {
             $days = isset( $_POST['rar_clicks_retention_days'] ) ? absint( $_POST['rar_clicks_retention_days'] ) : Cogito_RAR_Retention::DEFAULT_CLICKS_RETENTION_DAYS;
             update_option( Cogito_RAR_Retention::OPTION_CLICKS_RETENTION_DAYS, max( 1, $days ) );
+
+            $ip_days = isset( $_POST['rar_ip_redaction_days'] ) ? absint( $_POST['rar_ip_redaction_days'] ) : Cogito_RAR_Retention::DEFAULT_IP_REDACTION_DAYS;
+            update_option( Cogito_RAR_Retention::OPTION_IP_REDACTION_DAYS, max( 1, $ip_days ) );
         }
 
         wp_safe_redirect( add_query_arg( 'saved', 1, self::tab_url() ) );
@@ -123,6 +126,9 @@ class Cogito_RAR_Settings_Defaults {
         $retention_days    = class_exists( 'Cogito_RAR_Retention' )
             ? (int) get_option( Cogito_RAR_Retention::OPTION_CLICKS_RETENTION_DAYS, Cogito_RAR_Retention::DEFAULT_CLICKS_RETENTION_DAYS )
             : 180;
+        $ip_redaction_days = class_exists( 'Cogito_RAR_Retention' )
+            ? (int) get_option( Cogito_RAR_Retention::OPTION_IP_REDACTION_DAYS, Cogito_RAR_Retention::DEFAULT_IP_REDACTION_DAYS )
+            : 30;
 
         echo '<div class="rar-conversions">'; // Reuses the card/toggle styling built for the Conversions tab
 
@@ -193,6 +199,11 @@ class Cogito_RAR_Settings_Defaults {
         echo '<tr><th scope="row">Click-log retention</th><td>';
         echo '<input type="number" min="1" name="rar_clicks_retention_days" value="' . esc_attr( $retention_days ) . '" style="width:80px;"> days';
         echo '<p class="description">Click-log rows older than this are purged automatically by a daily cron. Defaults to 180 days, matching the visitor cookie\'s own lifetime.</p>';
+        echo '</td></tr>';
+
+        echo '<tr><th scope="row">IP address redaction</th><td>';
+        echo '<input type="number" min="1" name="rar_ip_redaction_days" value="' . esc_attr( $ip_redaction_days ) . '" style="width:80px;"> days';
+        echo '<p class="description">A click\'s IP address is shown in Clicks Report/Bot Cleanup for this long (for WHOIS lookups and flagging decisions), then irreversibly hashed in place by the same daily cron — well before the row itself is eventually deleted above. Defaults to 30 days.</p>';
         echo '</td></tr>';
 
         echo '</tbody></table>';

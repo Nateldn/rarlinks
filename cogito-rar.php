@@ -53,6 +53,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-clicks-lis
 
 // ⏰ Timestamp Localisation Helper
 require_once plugin_dir_path( __FILE__ ) . 'includes/helpers/timestamp-localiser.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/helpers/ip-hasher.php';
 
 
 // 📊 Stats Dashboard & Click Logging
@@ -221,7 +222,7 @@ function cogito_rar_create_click_log_table() {
 	timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	referrer TEXT NULL,
 	user_agent TEXT NULL,
-	ip_address VARCHAR(45) NULL,
+	ip_address VARCHAR(64) NULL,
 	hostname TEXT NULL,
 	visitor_id VARCHAR(64) NULL,
 	org TEXT NULL,
@@ -243,11 +244,15 @@ function cogito_rar_create_click_log_table() {
  * so register_activation_hook alone would never re-fire the timestamp
  * index added above onto an existing installation. dbDelta is safely
  * re-runnable, so this just checks a stored version and re-runs it once.
+ *
+ * 1.2 widens ip_address from VARCHAR(45) (sized for a raw IPv6 address) to
+ * VARCHAR(64), since it now stores a SHA-256 hash instead — see
+ * cogito_rar_hash_ip() and its docblock for why.
  */
 function cogito_rar_maybe_upgrade_click_log_table() {
-	if ( get_option( 'rar_click_table_db_version' ) !== '1.1' ) {
+	if ( get_option( 'rar_click_table_db_version' ) !== '1.2' ) {
 		cogito_rar_create_click_log_table();
-		update_option( 'rar_click_table_db_version', '1.1' );
+		update_option( 'rar_click_table_db_version', '1.2' );
 	}
 }
 add_action( 'admin_init', 'cogito_rar_maybe_upgrade_click_log_table' );
