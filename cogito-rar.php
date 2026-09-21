@@ -71,6 +71,10 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-live-bot-l
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-spamhaus-drop.php';
 Cogito_RAR_Spamhaus_Drop::init();
 
+// 🔒 WordPress personal-data export/erasure registration + privacy-policy content
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-privacy.php';
+Cogito_RAR_Privacy::init();
+
 // 🏢 Datacenter/cloud-provider IP feed (broader net than Spamhaus — off by
 // default, see the class docblock for the false-positive tradeoff) plus
 // the Apple Private Relay allowlist it's paired with.
