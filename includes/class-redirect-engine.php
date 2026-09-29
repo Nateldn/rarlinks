@@ -71,6 +71,18 @@ class Cogito_RAR_Redirect_Engine {
 			return;
 		}
 
+		// Both gates are required, independently — a link only ever redirects
+		// once Nate has published it AND its own Active toggle is on. Added
+		// specifically so a draft created via the REST API (see
+		// Cogito_RAR_Rest_Access) can never go live just because Active
+		// happens to default to on; publishing is the actual approval step.
+		// Explicit regardless of whatever status filtering get_page_by_path()
+		// itself already applies — this is the one place that decision
+		// actually matters, so it shouldn't depend on that.
+		if ( $post->post_status !== 'publish' ) {
+			return;
+		}
+
 		$is_active = get_post_meta( $post->ID, '_rar_active', true );
 		if ( $is_active !== '1' ) {
 			return;

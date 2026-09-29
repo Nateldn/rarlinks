@@ -34,8 +34,11 @@ class Cogito_RAR_Metaboxes { // Consistent with 'class-metabox-{name}.php' conve
      * Note: Cogito_RAR::render_meta_box will eventually be moved here.
      */
     public static function add_meta_box() {
-        // ✅ Only allow users who can edit posts to see the meta box
-        if ( current_user_can( 'edit_posts' ) ) {
+        // ✅ Only allow users who can edit RARLinks to see the meta box —
+        // RARLinks has its own capability namespace (see
+        // Cogito_RAR_CPT_Registrar), so this can't rely on the generic,
+        // regular-Posts-specific 'edit_posts' check any more.
+        if ( current_user_can( 'edit_rar_redirects' ) ) {
             add_meta_box(
                 'rar_details',
                 'Redirect Details',

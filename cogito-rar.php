@@ -25,6 +25,14 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-asn-resolver.php';
 // 🔗 Custom Post Type Registration
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cpt-registrar.php';
 
+// 🔑 Capabilities/roles for the RARLink post type
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-roles.php';
+Cogito_RAR_Roles::init();
+
+// 🔌 REST API field exposure + draft/active enforcement for restricted accounts
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-rest-access.php';
+Cogito_RAR_Rest_Access::init();
+
 
 // 🎛 Meta Boxes
 require_once plugin_dir_path( __FILE__ ) . 'includes/metaboxes/class-metabox-basic-fields.php';
@@ -180,6 +188,9 @@ add_action( 'init', [ 'Cogito_RAR_Admin_Columns', 'init' ] );
  */
 function cogito_rar_on_activate() {
 	Cogito_RAR_CPT_Registrar::register_cpt_static();
+	if ( class_exists( 'Cogito_RAR_Roles' ) ) {
+		Cogito_RAR_Roles::on_activate();
+	}
 	cogito_rar_create_click_log_table();
 	if ( class_exists( 'Cogito_RAR_Conversion_Queue' ) ) {
 		Cogito_RAR_Conversion_Queue::create_table();

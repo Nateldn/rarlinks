@@ -58,8 +58,25 @@ class Cogito_RAR_CPT_Registrar {
             'has_archive'         => false,
             'rewrite'             => false,
             'query_var'           => false,
-            'capability_type'     => 'post',
-            'show_in_rest'        => false,
+            // Its own capability namespace, distinct from core Posts — was
+            // 'post' (sharing every Post capability 1:1), changed so a
+            // narrowly-scoped role (see Cogito_RAR_Roles) can be granted
+            // access to RARLinks specifically without also inheriting
+            // Editor-level power over the rest of the site. WordPress does
+            // NOT automatically carry these new capabilities over to
+            // existing roles (Administrator included) when a post type
+            // switches off the shared 'post' type — Cogito_RAR_Roles grants
+            // the full set back to Administrator and Editor on activation
+            // (and self-heals it on admin_init) specifically so this
+            // change is invisible to every existing account.
+            'capability_type'     => 'rar_redirect',
+            'map_meta_cap'        => true,
+            // Exposed to the REST API for the Cowork/API integration (see
+            // Cogito_RAR_Rest_Access) — safe by default even though this is
+            // now public, since 'public' => false above already means
+            // WordPress's own REST controller requires edit_rar_redirects
+            // rather than allowing anonymous read access.
+            'show_in_rest'        => true,
             'can_export'          => true,
         ];
 
