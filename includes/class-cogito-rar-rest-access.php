@@ -31,6 +31,42 @@ class Cogito_RAR_Rest_Access {
         add_filter( 'rest_pre_insert_' . self::CPT, [ self::class, 'force_draft_without_publish_cap' ], 10, 2 );
         add_action( 'rest_after_insert_' . self::CPT, [ self::class, 'force_default_active_without_publish_cap' ], 10, 2 );
         add_action( 'pre_get_posts', [ self::class, 'restrict_listing_to_own_posts' ] );
+        add_filter( 'wp_count_posts', [ self::class, 'scope_counts_to_own_posts' ], 10, 2 );
+    }
+
+    /**
+     * The "All (683) | Published (682) | Draft (1)" status tabs above the
+     * list table are a SEPARATE site-wide count (wp_count_posts()), not
+     * derived from the list query above — so restricting the list alone
+     * still let the total number of links site-wide leak through those
+     * numbers, even with every row itself hidden. Same gating as
+     * restrict_listing_to_own_posts(), recomputing the per-status counts
+     * scoped to just the current user's own links instead.
+     *
+     * @param object $counts
+     * @param string $type
+     * @return object
+     */
+    public static function scope_counts_to_own_posts( $counts, $type ) {
+        if ( self::CPT !== $type ) {
+            return $counts;
+        }
+        if ( ! is_user_logged_in() || current_user_can( 'edit_others_rar_redirects' ) ) {
+            return $counts;
+        }
+
+        global $wpdb;
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT post_status, COUNT(*) AS num_posts FROM {$wpdb->posts} WHERE post_type = %s AND post_author = %d GROUP BY post_status",
+            $type,
+            get_current_user_id()
+        ) );
+
+        $scoped = new stdClass();
+        foreach ( $rows as $row ) {
+            $scoped->{$row->post_status} = (int) $row->num_posts;
+        }
+        return $scoped;
     }
 
     /**
