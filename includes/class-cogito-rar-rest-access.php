@@ -8,6 +8,13 @@
  * requesting client's own good behaviour: even if a request explicitly
  * asks for status=publish or Active=on, this overrides it server-side.
  *
+ * Also narrows what such an account can even SEE — by default, being
+ * able to edit a post type means seeing every published post of it in
+ * both the admin list and the REST collection endpoint (the same way a
+ * Contributor sees everyone's published Posts), which isn't something
+ * the Assistant role needs or was asked to have. restrict_listing_to_own_posts()
+ * scopes both down to the current user's own links.
+ *
  * @package Cogito_RAR
  */
 
@@ -23,6 +30,34 @@ class Cogito_RAR_Rest_Access {
         add_action( 'init', [ self::class, 'register_meta_fields' ] );
         add_filter( 'rest_pre_insert_' . self::CPT, [ self::class, 'force_draft_without_publish_cap' ], 10, 2 );
         add_action( 'rest_after_insert_' . self::CPT, [ self::class, 'force_default_active_without_publish_cap' ], 10, 2 );
+        add_action( 'pre_get_posts', [ self::class, 'restrict_listing_to_own_posts' ] );
+    }
+
+    /**
+     * WordPress's own default for "can edit this post type" is "can see
+     * every published post of it," the same way a Contributor can already
+     * see everyone else's published Posts, not just their own — that's
+     * not something the capability model alone changes. For the
+     * Assistant role specifically, seeing the whole link catalogue isn't
+     * useful and isn't something it was asked to have, so this narrows
+     * both the admin "All RARLinks" list AND the REST collection
+     * endpoint (both run on WP_Query under the hood, so one filter
+     * covers both) to only the current user's own links.
+     *
+     * Gated on being logged in — without that, this would also catch
+     * the redirect engine's own anonymous front-end lookups and break
+     * every public link for every visitor by restricting the query to
+     * "author = (nobody)".
+     */
+    public static function restrict_listing_to_own_posts( $query ) {
+        if ( self::CPT !== $query->get( 'post_type' ) ) {
+            return;
+        }
+        if ( ! is_user_logged_in() || current_user_can( 'edit_others_rar_redirects' ) ) {
+            return;
+        }
+
+        $query->set( 'author', get_current_user_id() );
     }
 
     /**
