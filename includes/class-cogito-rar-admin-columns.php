@@ -182,7 +182,7 @@ public static function handle_column_sorting( $query ) {
     
     		case 'slug':
     			$slug   = get_post_field( 'post_name', $post_id );
-    			$vanity = Cogito_RAR_Redirect_Engine::vanity_url( $slug );
+    			$vanity = Cogito_RAR_Redirect_Engine::vanity_url( $slug, $post_id );
     
     			echo '<div class="rar-copy-slug-wrap">';
     			echo '<input type="text" class="rar-copy-input" value="' . esc_url( $vanity ) . '" readonly>';

@@ -88,18 +88,41 @@ class Cogito_RAR_Redirect_Engine {
 			return;
 		}
 
+		// A track-only link's vanity URL IS its real destination (see
+		// Cogito_RAR_Track_Only) — nothing should ever link to a /go/
+		// URL for one. But if an old /go/ link for it is still floating
+		// around somewhere (published before it was converted, a stale
+		// bookmark, etc.), it must not still work as a redirect — that
+		// would recreate exactly the cloaking this whole feature exists
+		// to avoid.
+		if ( class_exists( 'Cogito_RAR_Track_Only' ) && Cogito_RAR_Track_Only::is_track_only( $post ) ) {
+			return;
+		}
+
 		self::handle_redirect_from_post( $post );
 		exit;
 	}
 
 	/**
-	 * Builds the canonical prefixed vanity URL for a slug, e.g. /go/pando-bf/.
-	 * The single place the prefix is applied to outgoing links.
+	 * Builds the canonical prefixed vanity URL for a slug, e.g. /go/pando-bf/
+	 * — UNLESS $post_id names a track-only link (see Cogito_RAR_Track_Only),
+	 * in which case its real destination IS the vanity URL, returned as-is.
 	 *
-	 * @param string $slug The redirect post slug (post_name).
-	 * @return string Absolute vanity URL.
+	 * @param string          $slug    The redirect post slug (post_name).
+	 * @param int|WP_Post|null $post_id Needed to check track-only status;
+	 *                                   omit only for a slug that can't be
+	 *                                   one (there's no post to check).
+	 * @return string Absolute vanity URL, or the raw destination for a
+	 *                track-only link.
 	 */
-	public static function vanity_url( $slug ) {
+	public static function vanity_url( $slug, $post_id = null ) {
+		if ( null !== $post_id && class_exists( 'Cogito_RAR_Track_Only' ) && Cogito_RAR_Track_Only::is_track_only( $post_id ) ) {
+			$post = is_object( $post_id ) ? $post_id : get_post( $post_id );
+			if ( $post ) {
+				return (string) get_post_meta( $post->ID, '_rar_target', true );
+			}
+		}
+
 		$prefix = ( self::PREFIX !== '' ) ? self::PREFIX . '/' : '';
 		return home_url( '/' . $prefix . $slug . '/' );
 	}

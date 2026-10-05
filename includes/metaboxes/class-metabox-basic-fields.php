@@ -45,6 +45,13 @@ class Cogito_RAR_Metabox_Basic_Fields {
         }
         $moto_partner = get_post_meta( $post->ID, '_rar_moto_partner', true ); // Homepage Moto Partner native ad flag
         $moto_status  = get_post_meta( $post->ID, '_rar_moto_partner_status', true ); // 'live' | 'archived' | '' (unset → no radio preselected)
+        $track_only_meta = get_post_meta( $post->ID, Cogito_RAR_Track_Only::META_KEY, true );
+        // A brand-new post (no saved value yet) previews what auto-detect
+        // would pick from whatever's already in the Target URL textarea —
+        // an existing post's own saved choice always wins over that guess.
+        $track_only = ( '' === $track_only_meta )
+            ? Cogito_RAR_Track_Only::host_requires_track_only( $target )
+            : ( '1' === $track_only_meta );
 
         // Output the nonce field (important for security)
         wp_nonce_field( 'rar_save_meta', 'rar_meta_nonce' );
@@ -69,6 +76,15 @@ class Cogito_RAR_Metabox_Basic_Fields {
         echo '<p><label>Target URL:<br>
         <textarea name="rar_target" rows="2" style="width:100%;">' . esc_textarea( $target ) . '</textarea>
         </label></p>';
+
+        // --- Track-only (no redirect) ---
+        // Auto-detected from the Target URL above for domains whose own
+        // terms prohibit cloaked/shortened affiliate links (Amazon
+        // Associates being the motivating case) — see
+        // Cogito_RAR_Track_Only::AUTO_DETECT_DOMAINS. Still a real,
+        // manually-overridable checkbox either way: the saved value
+        // always wins once this link has been saved once.
+        echo '<p><label><input type="checkbox" name="rar_track_only" value="1"' . checked( $track_only, true, false ) . '> Track-only (no redirect — the vanity link IS the destination, for sites like Amazon whose terms prohibit cloaked links)</label></p>';
 
         // --- Vanity Slug ---
         echo '<p><label>Vanity Link (slug after domain):<br>

@@ -65,6 +65,10 @@ class Cogito_RAR_Metabox_Save {
         update_post_meta( $post_id, '_rar_notes',    sanitize_textarea_field( $_POST['rar_notes'] ?? '' ) );
         update_post_meta( $post_id, '_rar_nofollow', isset( $_POST['rar_nofollow'] ) ? '1' : '0' );
         update_post_meta( $post_id, '_rar_sponsored', isset( $_POST['rar_sponsored'] ) ? '1' : '0' );
+        // Auto-detected by default (see the checkbox's own default-checked
+        // state in the metabox render) — this just saves whatever ended up
+        // checked, same as any other toggle on this screen.
+        update_post_meta( $post_id, Cogito_RAR_Track_Only::META_KEY, isset( $_POST['rar_track_only'] ) ? '1' : '0' );
         // Save toggle states
         update_post_meta( $post_id, '_rar_geo_enabled', isset( $_POST['rar_geo_enabled'] ) ? '1' : '0' );
         update_post_meta( $post_id, '_rar_rotation_enabled', isset( $_POST['rar_rotation_enabled'] ) ? '1' : '0' );

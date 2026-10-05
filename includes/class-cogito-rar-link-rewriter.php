@@ -30,10 +30,11 @@ class Cogito_RAR_Link_Rewriter {
     }
 
     /**
-     * Returns the set of published redirect slugs as [ slug => true ],
-     * cached in a transient for O(1) lookups during the content filter.
+     * Returns the set of published redirect slugs, each mapped to whether
+     * it's track-only and (only for those) its real destination — cached
+     * in a transient for O(1) lookups during the content filter.
      *
-     * @return array
+     * @return array [ slug => [ 'track_only' => bool, 'target' => string ] ]
      */
     public static function get_slugs() {
         $slugs = get_transient( self::TRANSIENT );
@@ -51,9 +52,14 @@ class Cogito_RAR_Link_Rewriter {
         $slugs = [];
         foreach ( $ids as $id ) {
             $name = get_post_field( 'post_name', $id );
-            if ( $name ) {
-                $slugs[ $name ] = true;
+            if ( ! $name ) {
+                continue;
             }
+            $track_only     = class_exists( 'Cogito_RAR_Track_Only' ) && Cogito_RAR_Track_Only::is_track_only( $id );
+            $slugs[ $name ] = [
+                'track_only' => $track_only,
+                'target'     => $track_only ? (string) get_post_meta( $id, '_rar_target', true ) : '',
+            ];
         }
 
         set_transient( self::TRANSIENT, $slugs, DAY_IN_SECONDS );
@@ -109,6 +115,17 @@ class Cogito_RAR_Link_Rewriter {
                 $seg = trim( $path, '/' );
                 if ( '' === $seg || strpos( $seg, '/' ) !== false || ! isset( $slugs[ $seg ] ) ) {
                     return $m[0];
+                }
+
+                // Track-only: its vanity URL IS its real (external)
+                // destination (see Cogito_RAR_Track_Only) — swap straight
+                // to that instead of a /go/ path, so a bare-slug reference
+                // to one never ends up cloaked either. Any query/fragment
+                // on the original href is deliberately dropped here rather
+                // than guessed onto an external URL — not a pattern this
+                // rewriter's internal-link use case actually needs.
+                if ( $slugs[ $seg ]['track_only'] ) {
+                    return 'href=' . $quote . esc_url( $slugs[ $seg ]['target'] ) . $quote;
                 }
 
                 $new_path = '/' . $prefix . '/' . $seg . '/';

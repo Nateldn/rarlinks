@@ -32,6 +32,35 @@ class Cogito_RAR_Rest_Access {
         add_action( 'rest_after_insert_' . self::CPT, [ self::class, 'force_default_active_without_publish_cap' ], 10, 2 );
         add_action( 'pre_get_posts', [ self::class, 'restrict_listing_to_own_posts' ] );
         add_filter( 'wp_count_posts', [ self::class, 'scope_counts_to_own_posts' ], 10, 2 );
+        add_action( 'rest_after_insert_' . self::CPT, [ self::class, 'auto_detect_track_only' ], 10, 2 );
+    }
+
+    /**
+     * Auto-detects track-only status from the destination (see
+     * Cogito_RAR_Track_Only) when a REST create/update didn't explicitly
+     * include meta._rar_track_only — mirrors the classic Edit screen's own
+     * checkbox, which previews the same auto-detection before a human
+     * ever saves it. Applies to any REST caller, not just the restricted
+     * Assistant role; this is a general convenience, not an enforcement
+     * rule.
+     */
+    public static function auto_detect_track_only( $post, $request ) {
+        if ( self::CPT !== $post->post_type ) {
+            return;
+        }
+
+        $meta = $request->get_param( 'meta' );
+        if ( is_array( $meta ) && array_key_exists( Cogito_RAR_Track_Only::META_KEY, $meta ) ) {
+            return; // Explicitly set by the request — never override it.
+        }
+
+        $target  = (string) get_post_meta( $post->ID, '_rar_target', true );
+        $current = get_post_meta( $post->ID, Cogito_RAR_Track_Only::META_KEY, true );
+        $resolved = Cogito_RAR_Track_Only::resolve( null, $target );
+
+        if ( $resolved !== $current ) {
+            update_post_meta( $post->ID, Cogito_RAR_Track_Only::META_KEY, $resolved );
+        }
     }
 
     /**
@@ -130,7 +159,7 @@ class Cogito_RAR_Rest_Access {
         // engine) — registered as strings rather than true booleans so a
         // REST-created link's meta is byte-for-byte identical to one
         // saved through the classic Edit screen.
-        $flag_fields = [ '_rar_nofollow', '_rar_sponsored', '_rar_active', '_rar_geo_enabled', '_rar_rotation_enabled' ];
+        $flag_fields = [ '_rar_nofollow', '_rar_sponsored', '_rar_active', '_rar_geo_enabled', '_rar_rotation_enabled', Cogito_RAR_Track_Only::META_KEY ];
         foreach ( $flag_fields as $key ) {
             register_post_meta( self::CPT, $key, [
                 'show_in_rest'      => true,

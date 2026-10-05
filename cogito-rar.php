@@ -46,6 +46,12 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/metaboxes/class-metaboxes.p
 require_once plugin_dir_path( __FILE__ ) . 'includes/helpers/class-cogito-rar-setcookie.php';
 add_action( 'init', [ 'Cogito_RAR_SetCookie', 'maybe_set_cookie' ], 1 );
 
+// 🔖 Track-only links (no redirect — vanity URL IS the destination;
+// see the class docblock for why, Amazon Associates being the motivating
+// case). Required before the redirect engine and content rewriter below,
+// which both consult it.
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-track-only.php';
+
 // Redirect logic engine for conditional redirect checks, GEO, rotation, fallback.
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-redirect-engine.php';
 
@@ -67,6 +73,11 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/helpers/ip-hasher.php';
 // 📊 Stats Dashboard & Click Logging
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-dashboard.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-click-logger.php';
+
+// 🔖 Client-side click capture for track-only links (reports straight to
+// Cogito_RAR_Click_Logger::log_click(), same as a normal /go/ redirect)
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-track-only-capture.php';
+Cogito_RAR_Track_Only_Capture::init();
 
 // 🧹 Daily retention: purges old click-log rows and resolved conversion-queue rows
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-retention.php';

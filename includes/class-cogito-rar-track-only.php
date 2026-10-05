@@ -1,0 +1,104 @@
+<?php
+/**
+ * "Track-only" RARLinks: a link whose vanity URL is its own real
+ * destination — no /go/ redirect at all — for cases where masking the
+ * destination isn't allowed (Amazon Associates' own terms explicitly
+ * prohibit disguised/shortened affiliate links) but click tracking is
+ * still wanted. Nate still creates it the normal way (Add New RARLink,
+ * paste the destination into Target URL); this class only changes what
+ * gets output as "the link" and auto-detects when that should happen.
+ *
+ * Tracking for a track-only link happens client-side instead of via the
+ * server redirect — see Cogito_RAR_Track_Only_Capture — but reports back
+ * to Cogito_RAR_Click_Logger::log_click() directly, the exact same
+ * function a normal /go/ redirect already calls. Clicks Report, Bot
+ * Report and Conversions capture all work identically either way; only
+ * how the click is detected differs.
+ *
+ * @package Cogito_RAR
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class Cogito_RAR_Track_Only {
+
+    const META_KEY = '_rar_track_only';
+
+    /**
+     * Domains whose own terms are known to prohibit cloaked/shortened
+     * affiliate links — Amazon Associates' Operating Agreement being the
+     * motivating case. amzn.to is Amazon's own official shortener,
+     * included so a link already using it is still recognised.
+     */
+    const AUTO_DETECT_DOMAINS = [
+        'amazon.com',
+        'amazon.co.uk',
+        'amazon.ca',
+        'amazon.de',
+        'amazon.fr',
+        'amazon.it',
+        'amazon.es',
+        'amazon.nl',
+        'amazon.se',
+        'amazon.pl',
+        'amazon.com.be',
+        'amazon.co.jp',
+        'amazon.in',
+        'amazon.com.au',
+        'amazon.com.br',
+        'amazon.com.mx',
+        'amzn.to',
+    ];
+
+    /**
+     * Whether a destination URL's host matches one of the known
+     * no-cloaking domains, subdomains included (e.g. www.amazon.com).
+     *
+     * @param string $url
+     * @return bool
+     */
+    public static function host_requires_track_only( $url ) {
+        $host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+        if ( '' === $host ) {
+            return false;
+        }
+
+        foreach ( self::AUTO_DETECT_DOMAINS as $domain ) {
+            if ( $host === $domain || str_ends_with( $host, '.' . $domain ) ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Resolves what _rar_track_only should be saved as: the submitted
+     * value if one was explicitly given (so a human/API caller can always
+     * override the auto-detection either way), otherwise auto-detected
+     * from the destination.
+     *
+     * @param string|null $submitted '1'/'0' if explicitly provided, null
+     *                                if the field was never touched (e.g.
+     *                                a REST request that didn't include it).
+     * @param string      $target_url
+     * @return string '1' or '0'.
+     */
+    public static function resolve( $submitted, $target_url ) {
+        if ( null !== $submitted ) {
+            return ( '1' === (string) $submitted ) ? '1' : '0';
+        }
+        return self::host_requires_track_only( $target_url ) ? '1' : '0';
+    }
+
+    /**
+     * @param int|WP_Post $post
+     * @return bool
+     */
+    public static function is_track_only( $post ) {
+        $post_id = is_object( $post ) ? $post->ID : (int) $post;
+        return '1' === get_post_meta( $post_id, self::META_KEY, true );
+    }
+}
