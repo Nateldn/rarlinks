@@ -17,6 +17,15 @@ class Cogito_RAR_Metabox_Rotation {
      * @param WP_Post $post The current post object.
      */
     public static function render( $post ) {
+        // Rotation only has anything to act on at the moment of a
+        // server-side redirect, which a track-only link never has (see
+        // Cogito_RAR_Track_Only) — showing the controls would imply
+        // they do something here when they can't.
+        if ( class_exists( 'Cogito_RAR_Track_Only' ) && Cogito_RAR_Track_Only::is_track_only( $post ) ) {
+            echo '<p class="description">Not applicable — this is a track-only link (no redirect), so there is nothing for rotation to act on.</p>';
+            return;
+        }
+
         // Load existing values
         $rotation = json_decode( get_post_meta( $post->ID, '_rar_rotation', true ) ?: '[]', true );
         $rot_enabled = get_post_meta( $post->ID, '_rar_rotation_enabled', true );

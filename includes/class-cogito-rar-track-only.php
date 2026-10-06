@@ -75,10 +75,13 @@ class Cogito_RAR_Track_Only {
     }
 
     /**
-     * Resolves what _rar_track_only should be saved as: the submitted
-     * value if one was explicitly given (so a human/API caller can always
-     * override the auto-detection either way), otherwise auto-detected
-     * from the destination.
+     * Resolves what _rar_track_only should be saved as. For a recognised
+     * no-cloak domain this is non-negotiable: always '1', regardless of
+     * what was submitted — "the human forgot to tick the box" is exactly
+     * the failure mode this is meant to close, so it can't be a
+     * suggestion that's easy to override or miss. For anything else, the
+     * submitted value wins when given at all (so a human/API caller can
+     * still opt a non-listed domain IN), falling back to '0'.
      *
      * @param string|null $submitted '1'/'0' if explicitly provided, null
      *                                if the field was never touched (e.g.
@@ -87,10 +90,10 @@ class Cogito_RAR_Track_Only {
      * @return string '1' or '0'.
      */
     public static function resolve( $submitted, $target_url ) {
-        if ( null !== $submitted ) {
-            return ( '1' === (string) $submitted ) ? '1' : '0';
+        if ( self::host_requires_track_only( $target_url ) ) {
+            return '1';
         }
-        return self::host_requires_track_only( $target_url ) ? '1' : '0';
+        return ( null !== $submitted && '1' === (string) $submitted ) ? '1' : '0';
     }
 
     /**

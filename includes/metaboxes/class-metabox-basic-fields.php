@@ -46,12 +46,18 @@ class Cogito_RAR_Metabox_Basic_Fields {
         $moto_partner = get_post_meta( $post->ID, '_rar_moto_partner', true ); // Homepage Moto Partner native ad flag
         $moto_status  = get_post_meta( $post->ID, '_rar_moto_partner_status', true ); // 'live' | 'archived' | '' (unset → no radio preselected)
         $track_only_meta = get_post_meta( $post->ID, Cogito_RAR_Track_Only::META_KEY, true );
-        // A brand-new post (no saved value yet) previews what auto-detect
-        // would pick from whatever's already in the Target URL textarea —
-        // an existing post's own saved choice always wins over that guess.
-        $track_only = ( '' === $track_only_meta )
-            ? Cogito_RAR_Track_Only::host_requires_track_only( $target )
-            : ( '1' === $track_only_meta );
+        // Non-negotiable for a recognised no-cloak domain (see
+        // Cogito_RAR_Track_Only::resolve(), which enforces this
+        // server-side regardless of what this checkbox even submits) —
+        // the UI reflects that by disabling it rather than pretending
+        // it's a real choice. For anything else, a brand-new post (no
+        // saved value yet) previews what auto-detect would default to
+        // from whatever's already in the Target URL textarea; an
+        // existing post's own saved choice always wins over that guess.
+        $track_only_forced = Cogito_RAR_Track_Only::host_requires_track_only( $target );
+        $track_only = $track_only_forced
+            ? true
+            : ( ( '' === $track_only_meta ) ? false : ( '1' === $track_only_meta ) );
 
         // Output the nonce field (important for security)
         wp_nonce_field( 'rar_save_meta', 'rar_meta_nonce' );
@@ -81,10 +87,17 @@ class Cogito_RAR_Metabox_Basic_Fields {
         // Auto-detected from the Target URL above for domains whose own
         // terms prohibit cloaked/shortened affiliate links (Amazon
         // Associates being the motivating case) — see
-        // Cogito_RAR_Track_Only::AUTO_DETECT_DOMAINS. Still a real,
-        // manually-overridable checkbox either way: the saved value
+        // Cogito_RAR_Track_Only::AUTO_DETECT_DOMAINS. Disabled (can't be
+        // unchecked) once that's detected: this is enforced server-side
+        // regardless of what gets submitted, so presenting it as an
+        // optional choice there would be misleading. Still a normal,
+        // overridable checkbox for any other domain — the saved value
         // always wins once this link has been saved once.
-        echo '<p><label><input type="checkbox" name="rar_track_only" value="1"' . checked( $track_only, true, false ) . '> Track-only (no redirect — the vanity link IS the destination, for sites like Amazon whose terms prohibit cloaked links)</label></p>';
+        echo '<p><label><input type="checkbox" name="rar_track_only" value="1"' . checked( $track_only, true, false ) . ( $track_only_forced ? ' disabled' : '' ) . '> Track-only (no redirect — the vanity link IS the destination, for sites like Amazon whose terms prohibit cloaked links)</label>';
+        if ( $track_only_forced ) {
+            echo '<br><span class="description">Required for this destination — Amazon (and similarly-listed sites) don\'t allow disguised affiliate links, so this can\'t be turned off here.</span>';
+        }
+        echo '</p>';
 
         // --- Vanity Slug ---
         echo '<p><label>Vanity Link (slug after domain):<br>
@@ -92,13 +105,26 @@ class Cogito_RAR_Metabox_Basic_Fields {
         </label></p>';
 
         // --- Redirect Type ---
+        // Meaningless for a track-only link — there's no redirect for it
+        // to apply to. A disabled <select> isn't submitted by the browser
+        // at all, so a hidden field carries the real stored value through
+        // untouched (in case the link is ever converted back), while the
+        // visible control stays disabled so nobody thinks changing it
+        // here does anything.
+        if ( $track_only ) {
+            echo '<input type="hidden" name="rar_type" value="' . esc_attr( $type ) . '">';
+        }
         echo '<p><label>Redirect Type:
-        <select name="rar_type">
+        <select name="rar_type"' . ( $track_only ? ' disabled' : '' ) . '>
             <option value="301"' . selected( $type, 301, false ) . '>301 (Permanent)</option>
             <option value="302"' . selected( $type, 302, false ) . '>302 (Temporary)</option>
             <option value="307"' . selected( $type, 307, false ) . '>307 (Preserve Method)</option>
         </select>
-        </label></p>';
+        </label>';
+        if ( $track_only ) {
+            echo ' <span class="description">Not applicable — track-only links have no redirect.</span>';
+        }
+        echo '</p>';
 
         // --- rel="nofollow sponsored" header toggles ---
         echo '<p><label><input type="checkbox" name="rar_nofollow" value="1"' . checked( $nofollow, true, false ) . '> Add <code>rel="nofollow"</code></label></p>';

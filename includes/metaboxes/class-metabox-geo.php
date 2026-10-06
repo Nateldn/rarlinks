@@ -17,6 +17,15 @@ class Cogito_RAR_Metabox_Geo {
      * @param WP_Post $post The current post object.
      */
     public static function render( $post ) {
+        // GEO targeting only has anything to act on at the moment of a
+        // server-side redirect, which a track-only link never has (see
+        // Cogito_RAR_Track_Only) — showing the controls would imply
+        // they do something here when they can't.
+        if ( class_exists( 'Cogito_RAR_Track_Only' ) && Cogito_RAR_Track_Only::is_track_only( $post ) ) {
+            echo '<p class="description">Not applicable — this is a track-only link (no redirect), so there is nothing for GEO targeting to act on.</p>';
+            return;
+        }
+
         // Load existing values
         $geo_enabled = get_post_meta( $post->ID, '_rar_geo_enabled', true );
         $geo         = json_decode( get_post_meta( $post->ID, '_rar_geo', true ) ?: '[]', true );

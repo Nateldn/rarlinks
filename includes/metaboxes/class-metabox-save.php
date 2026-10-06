@@ -65,13 +65,30 @@ class Cogito_RAR_Metabox_Save {
         update_post_meta( $post_id, '_rar_notes',    sanitize_textarea_field( $_POST['rar_notes'] ?? '' ) );
         update_post_meta( $post_id, '_rar_nofollow', isset( $_POST['rar_nofollow'] ) ? '1' : '0' );
         update_post_meta( $post_id, '_rar_sponsored', isset( $_POST['rar_sponsored'] ) ? '1' : '0' );
-        // Auto-detected by default (see the checkbox's own default-checked
-        // state in the metabox render) — this just saves whatever ended up
-        // checked, same as any other toggle on this screen.
-        update_post_meta( $post_id, Cogito_RAR_Track_Only::META_KEY, isset( $_POST['rar_track_only'] ) ? '1' : '0' );
-        // Save toggle states
-        update_post_meta( $post_id, '_rar_geo_enabled', isset( $_POST['rar_geo_enabled'] ) ? '1' : '0' );
-        update_post_meta( $post_id, '_rar_rotation_enabled', isset( $_POST['rar_rotation_enabled'] ) ? '1' : '0' );
+
+        // Non-negotiable for a recognised no-cloak domain regardless of
+        // what the (possibly disabled/unsubmitted) checkbox sent — see
+        // Cogito_RAR_Track_Only::resolve(). This has to run against
+        // $canonical_target (just-submitted), not the old stored value,
+        // so changing the Target URL to/from a listed domain takes effect
+        // on this same save.
+        $submitted_track_only = isset( $_POST['rar_track_only'] ) ? '1' : '0';
+        $track_only = Cogito_RAR_Track_Only::resolve( $submitted_track_only, $canonical_target );
+        update_post_meta( $post_id, Cogito_RAR_Track_Only::META_KEY, $track_only );
+
+        // GEO and rotation only ever have anything to act on at the
+        // moment of a server-side redirect, which a track-only link never
+        // has — forced off rather than just hidden in the UI, so the
+        // stored data stays honest even if a request bypassed the
+        // disabled controls somehow.
+        if ( '1' === $track_only ) {
+            update_post_meta( $post_id, '_rar_geo_enabled', '0' );
+            update_post_meta( $post_id, '_rar_rotation_enabled', '0' );
+        } else {
+            update_post_meta( $post_id, '_rar_geo_enabled', isset( $_POST['rar_geo_enabled'] ) ? '1' : '0' );
+            update_post_meta( $post_id, '_rar_rotation_enabled', isset( $_POST['rar_rotation_enabled'] ) ? '1' : '0' );
+        }
+
         // Save active state toggle
         update_post_meta( $post_id, '_rar_active', isset( $_POST['rar_active'] ) ? '1' : '0' );
 
