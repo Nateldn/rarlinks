@@ -148,16 +148,38 @@ class Cogito_RAR_Rest_Access {
      *
      * All of these are "protected" meta by WordPress's own convention
      * (leading underscore), which defaults to REQUIRING manage_options via
-     * REST unless an auth_callback says otherwise — the callback below
-     * ties access to the SAME per-post edit_post meta capability the rest
-     * of this plugin already uses (class-metabox-save.php,
-     * class-metaboxes.php), so it automatically respects the "own,
-     * unpublished only" boundary the Assistant role is built around,
-     * with no separate logic to keep in sync.
+     * REST unless an auth_callback says otherwise.
+     *
+     * The callback deliberately does NOT use current_user_can('edit_post',
+     * $post_id) — WordPress's own meta-capability resolution for "can this
+     * user edit this specific post." Live testing (Oct 2026) found that
+     * check silently denying the Assistant role access to its own,
+     * just-created post on this custom (non-'post') capability_type —
+     * meta wrote/read fine for the two fields this plugin sets directly
+     * via update_post_meta() elsewhere (bypassing this check entirely),
+     * but not for anything routed through this auth_callback, including
+     * on a plain GET of an already-existing post well after any
+     * insert-time timing could plausibly be the cause. Root cause not
+     * fully pinned down without a debugger on the live site; this
+     * sidesteps it with a direct, equivalent check instead of
+     * reproducing whatever that resolution is getting wrong: the same
+     * "own post, or edit_others" rule, via a plain capability check plus
+     * a direct post_author comparison, rather than WordPress's own
+     * meta-cap chain for it.
      */
     public static function register_meta_fields() {
         $auth_callback = function ( $allowed, $meta_key, $post_id ) {
-            return current_user_can( 'edit_post', $post_id );
+            if ( ! current_user_can( 'edit_rar_redirects' ) ) {
+                return false;
+            }
+            $post = get_post( $post_id );
+            if ( ! $post ) {
+                return false;
+            }
+            if ( (int) $post->post_author === get_current_user_id() ) {
+                return true;
+            }
+            return current_user_can( 'edit_others_rar_redirects' );
         };
 
         $string_fields = [ '_rar_target', '_rar_notes', '_rar_rotation', '_rar_geo' ];
