@@ -19,12 +19,10 @@ class Cogito_RAR_Metabox_Geo {
     public static function render( $post ) {
         // GEO targeting only has anything to act on at the moment of a
         // server-side redirect, which a track-only link never has (see
-        // Cogito_RAR_Track_Only) — showing the controls would imply
-        // they do something here when they can't.
-        if ( class_exists( 'Cogito_RAR_Track_Only' ) && Cogito_RAR_Track_Only::is_track_only( $post ) ) {
-            echo '<p class="description">Not applicable — this is a track-only link (no redirect), so there is nothing for GEO targeting to act on.</p>';
-            return;
-        }
+        // Cogito_RAR_Track_Only) — shown greyed-out and non-interactive
+        // rather than hidden, so it's clear WHAT'S disabled and why,
+        // instead of a note with nothing visible for it to refer to.
+        $track_only = class_exists( 'Cogito_RAR_Track_Only' ) && Cogito_RAR_Track_Only::is_track_only( $post );
 
         // Load existing values
         $geo_enabled = get_post_meta( $post->ID, '_rar_geo_enabled', true );
@@ -46,9 +44,18 @@ class Cogito_RAR_Metabox_Geo {
         }
         echo '</datalist>';
 
+        if ( $track_only ) {
+            echo '<p class="description"><strong>GEO Disabled</strong> for track-only links.</p>';
+        }
+
+        // pointer-events (not just disabled attributes) also catches the
+        // Remove links below, which are plain <a> tags a <fieldset> alone
+        // wouldn't grey out.
+        echo '<div' . ( $track_only ? ' style="opacity:0.5; pointer-events:none;"' : '' ) . '>';
+
         // --- Enable GEO Targeting Toggle ---
         echo '<div class="rartoggle">
-            <input type="checkbox" id="rar_geo_enabled" name="rar_geo_enabled" value="1"' . checked( $geo_enabled, '1', false ) . ' />
+            <input type="checkbox" id="rar_geo_enabled" name="rar_geo_enabled" value="1"' . checked( $geo_enabled, '1', false ) . ( $track_only ? ' disabled' : '' ) . ' />
             <label for="rar_geo_enabled"></label>
          Enable GEO Targeting
         </div>';
@@ -62,12 +69,13 @@ class Cogito_RAR_Metabox_Geo {
         }
         foreach ( $geo as $i => $g ) {
             echo '<div class="rar-geo-row" data-index="' . $i . '">
-                <label>Country:<input list="rar-country-list" name="rar_geo[' . $i . '][country]" value="' . esc_attr( $g['country'] ) . '" style="width:25%;" /></label>
-                <label>URL:<input type="url" name="rar_geo[' . $i . '][url]" value="' . esc_attr( $g['url'] ) . '" style="width:60%;" /></label>';
+                <label>Country:<input list="rar-country-list" name="rar_geo[' . $i . '][country]" value="' . esc_attr( $g['country'] ) . '" style="width:25%;"' . ( $track_only ? ' disabled' : '' ) . ' /></label>
+                <label>URL:<input type="url" name="rar_geo[' . $i . '][url]" value="' . esc_attr( $g['url'] ) . '" style="width:60%;"' . ( $track_only ? ' disabled' : '' ) . ' /></label>';
             echo ' <a href="#" class="remove-geo"' . ( $i === 0 ? ' style="display:inline;"' : '' ) . '>Remove</a>';
             echo '</div>';
         }
-        echo '<p><button type="button" class="button" id="add-geo">+ Add GEO Rule</button></p>';
+        echo '<p><button type="button" class="button" id="add-geo"' . ( $track_only ? ' disabled' : '' ) . '>+ Add GEO Rule</button></p>';
         echo '</div>'; // Close #rar-geo
+        echo '</div>'; // Close the greyed-out wrapper
     }
 }
