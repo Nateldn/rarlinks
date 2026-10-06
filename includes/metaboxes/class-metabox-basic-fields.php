@@ -158,20 +158,23 @@ if ( ! empty( $periods ) ) {
 }
 echo '</div>';
 
-// Fetch OTHER links and count only those currently LIVE (homepage shows ~3)
-$existing_partners = get_posts( [
-    'post_type'      => 'rar_redirect',
-    'posts_per_page' => -1,
-    'meta_key'       => '_rar_moto_partner',
-    'meta_value'     => '1',
-    'exclude'        => [ $post->ID ], // Don't count the current post
-] );
-$live_partners = array_filter( $existing_partners, static function ( $p ) {
-    return Cogito_RAR_Moto_Partner::is_currently_live( $p->ID );
-} );
+// Only relevant once Moto Partner is actually ticked — this used to show
+// unconditionally, which was just noise for a link that isn't one.
+if ( '1' === $moto_partner ) {
+    // Fetch OTHER links and count only those currently LIVE (homepage shows ~3)
+    $existing_partners = get_posts( [
+        'post_type'      => 'rar_redirect',
+        'posts_per_page' => -1,
+        'meta_key'       => '_rar_moto_partner',
+        'meta_value'     => '1',
+        'exclude'        => [ $post->ID ], // Don't count the current post
+    ] );
+    $live_partners = array_filter( $existing_partners, static function ( $p ) {
+        return Cogito_RAR_Moto_Partner::is_currently_live( $p->ID );
+    } );
 
-// Soft warning if 3 or more OTHERS are already live (homepage shows max 3)
-if ( count( $live_partners ) >= 3 ) {
+    // Soft warning if 3 or more OTHERS are already live (homepage shows max 3)
+    if ( count( $live_partners ) >= 3 ) {
     echo '<div class="rar-moto-partner-warning">';
     echo '⚠️ ' . count( $live_partners ) . ' other links are already Live Moto Partners. The homepage typically shows only 3:';
     echo '<ul class="rar-moto-partner-list">';
@@ -181,6 +184,7 @@ if ( count( $live_partners ) >= 3 ) {
     }
     echo '</ul>';
     echo '</div>';
+    }
 }
 
         // --- Notes ---
