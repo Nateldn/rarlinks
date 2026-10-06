@@ -44,14 +44,15 @@ class Cogito_RAR_Metabox_Geo {
         }
         echo '</datalist>';
 
-        if ( $track_only ) {
-            echo '<p class="description"><strong>GEO Disabled</strong> for track-only links.</p>';
-        }
+        // Both always rendered, just toggled — rar-admin-metabox.js
+        // flips the same display/style live when Track-only changes,
+        // without waiting for a save/reload.
+        echo '<p id="rar-geo-disabled-note" class="description"' . ( $track_only ? '' : ' style="display:none;"' ) . '><strong>GEO Disabled</strong> for track-only links.</p>';
 
         // pointer-events (not just disabled attributes) also catches the
         // Remove links below, which are plain <a> tags a <fieldset> alone
         // wouldn't grey out.
-        echo '<div' . ( $track_only ? ' style="opacity:0.5; pointer-events:none;"' : '' ) . '>';
+        echo '<div id="rar-geo-wrapper"' . ( $track_only ? ' style="opacity:0.5; pointer-events:none;"' : '' ) . '>';
 
         // --- Enable GEO Targeting Toggle ---
         echo '<div class="rartoggle">

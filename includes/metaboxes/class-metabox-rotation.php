@@ -34,14 +34,15 @@ class Cogito_RAR_Metabox_Rotation {
             $rotation = [ [ 'url' => $target_url_for_rotation_default, 'weight' => 100 ] ];
         }
 
-        if ( $track_only ) {
-            echo '<p class="description"><strong>Rotation Disabled</strong> for track-only links.</p>';
-        }
+        // Both always rendered, just toggled — rar-admin-metabox.js
+        // flips the same display/style live when Track-only changes,
+        // without waiting for a save/reload.
+        echo '<p id="rar-rotation-disabled-note" class="description"' . ( $track_only ? '' : ' style="display:none;"' ) . '><strong>Rotation Disabled</strong> for track-only links.</p>';
 
         // pointer-events (not just disabled attributes) also catches the
         // Remove links below, which are plain <a> tags a <fieldset> alone
         // wouldn't grey out.
-        echo '<div' . ( $track_only ? ' style="opacity:0.5; pointer-events:none;"' : '' ) . '>';
+        echo '<div id="rar-rotation-wrapper"' . ( $track_only ? ' style="opacity:0.5; pointer-events:none;"' : '' ) . '>';
 
         // --- Enable Weighted Rotation Toggle ---
         echo '<div class="rartoggle">

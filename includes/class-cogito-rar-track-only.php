@@ -26,6 +26,29 @@ class Cogito_RAR_Track_Only {
 
     const META_KEY = '_rar_track_only';
 
+    public static function init() {
+        // Priority 20: after Cogito_RAR::enqueue_admin_assets() (default
+        // priority 10) has actually enqueued 'rar-admin-metabox-js' —
+        // wp_localize_script() has to attach to an already-enqueued handle.
+        add_action( 'admin_enqueue_scripts', [ self::class, 'localize_domains_for_admin_js' ], 20 );
+    }
+
+    /**
+     * Gives the Edit-screen JS the same domain list PHP enforces with
+     * server-side, so it can grey out Redirect Type/GEO/Rotation and
+     * force-check Track-only the instant a recognised URL is typed —
+     * without waiting for a save/reload round trip — using one shared
+     * source of truth rather than a second hardcoded list in JS.
+     */
+    public static function localize_domains_for_admin_js() {
+        if ( ! wp_script_is( 'rar-admin-metabox-js', 'enqueued' ) ) {
+            return;
+        }
+        wp_localize_script( 'rar-admin-metabox-js', 'rarTrackOnly', [
+            'domains' => self::AUTO_DETECT_DOMAINS,
+        ] );
+    }
+
     /**
      * Domains whose own terms are known to prohibit cloaked/shortened
      * affiliate links — Amazon Associates' Operating Agreement being the

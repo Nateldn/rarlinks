@@ -19,13 +19,18 @@ class Cogito_RAR_Metabox_Preview {
     public static function render( $post ) {
         $slug   = $post->post_name;
         $vanity = Cogito_RAR_Redirect_Engine::vanity_url( $slug, $post );
+        // The plain /go/slug/ form regardless of track-only status (omitting
+        // $post_id skips that check entirely) — rar-admin-metabox.js needs
+        // this to restore the preview if Track-only gets live-unchecked,
+        // without having to rebuild the /go/ URL itself client-side.
+        $vanity_go_url = Cogito_RAR_Redirect_Engine::vanity_url( $slug );
 
         echo '<p><strong>Full Vanity URL:</strong></p>';
         // Reuses the copy button markup/classes from the RARLinks list table
         // (class-cogito-rar-admin-columns.php) — its click handler is bound
         // admin-wide, so it picks this button up with no extra JS.
         echo '<div class="rar-copy-slug-wrap">';
-        echo '<input type="text" class="rar-copy-input" value="' . esc_url( $vanity ) . '" readonly>';
+        echo '<input type="text" id="rar-vanity-url-input" class="rar-copy-input" value="' . esc_url( $vanity ) . '" data-go-url="' . esc_url( $vanity_go_url ) . '" readonly>';
         echo '<button type="button" class="rar-copy-btn button" data-copy="' . esc_url( $vanity ) . '" aria-label="Copy Vanity URL">';
         echo '<span class="dashicons dashicons-clipboard" aria-hidden="true"></span>';
         echo '</button>';

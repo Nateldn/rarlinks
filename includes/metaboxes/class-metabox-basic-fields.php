@@ -80,7 +80,7 @@ class Cogito_RAR_Metabox_Basic_Fields {
 
         // --- Target URL (textarea) ---
         echo '<p><label>Target URL:<br>
-        <textarea name="rar_target" rows="2" style="width:100%;">' . esc_textarea( $target ) . '</textarea>
+        <textarea id="rar_target" name="rar_target" rows="2" style="width:100%;">' . esc_textarea( $target ) . '</textarea>
         </label></p>';
 
         // --- Track-only (no redirect) ---
@@ -93,10 +93,13 @@ class Cogito_RAR_Metabox_Basic_Fields {
         // optional choice there would be misleading. Still a normal,
         // overridable checkbox for any other domain — the saved value
         // always wins once this link has been saved once.
-        echo '<p><label><input type="checkbox" name="rar_track_only" value="1"' . checked( $track_only, true, false ) . ( $track_only_forced ? ' disabled' : '' ) . '> Track-only (no redirect — the vanity link IS the destination, for sites like Amazon whose terms prohibit cloaked links)</label>';
-        if ( $track_only_forced ) {
-            echo '<br><span class="description">Required for this destination — Amazon (and similarly-listed sites) don\'t allow disguised affiliate links, so this can\'t be turned off here.</span>';
-        }
+        //
+        // rar-admin-metabox.js re-runs this same detection live as Target
+        // URL is typed (and reacts to the checkbox either way, auto or
+        // manual) — the server-rendered state below is just what's true
+        // on page load, before any typing.
+        echo '<p><label><input type="checkbox" id="rar_track_only" name="rar_track_only" value="1"' . checked( $track_only, true, false ) . ( $track_only_forced ? ' disabled' : '' ) . '> Track-only (no redirect — the vanity link IS the destination, for sites like Amazon whose terms prohibit cloaked links)</label>';
+        echo '<br><span id="rar-track-only-required-note" class="description"' . ( $track_only_forced ? '' : ' style="display:none;"' ) . '>Required for this destination — Amazon (and similarly-listed sites) don\'t allow disguised affiliate links, so this can\'t be turned off here.</span>';
         echo '</p>';
 
         // --- Vanity Slug ---
@@ -107,24 +110,23 @@ class Cogito_RAR_Metabox_Basic_Fields {
         // --- Redirect Type ---
         // Meaningless for a track-only link — there's no redirect for it
         // to apply to. A disabled <select> isn't submitted by the browser
-        // at all, so a hidden field carries the real stored value through
-        // untouched (in case the link is ever converted back), while the
-        // visible control stays disabled so nobody thinks changing it
-        // here does anything.
+        // at all, so a hidden field (id="rar_type_hidden" — rar-admin-
+        // metabox.js adds/removes this same way when toggling live) carries
+        // the real stored value through untouched (in case the link is
+        // ever converted back), while the visible control stays disabled
+        // so nobody thinks changing it here does anything.
         if ( $track_only ) {
-            echo '<input type="hidden" name="rar_type" value="' . esc_attr( $type ) . '">';
+            echo '<input type="hidden" id="rar_type_hidden" name="rar_type" value="' . esc_attr( $type ) . '">';
         }
         echo '<p><label>Redirect Type:
-        <select name="rar_type"' . ( $track_only ? ' disabled' : '' ) . '>
+        <select id="rar_type" name="rar_type"' . ( $track_only ? ' disabled' : '' ) . '>
             <option value="301"' . selected( $type, 301, false ) . '>301 (Permanent)</option>
             <option value="302"' . selected( $type, 302, false ) . '>302 (Temporary)</option>
             <option value="307"' . selected( $type, 307, false ) . '>307 (Preserve Method)</option>
         </select>
-        </label>';
-        if ( $track_only ) {
-            echo ' <span class="description">Not applicable — track-only links have no redirect.</span>';
-        }
-        echo '</p>';
+        </label>
+        <span id="rar-redirect-type-note" class="description"' . ( $track_only ? '' : ' style="display:none;"' ) . '> Not applicable — track-only links have no redirect.</span>
+        </p>';
 
         // --- rel="nofollow sponsored" header toggles ---
         echo '<p><label><input type="checkbox" name="rar_nofollow" value="1"' . checked( $nofollow, true, false ) . '> Add <code>rel="nofollow"</code></label></p>';

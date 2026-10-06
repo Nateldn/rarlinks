@@ -184,4 +184,99 @@ jQuery(document).ready(function($) {
         $('#rar_moto_partner').on('change', toggleMotoStatus);
     }
 
+
+    // --- Track-only (no-cloak domains, e.g. Amazon) live UI reactivity ---
+    /*
+     * Mirrors what the server already enforces on save (see
+     * Cogito_RAR_Track_Only::resolve() and class-metabox-save.php) so the
+     * Redirect Type / GEO / Rotation controls grey out and the vanity URL
+     * preview updates the instant a recognised URL is typed or the
+     * checkbox is toggled — not only after a save/reload. The server-side
+     * enforcement is still what's actually authoritative; this is purely
+     * a same-page preview of it.
+     */
+    (function () {
+        const $target   = $('#rar_target');
+        const $checkbox = $('#rar_track_only');
+        if (!$target.length || !$checkbox.length) return;
+
+        const domains = (typeof rarTrackOnly !== 'undefined' && rarTrackOnly.domains) ? rarTrackOnly.domains : [];
+
+        function hostRequiresTrackOnly(url) {
+            let host;
+            try {
+                host = new URL($.trim(url)).hostname.toLowerCase();
+            } catch (e) {
+                return false; // Not a parseable absolute URL (yet) — nothing to detect.
+            }
+            return domains.some(function (d) {
+                return host === d || host.slice(-(d.length + 1)) === '.' + d;
+            });
+        }
+
+        function applyTrackOnlyUI(trackOnly, forced) {
+            $checkbox.prop('checked', trackOnly).prop('disabled', forced);
+            $('#rar-track-only-required-note').toggle(forced);
+
+            // Redirect Type: disabled <select> isn't submitted by the
+            // browser, so a hidden field (same id the PHP render uses)
+            // carries the real value through while it's disabled.
+            const $select = $('#rar_type');
+            if ($select.length) {
+                let $hidden = $('#rar_type_hidden');
+                if (trackOnly && !$hidden.length) {
+                    $('<input type="hidden" id="rar_type_hidden" name="rar_type">')
+                        .val($select.val())
+                        .insertAfter($select);
+                } else if (!trackOnly) {
+                    $hidden.remove();
+                }
+                $select.prop('disabled', trackOnly);
+            }
+            $('#rar-redirect-type-note').toggle(trackOnly);
+
+            // GEO / Rotation: greyed out + non-interactive, same visual
+            // treatment the PHP render uses, and their own toggles forced
+            // off (mirroring the server forcing _rar_geo_enabled/
+            // _rar_rotation_enabled to '0' on save).
+            ['#rar-geo-wrapper', '#rar-rotation-wrapper'].forEach(function (sel) {
+                $(sel).css({ opacity: trackOnly ? 0.5 : '', pointerEvents: trackOnly ? 'none' : '' });
+            });
+            $('#rar-geo-disabled-note').toggle(trackOnly);
+            $('#rar-rotation-disabled-note').toggle(trackOnly);
+            if (trackOnly) {
+                $('#rar_geo_enabled, #rar_rotation_enabled').prop('checked', false);
+            }
+
+            // Vanity URL preview + its copy button (which copies from its
+            // own data-copy attribute, not the input's live value — see
+            // the admin_footer script in class-cogito-rar-admin-columns.php).
+            const $vanityInput = $('#rar-vanity-url-input');
+            if ($vanityInput.length) {
+                const newValue = trackOnly ? $.trim($target.val()) : $vanityInput.data('go-url');
+                $vanityInput.val(newValue);
+                $vanityInput.siblings('.rar-copy-btn').attr('data-copy', newValue);
+            }
+        }
+
+        function syncTrackOnlyUI() {
+            const forced    = hostRequiresTrackOnly($target.val());
+            const wasForced = $checkbox.data('wasForced') === true;
+            // Forced wins outright; dropping OUT of forced (the target no
+            // longer matches) reverts to unchecked rather than sticking
+            // checked just because an earlier call set it that way;
+            // otherwise this is a genuine manual choice — respect
+            // whatever's currently checked.
+            const trackOnly = forced ? true : ( wasForced ? false : $checkbox.is(':checked') );
+
+            $checkbox.data('wasForced', forced);
+            applyTrackOnlyUI(trackOnly, forced);
+        }
+
+        $target.on('input change', syncTrackOnlyUI);
+        $checkbox.on('change', syncTrackOnlyUI);
+
+        syncTrackOnlyUI(); // Reconcile with whatever the browser restored on load (back-button, crash recovery) before any typing happens.
+    })();
+
 }); // End jQuery(document).ready

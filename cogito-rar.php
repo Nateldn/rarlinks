@@ -51,6 +51,7 @@ add_action( 'init', [ 'Cogito_RAR_SetCookie', 'maybe_set_cookie' ], 1 );
 // case). Required before the redirect engine and content rewriter below,
 // which both consult it.
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-track-only.php';
+Cogito_RAR_Track_Only::init();
 
 // Redirect logic engine for conditional redirect checks, GEO, rotation, fallback.
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-redirect-engine.php';
