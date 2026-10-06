@@ -70,6 +70,12 @@ class Cogito_RAR_Rest_Access {
         if ( '1' === $resolved ) {
             update_post_meta( $post->ID, '_rar_geo_enabled', '0' );
             update_post_meta( $post->ID, '_rar_rotation_enabled', '0' );
+            // Not just disabled — wiped, so a track-only link created or
+            // edited via the API has no lingering GEO/rotation rules
+            // sitting in its data, matching the classic Edit screen's own
+            // save handler.
+            update_post_meta( $post->ID, '_rar_geo', '[]' );
+            update_post_meta( $post->ID, '_rar_rotation', '[]' );
         }
     }
 

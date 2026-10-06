@@ -78,12 +78,17 @@ class Cogito_RAR_Metabox_Save {
 
         // GEO and rotation only ever have anything to act on at the
         // moment of a server-side redirect, which a track-only link never
-        // has — forced off rather than just hidden in the UI, so the
-        // stored data stays honest even if a request bypassed the
-        // disabled controls somehow.
+        // has. Not just disabled — the stored rules themselves are wiped,
+        // so a track-only link has no lingering GEO/rotation
+        // configuration sitting in its data at all, not merely an
+        // inert-but-present one. Runs on every save, not just the first
+        // one that turns Track-only on, so this can't be reintroduced by
+        // a later edit either.
         if ( '1' === $track_only ) {
             update_post_meta( $post_id, '_rar_geo_enabled', '0' );
             update_post_meta( $post_id, '_rar_rotation_enabled', '0' );
+            update_post_meta( $post_id, '_rar_geo', '[]' );
+            update_post_meta( $post_id, '_rar_rotation', '[]' );
         } else {
             update_post_meta( $post_id, '_rar_geo_enabled', isset( $_POST['rar_geo_enabled'] ) ? '1' : '0' );
             update_post_meta( $post_id, '_rar_rotation_enabled', isset( $_POST['rar_rotation_enabled'] ) ? '1' : '0' );
