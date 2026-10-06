@@ -19,8 +19,10 @@ class Cogito_RAR_Metaboxes { // Consistent with 'class-metabox-{name}.php' conve
      * This method should be called once from the plugin bootstrap.
      */
     public static function init() {
-        // Hook for adding the meta box display
-        add_action( 'add_meta_boxes', [ self::class, 'add_meta_box' ] );
+        // 2 accepted args: $post_type (to bail early on every other post
+        // type's edit screen) and $post (to check track-only status for
+        // the title below).
+        add_action( 'add_meta_boxes', [ self::class, 'add_meta_box' ], 10, 2 );
 
         // Note: The 'save_post' and 'admin_notices' hooks are registered
         // directly by Cogito_RAR_Metabox_Save::init() from the bootstrap.
@@ -32,16 +34,27 @@ class Cogito_RAR_Metaboxes { // Consistent with 'class-metabox-{name}.php' conve
      * Adds the main redirect details meta box to the CPT screen.
      * This method calls the main render_meta_box method from Cogito_RAR.
      * Note: Cogito_RAR::render_meta_box will eventually be moved here.
+     *
+     * @param string       $post_type
+     * @param WP_Post|null $post
      */
-    public static function add_meta_box() {
+    public static function add_meta_box( $post_type, $post = null ) {
+        if ( self::CPT !== $post_type ) {
+            return;
+        }
+
         // ✅ Only allow users who can edit RARLinks to see the meta box —
         // RARLinks has its own capability namespace (see
         // Cogito_RAR_CPT_Registrar), so this can't rely on the generic,
         // regular-Posts-specific 'edit_posts' check any more.
         if ( current_user_can( 'edit_rar_redirects' ) ) {
+            // "Redirect Details" doesn't fit a link that has no redirect —
+            // see Cogito_RAR_Track_Only.
+            $track_only = is_object( $post ) && class_exists( 'Cogito_RAR_Track_Only' ) && Cogito_RAR_Track_Only::is_track_only( $post );
+
             add_meta_box(
                 'rar_details',
-                'Redirect Details',
+                $track_only ? 'Track-Only Details' : 'Redirect Details',
                 [ self::class, 'render_meta_box' ],
                 self::CPT,
                 'normal',

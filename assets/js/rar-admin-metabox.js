@@ -218,6 +218,20 @@ jQuery(document).ready(function($) {
             $checkbox.prop('checked', trackOnly).prop('disabled', forced);
             $('#rar-track-only-required-note').toggle(forced);
 
+            // Metabox heading + the Active toggle's own label/status
+            // wording — "Redirect ..." doesn't fit a link with no
+            // redirect. The shown/hidden active-vs-inactive STATE is left
+            // alone here (that's rar_active's own existing toggle logic,
+            // untouched); only which sentence (tracking vs redirect) is
+            // showing changes.
+            $('#rar_details .hndle').text(trackOnly ? 'Track-Only Details' : 'Redirect Details');
+            $('#rar-active-toggle-label').text(trackOnly ? 'Track / Don’t Track' : 'Activate/Deactivate');
+            const isLinkActive = $('#rar_active').is(':checked');
+            const statusText = trackOnly
+                ? (isLinkActive ? 'Tracking Active: Toggle to stop tracking clicks on this link.' : 'Tracking Paused: Toggle to resume tracking clicks on this link.')
+                : (isLinkActive ? 'Redirect Active: Toggle to deactivate and disable redirect options.' : 'Redirect Deactivated: Toggle to activate and save to enable redirect options.');
+            $('.rar-status-text').text(statusText);
+
             // Redirect Type: disabled <select> isn't submitted by the
             // browser, so a hidden field (same id the PHP render uses)
             // carries the real value through while it's disabled.
@@ -275,6 +289,10 @@ jQuery(document).ready(function($) {
 
         $target.on('input change', syncTrackOnlyUI);
         $checkbox.on('change', syncTrackOnlyUI);
+        // Toggling Active/Don't-track doesn't change forced/trackOnly
+        // itself, but the status sentence depends on it too (tracking vs
+        // redirect, active vs paused) — re-run to keep that in sync live.
+        $('#rar_active').on('change', syncTrackOnlyUI);
 
         syncTrackOnlyUI(); // Reconcile with whatever the browser restored on load (back-button, crash recovery) before any typing happens.
     })();

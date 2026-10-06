@@ -62,18 +62,27 @@ class Cogito_RAR_Metabox_Basic_Fields {
         // Output the nonce field (important for security)
         wp_nonce_field( 'rar_save_meta', 'rar_meta_nonce' );
 
-        // --- Active Toggle Switch (Enable/Disable Redirect) ---
+        // --- Active Toggle Switch (Enable/Disable Redirect, or Track/
+        // Don't Track for a track-only link — same underlying _rar_active
+        // flag either way; Cogito_RAR_Track_Only_Capture already reads it
+        // to decide whether a track-only link's clicks get reported, the
+        // same role it plays gating a normal link's redirect) ---
         echo '<div id="rar-active-toggle" class="rartoggle">';
         echo '<input type="checkbox" id="rar_active" name="rar_active" value="1"' . checked( $is_active, '1', false ) . '>';
         echo '<label for="rar_active"></label>';
-        echo '<span>Activate/Deactivate</span>';
+        echo '<span id="rar-active-toggle-label">' . ( $track_only ? 'Track / Don\'t Track' : 'Activate/Deactivate' ) . '</span>';
         echo '</div>';
 
-        // RARLink status messages
+        // RARLink status messages — wording reflects what this toggle
+        // actually controls for this link (tracking vs a redirect).
+        // rar-admin-metabox.js swaps the wording (not the shown/hidden
+        // state, which stays as-is) live when Track-only changes.
+        $active_label   = $track_only ? 'Tracking Active: Toggle to stop tracking clicks on this link.' : 'Redirect Active: Toggle to deactivate and disable redirect options.';
+        $inactive_label = $track_only ? 'Tracking Paused: Toggle to resume tracking clicks on this link.' : 'Redirect Deactivated: Toggle to activate and save to enable redirect options.';
         if ( $is_active !== '1' ) {
-            echo '<p class="rar-inactive-note"> <i class="fas fa-ban"></i> Redirect Deactivated: Toggle to activate and save to enable redirect options.</p>';
+            echo '<p class="rar-inactive-note"> <i class="fas fa-ban"></i> <span class="rar-status-text">' . esc_html( $inactive_label ) . '</span></p>';
         } else {
-            echo '<p class="rar-active-note"> <i class="fas fa-check"></i> Redirect Active: Toggle to deactivate and disable redirect options.</p>';
+            echo '<p class="rar-active-note"> <i class="fas fa-check"></i> <span class="rar-status-text">' . esc_html( $active_label ) . '</span></p>';
         }
 
         echo '<div id="rar-meta-fields">'; // Container for the rest of the fields
