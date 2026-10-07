@@ -143,6 +143,13 @@ public static function handle_column_sorting( $query ) {
     			break;
     
     		case 'type':
+    			// A redirect status code only means something when a
+    			// redirect actually happens — showing e.g. "307" for a
+    			// track-only link implies one does, when it never does.
+    			if ( class_exists( 'Cogito_RAR_Track_Only' ) && Cogito_RAR_Track_Only::is_track_only( $post_id ) ) {
+    				echo '<span class="rar-type-pill rar-type-pill--track-only">Track-only</span>';
+    				break;
+    			}
     			$type = get_post_meta( $post_id, '_rar_type', true );
     			echo '<span class="rar-type-pill">' . esc_html( $type ) . '</span>';
     			break;

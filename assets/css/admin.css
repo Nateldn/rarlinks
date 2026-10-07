@@ -168,6 +168,13 @@ body.post-type-rar_redirect .rar-type-pill {
     font-weight: 400;
     font-family: Consolas, Monaco, monospace;
 }
+/* Neutral rather than the accent colour used for an actual redirect
+   status — this isn't a flavour of redirect, it's the absence of one. */
+body.post-type-rar_redirect .rar-type-pill--track-only {
+    background: var(--rar-neutral-soft);
+    color: var(--rar-neutral);
+    font-family: inherit;
+}
 
 /* ============================================================
    RARLinks post list (All RARLinks): the screen this whole design
