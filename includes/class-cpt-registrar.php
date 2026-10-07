@@ -54,7 +54,17 @@ class Cogito_RAR_CPT_Registrar {
             'show_in_menu'        => true,
             'show_in_admin_bar'   => true,
             'menu_icon'           => 'dashicons-randomize',
-            'supports'            => [ 'title' ],
+            // 'custom-fields' is required for WordPress's REST API to
+            // attach its generic meta-field handler to this post type at
+            // all — without it, register_post_meta()'s show_in_rest => true
+            // (see Cogito_RAR_Rest_Access) is silently inert: no 'meta' key
+            // ever appears in the schema/response, and any meta sent in a
+            // request body is just dropped, no error. Doesn't add the
+            // native "Custom Fields" metabox to the edit screen, since
+            // every key here is underscore-prefixed ("protected" by
+            // WordPress's own convention), which that metabox already
+            // excludes.
+            'supports'            => [ 'title', 'custom-fields' ],
             'has_archive'         => false,
             'rewrite'             => false,
             'query_var'           => false,
