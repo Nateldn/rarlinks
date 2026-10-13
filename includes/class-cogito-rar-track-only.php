@@ -53,7 +53,9 @@ class Cogito_RAR_Track_Only {
      * Domains whose own terms are known to prohibit cloaked/shortened
      * affiliate links — Amazon Associates' Operating Agreement being the
      * motivating case. amzn.to is Amazon's own official shortener,
-     * included so a link already using it is still recognised.
+     * link.amazon is Amazon's own deeplink domain, and amzlink.to is
+     * Posttap's official Amazon deeplink partner domain — all included so
+     * a link already using any of them is still recognised.
      */
     const AUTO_DETECT_DOMAINS = [
         'amazon.com',
@@ -73,6 +75,8 @@ class Cogito_RAR_Track_Only {
         'amazon.com.br',
         'amazon.com.mx',
         'amzn.to',
+        'link.amazon',
+        'amzlink.to',
     ];
 
     /**
