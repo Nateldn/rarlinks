@@ -43,22 +43,37 @@ class Cogito_RAR_Rest_Access {
 
     /**
      * Enforces track-only status from the destination (see
-     * Cogito_RAR_Track_Only) on every REST create/update — non-negotiable
-     * for a recognised no-cloak domain regardless of what meta._rar_track_only
-     * the request itself sent, same as the classic Edit screen's own
-     * save handler. GEO and rotation, which only ever have anything to
-     * act on at the moment of a server-side redirect, are forced off
-     * alongside it for the same reason.
+     * Cogito_RAR_Track_Only) on every REST create/update that actually
+     * touches the target or the flag itself — non-negotiable for a
+     * recognised no-cloak domain regardless of what meta._rar_track_only
+     * the request sent, same as the classic Edit screen's own save
+     * handler. GEO and rotation, which only ever have anything to act on
+     * at the moment of a server-side redirect, are forced off alongside
+     * it for the same reason.
+     *
+     * Bails out entirely if the request's meta touches neither
+     * _rar_target nor _rar_track_only (e.g. a REST update that only sends
+     * a new title). A REST partial update omits every field it isn't
+     * changing — unlike the classic Edit screen's full form POST, where
+     * an unchecked checkbox is still submitted, just absent, and genuinely
+     * means "off." Treating a REST omission the same way silently flipped
+     * an existing track-only link back to a normal redirect on ANY update
+     * that didn't happen to resend the flag.
      */
     public static function enforce_track_only_and_dependents( $post, $request ) {
         if ( self::CPT !== $post->post_type ) {
             return;
         }
 
-        $meta      = $request->get_param( 'meta' );
-        $submitted = ( is_array( $meta ) && array_key_exists( Cogito_RAR_Track_Only::META_KEY, $meta ) )
-            ? $meta[ Cogito_RAR_Track_Only::META_KEY ]
-            : null;
+        $meta               = $request->get_param( 'meta' );
+        $touches_target     = is_array( $meta ) && array_key_exists( '_rar_target', $meta );
+        $touches_track_only = is_array( $meta ) && array_key_exists( Cogito_RAR_Track_Only::META_KEY, $meta );
+
+        if ( ! $touches_target && ! $touches_track_only ) {
+            return;
+        }
+
+        $submitted = $touches_track_only ? $meta[ Cogito_RAR_Track_Only::META_KEY ] : null;
 
         $target   = (string) get_post_meta( $post->ID, '_rar_target', true );
         $resolved = Cogito_RAR_Track_Only::resolve( $submitted, $target );
