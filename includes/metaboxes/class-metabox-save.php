@@ -63,6 +63,8 @@ class Cogito_RAR_Metabox_Save {
         update_post_meta( $post_id, '_rar_target', $canonical_target );
         update_post_meta( $post_id, '_rar_type',     intval( $_POST['rar_type']         ?? 302 ) );
         update_post_meta( $post_id, '_rar_notes',    sanitize_textarea_field( $_POST['rar_notes'] ?? '' ) );
+        update_post_meta( $post_id, '_rar_brand',    sanitize_text_field( $_POST['rar_brand']   ?? '' ) );
+        update_post_meta( $post_id, '_rar_network',  sanitize_text_field( $_POST['rar_network'] ?? '' ) );
         update_post_meta( $post_id, '_rar_nofollow', isset( $_POST['rar_nofollow'] ) ? '1' : '0' );
         update_post_meta( $post_id, '_rar_sponsored', isset( $_POST['rar_sponsored'] ) ? '1' : '0' );
 

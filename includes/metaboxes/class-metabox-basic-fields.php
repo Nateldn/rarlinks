@@ -27,6 +27,8 @@ class Cogito_RAR_Metabox_Basic_Fields {
                 : 307;
         }
         $notes     = get_post_meta( $post->ID, '_rar_notes',  true );
+        $brand     = get_post_meta( $post->ID, '_rar_brand',   true );
+        $network   = get_post_meta( $post->ID, '_rar_network', true );
         $nofollow_meta  = get_post_meta( $post->ID, '_rar_nofollow', true );
         $sponsored_meta = get_post_meta( $post->ID, '_rar_sponsored', true );
         // An unset (new post) meta falls back to the configured default;
@@ -197,6 +199,24 @@ if ( '1' === $moto_partner ) {
     echo '</div>';
     }
 }
+
+        // --- Brand ---
+        echo '<p><label>Brand:<br>
+        <input type="text" name="rar_brand" value="' . esc_attr( $brand ) . '" style="width:100%;" />
+        </label></p>';
+
+        // --- Network (free text, with suggestions from both a hardcoded
+        // list and every distinct value already saved on another
+        // RARLink — see Cogito_RAR_Networks) ---
+        echo '<p><label>Network:<br>
+        <input type="text" name="rar_network" list="rar_network_options" value="' . esc_attr( $network ) . '" style="width:100%;" />
+        </label>';
+        echo '<datalist id="rar_network_options">';
+        foreach ( Cogito_RAR_Networks::options() as $option ) {
+            echo '<option value="' . esc_attr( $option ) . '">';
+        }
+        echo '</datalist>
+        </p>';
 
         // --- Notes ---
         echo '<p><label>Notes:<br>

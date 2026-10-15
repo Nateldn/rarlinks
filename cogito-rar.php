@@ -34,6 +34,9 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-rest-acces
 Cogito_RAR_Rest_Access::init();
 
 
+// 🏷 Shared Brand/Network options (datalist suggestions + admin filter)
+require_once plugin_dir_path( __FILE__ ) . 'includes/helpers/class-cogito-rar-networks.php';
+
 // 🎛 Meta Boxes
 require_once plugin_dir_path( __FILE__ ) . 'includes/metaboxes/class-metabox-basic-fields.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/metaboxes/class-metabox-preview.php';

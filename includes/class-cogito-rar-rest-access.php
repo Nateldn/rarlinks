@@ -207,6 +207,22 @@ class Cogito_RAR_Rest_Access {
             ] );
         }
 
+        // Free-text campaign metadata — which advertiser/brand a link
+        // belongs to, and which affiliate/ad network it's tracked
+        // through (see Cogito_RAR_Networks for the Edit screen's
+        // suggestion list; REST doesn't validate against it, since both
+        // fields are free text there too).
+        $brand_network_fields = [ '_rar_brand', '_rar_network' ];
+        foreach ( $brand_network_fields as $key ) {
+            register_post_meta( self::CPT, $key, [
+                'show_in_rest'      => true,
+                'single'            => true,
+                'type'              => 'string',
+                'auth_callback'     => $auth_callback,
+                'sanitize_callback' => 'sanitize_text_field',
+            ] );
+        }
+
         // '1'/'0' strings, matching exactly how the rest of this plugin
         // already reads them (e.g. $is_active !== '1' in the redirect
         // engine) — registered as strings rather than true booleans so a

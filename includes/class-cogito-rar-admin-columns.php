@@ -16,6 +16,8 @@ class Cogito_RAR_Admin_Columns {
 	add_filter( 'manage_edit-rar_redirect_sortable_columns', [ self::class, 'make_columns_sortable' ] );
 	add_action( 'pre_get_posts', [ self::class, 'handle_column_sorting' ] );
 	add_filter( 'posts_search', [ self::class, 'extend_admin_search' ], 10, 2 );
+	add_action( 'restrict_manage_posts', [ self::class, 'render_network_filter' ] );
+	add_action( 'pre_get_posts', [ self::class, 'filter_by_network' ] );
 }
 
     /**
@@ -40,7 +42,7 @@ public static function extend_admin_search( $search, $query ) {
 		OR EXISTS (
 			SELECT 1 FROM {$wpdb->postmeta} pm
 			WHERE pm.post_id = {$wpdb->posts}.ID
-			AND pm.meta_key IN ('_rar_target', '_rar_notes', '_rar_type')
+			AND pm.meta_key IN ('_rar_target', '_rar_notes', '_rar_type', '_rar_brand', '_rar_network')
 			AND pm.meta_value LIKE '%{$search_term}%'
 		)
 	)";
@@ -57,6 +59,8 @@ public static function extend_admin_search( $search, $query ) {
 		'cb'         => $columns['cb'],
 		'title'      => 'Title',
 		'target'     => 'Target URL',
+		'brand'      => 'Brand',
+		'network'    => 'Network',
 		'type'       => 'Type',
 		'active'     => 'Active',
 		'nofollow'   => 'Nofollow',
@@ -76,6 +80,8 @@ public static function extend_admin_search( $search, $query ) {
         $columns['nofollow']   = 'rar_nofollow';       // Sort by Nofollow meta key
         $columns['sponsored']  = 'rar_sponsored';      // Sort by Sponsored meta key
         $columns['type']       = 'rar_type';           // Sort by Redirect Type
+        $columns['brand']      = 'rar_brand';           // Sort by Brand meta key
+        $columns['network']    = 'rar_network';         // Sort by Network meta key
         return $columns;
     }
 
@@ -121,12 +127,60 @@ public static function handle_column_sorting( $query ) {
 		case 'rar_nofollow':
 		case 'rar_sponsored':
 		case 'rar_type':
+		case 'rar_brand':
+		case 'rar_network':
 			// Sort by postmeta values
 			$query->set( 'meta_key', '_' . $orderby );
 			$query->set( 'orderby', 'meta_value' );
 			break;
 	}
 }
+
+	/**
+	 * 🔽 Renders the "All Networks" dropdown above the list table.
+	 */
+	public static function render_network_filter() {
+		global $typenow;
+		if ( 'rar_redirect' !== $typenow ) {
+			return;
+		}
+
+		$current = isset( $_GET['rar_network_filter'] ) ? sanitize_text_field( wp_unslash( $_GET['rar_network_filter'] ) ) : '';
+
+		echo '<select name="rar_network_filter">';
+		echo '<option value="">All Networks</option>';
+		foreach ( Cogito_RAR_Networks::options() as $option ) {
+			echo '<option value="' . esc_attr( $option ) . '"' . selected( $current, $option, false ) . '>' . esc_html( $option ) . '</option>';
+		}
+		echo '</select>';
+	}
+
+	/**
+	 * 🔽 Applies the Network dropdown's choice to the list query. Uses a
+	 * meta_query clause (not the flat meta_key/meta_value the sort-by-
+	 * column handler above uses) so filtering by Network and sorting by
+	 * a different column — e.g. Brand — don't fight over the same query
+	 * var.
+	 */
+	public static function filter_by_network( $query ) {
+		if ( ! is_admin() || ! $query->is_main_query() ) {
+			return;
+		}
+		if ( $query->get( 'post_type' ) !== 'rar_redirect' ) {
+			return;
+		}
+		if ( empty( $_GET['rar_network_filter'] ) ) {
+			return;
+		}
+
+		$meta_query   = $query->get( 'meta_query' );
+		$meta_query   = is_array( $meta_query ) ? $meta_query : [];
+		$meta_query[] = [
+			'key'   => '_rar_network',
+			'value' => sanitize_text_field( wp_unslash( $_GET['rar_network_filter'] ) ),
+		];
+		$query->set( 'meta_query', $meta_query );
+	}
 
 
 
@@ -141,7 +195,15 @@ public static function handle_column_sorting( $query ) {
     		case 'target':
     			echo esc_url( get_post_meta( $post_id, '_rar_target', true ) );
     			break;
-    
+
+    		case 'brand':
+    			echo esc_html( get_post_meta( $post_id, '_rar_brand', true ) );
+    			break;
+
+    		case 'network':
+    			echo esc_html( get_post_meta( $post_id, '_rar_network', true ) );
+    			break;
+
     		case 'type':
     			// A redirect status code only means something when a
     			// redirect actually happens — showing e.g. "307" for a
