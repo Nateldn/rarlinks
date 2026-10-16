@@ -34,6 +34,7 @@ class Cogito_RAR_Rest_Access {
 
     public static function init() {
         add_action( 'init', [ self::class, 'register_meta_fields' ] );
+        add_action( 'rest_api_init', [ self::class, 'register_edit_link_field' ] );
         add_filter( 'rest_pre_insert_' . self::CPT, [ self::class, 'force_draft_without_publish_cap' ], 10, 2 );
         add_action( 'rest_after_insert_' . self::CPT, [ self::class, 'force_default_active_without_publish_cap' ], 10, 2 );
         add_action( 'pre_get_posts', [ self::class, 'restrict_listing_to_own_posts' ] );
@@ -333,6 +334,38 @@ class Cogito_RAR_Rest_Access {
                 $value = (int) $value;
                 return in_array( $value, [ 301, 302, 307 ], true ) ? $value : 302;
             },
+        ] );
+    }
+
+    /**
+     * Adds a read-only 'edit_link' field to every REST response/listing
+     * for this post type — the wp-admin Edit-screen URL, so a client
+     * (e.g. the Assistant handing a batch of created links back to Nate
+     * to review) doesn't have to construct admin_url('post.php?post=…
+     * &action=edit') by hand.
+     *
+     * Deliberately does NOT use get_edit_post_link() — it gates on
+     * current_user_can('edit_post', $id), the exact meta-cap resolution
+     * already found (see register_meta_fields()'s docblock) to silently
+     * return false for the Assistant role on its own post on this
+     * custom (non-'post') capability_type, which would make the field
+     * disappear precisely for the account that most needs it. The URL
+     * itself discloses nothing a post ID doesn't already imply — opening
+     * it still goes through wp-admin's own normal login and capability
+     * check — so it's built directly rather than gated a second time
+     * here.
+     */
+    public static function register_edit_link_field() {
+        register_rest_field( self::CPT, 'edit_link', [
+            'get_callback' => function ( $object ) {
+                return admin_url( 'post.php?post=' . (int) $object['id'] . '&action=edit' );
+            },
+            'schema' => [
+                'description' => 'The wp-admin Edit-screen URL for this RARLink.',
+                'type'        => 'string',
+                'format'      => 'uri',
+                'context'     => [ 'view', 'edit' ],
+            ],
         ] );
     }
 
