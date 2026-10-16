@@ -200,23 +200,26 @@ if ( '1' === $moto_partner ) {
     }
 }
 
-        // --- Brand ---
+        // --- Brand + Network, side by side (two short fields that
+        // don't need a full-width row each) ---
+        echo '<div class="rar-field-row">';
         echo '<p><label>Brand:<br>
         <input type="text" name="rar_brand" value="' . esc_attr( $brand ) . '" style="width:100%;" />
         </label></p>';
 
-        // --- Network (free text, with suggestions from both a hardcoded
+        // Network: free text, with suggestions from both a hardcoded
         // list and every distinct value already saved on another
-        // RARLink — see Cogito_RAR_Networks) ---
+        // RARLink — see Cogito_RAR_Networks.
         echo '<p><label>Network:<br>
         <input type="text" name="rar_network" list="rar_network_options" value="' . esc_attr( $network ) . '" style="width:100%;" />
-        </label>';
+        </label></p>';
+        echo '</div>';
+
         echo '<datalist id="rar_network_options">';
         foreach ( Cogito_RAR_Networks::options() as $option ) {
             echo '<option value="' . esc_attr( $option ) . '">';
         }
-        echo '</datalist>
-        </p>';
+        echo '</datalist>';
 
         // --- Notes ---
         echo '<p><label>Notes:<br>

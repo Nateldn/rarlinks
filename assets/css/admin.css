@@ -457,6 +457,18 @@ body.rar_redirect_page_rar_settings .wp-list-table tbody tr:hover {
     min-width: 0;
     }
 
+    /* Two related fields on one line (Brand / Network) instead of each
+       taking its own full-width row. */
+    .rar-field-row {
+    display: flex;
+    gap: 16px;
+    }
+
+    .rar-field-row > p {
+    flex: 1;
+    min-width: 0;
+    }
+
      /* ======== Stats Dashbaord ============ */    
         
    /* Adjust the RARLinks table to fit viewport */
