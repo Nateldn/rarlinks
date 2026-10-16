@@ -39,6 +39,11 @@ class Cogito_RAR_Rest_Access {
         add_action( 'pre_get_posts', [ self::class, 'restrict_listing_to_own_posts' ] );
         add_filter( 'wp_count_posts', [ self::class, 'scope_counts_to_own_posts' ], 10, 2 );
         add_action( 'rest_after_insert_' . self::CPT, [ self::class, 'enforce_track_only_and_dependents' ], 10, 2 );
+        // Priority 20: must run after enforce_track_only_and_dependents
+        // above, so that when a track-only destination has just wiped
+        // _rar_geo back to '[]', this reads THAT value rather than
+        // whatever was there before this request.
+        add_action( 'rest_after_insert_' . self::CPT, [ self::class, 'sync_geo_enabled_flag' ], 20 );
     }
 
     /**
@@ -91,6 +96,67 @@ class Cogito_RAR_Rest_Access {
             // save handler.
             update_post_meta( $post->ID, '_rar_geo', '[]' );
             update_post_meta( $post->ID, '_rar_rotation', '[]' );
+        }
+    }
+
+    /**
+     * Validates a submitted _rar_geo value against the exact same rule
+     * the classic Edit screen's own save handler uses: each entry needs
+     * an ISO 3166 alpha-2 country code and a non-empty URL, everything
+     * else is dropped. Accepts either an already-JSON-encoded string
+     * (what a REST client sends, since the field is registered as
+     * type => 'string') or a bare PHP array (register_meta still runs
+     * sanitize_callback on a classic update_post_meta() call, so this
+     * covers that path too). Always returns a JSON string.
+     *
+     * @param string|array $value
+     * @return string
+     */
+    public static function sanitize_geo_meta( $value ) {
+        $decoded = is_array( $value ) ? $value : json_decode( (string) $value, true );
+        if ( ! is_array( $decoded ) ) {
+            return '[]';
+        }
+
+        $clean = [];
+        foreach ( $decoded as $entry ) {
+            if ( ! is_array( $entry ) ) {
+                continue;
+            }
+            $country = strtoupper( sanitize_text_field( $entry['country'] ?? '' ) );
+            $url     = esc_url_raw( $entry['url'] ?? '' );
+            if ( preg_match( '/^[A-Z]{2}$/', $country ) && ! empty( $url ) ) {
+                $clean[] = [ 'country' => $country, 'url' => $url ];
+            }
+        }
+
+        return wp_json_encode( $clean );
+    }
+
+    /**
+     * _rar_geo_enabled only ever controls whether the classic Edit
+     * screen's GEO panel renders expanded — the redirect engine itself
+     * reads _rar_geo directly and doesn't consult this flag at all (see
+     * Cogito_RAR_Redirect_Engine::maybe_redirect()). Derives it from
+     * whatever _rar_geo now actually contains after this request's own
+     * writes (and after enforce_track_only_and_dependents() above has
+     * had its chance to wipe it), rather than requiring a REST caller to
+     * separately track and set a flag that has no functional effect of
+     * its own — one less thing to get wrong, and the classic screen
+     * still shows the right thing either way.
+     *
+     * @param WP_Post $post
+     */
+    public static function sync_geo_enabled_flag( $post ) {
+        if ( self::CPT !== $post->post_type ) {
+            return;
+        }
+
+        $geo     = json_decode( (string) get_post_meta( $post->ID, '_rar_geo', true ), true );
+        $enabled = ( is_array( $geo ) && ! empty( $geo ) ) ? '1' : '0';
+
+        if ( $enabled !== get_post_meta( $post->ID, '_rar_geo_enabled', true ) ) {
+            update_post_meta( $post->ID, '_rar_geo_enabled', $enabled );
         }
     }
 
@@ -197,7 +263,7 @@ class Cogito_RAR_Rest_Access {
             return current_user_can( 'edit_others_rar_redirects' );
         };
 
-        $string_fields = [ '_rar_target', '_rar_notes', '_rar_rotation', '_rar_geo' ];
+        $string_fields = [ '_rar_target', '_rar_notes', '_rar_rotation' ];
         foreach ( $string_fields as $key ) {
             register_post_meta( self::CPT, $key, [
                 'show_in_rest'  => true,
@@ -206,6 +272,23 @@ class Cogito_RAR_Rest_Access {
                 'auth_callback' => $auth_callback,
             ] );
         }
+
+        // GEO targeting rules: a JSON-encoded array of {country, url}
+        // objects (country an ISO 3166 alpha-2 code, e.g. "US"). Validated
+        // on the way in with the exact same rule the classic Edit screen's
+        // own save handler applies (class-metabox-save.php) — a 2-letter
+        // uppercase code and a non-empty URL — so a REST submission can't
+        // store something the redirect engine would silently never match.
+        // An invalid or unparseable submission sanitizes down to '[]'
+        // rather than erroring, same as an empty/all-rejected classic
+        // submission would.
+        register_post_meta( self::CPT, '_rar_geo', [
+            'show_in_rest'      => true,
+            'single'            => true,
+            'type'              => 'string',
+            'auth_callback'     => $auth_callback,
+            'sanitize_callback' => [ self::class, 'sanitize_geo_meta' ],
+        ] );
 
         // Free-text campaign metadata — which advertiser/brand a link
         // belongs to, and which affiliate/ad network it's tracked
