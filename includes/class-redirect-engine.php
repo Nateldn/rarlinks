@@ -174,9 +174,19 @@ class Cogito_RAR_Redirect_Engine {
 
 		$visitor_id = Cogito_RAR_SetCookie::get();
 
-		$type = in_array( intval( get_post_meta( $post->ID, '_rar_type', true ) ), [301, 302, 307], true )
-			? intval( get_post_meta( $post->ID, '_rar_type', true ) )
-			: 302;
+		// A missing/invalid _rar_type (a link published in bulk, or
+		// created via the REST API without explicitly setting it) must
+		// fall back to the site's configured default (see
+		// Cogito_RAR_Settings_Defaults), same as the classic Edit screen
+		// already shows for a new post — not hardcoded to 302, which is
+		// just WordPress's own wp_redirect() default when no code is
+		// passed at all, and isn't this plugin's intended default.
+		$saved_type = intval( get_post_meta( $post->ID, '_rar_type', true ) );
+		$type = in_array( $saved_type, [301, 302, 307], true )
+			? $saved_type
+			: ( class_exists( 'Cogito_RAR_Settings_Defaults' )
+				? (int) get_option( Cogito_RAR_Settings_Defaults::OPTION_REDIRECT_TYPE, 307 )
+				: 307 );
 
 		$nofollow  = get_post_meta( $post->ID, '_rar_nofollow', true );
 		$sponsored = get_post_meta( $post->ID, '_rar_sponsored', true );

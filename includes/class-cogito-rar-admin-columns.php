@@ -212,7 +212,16 @@ public static function handle_column_sorting( $query ) {
     				echo '<span class="rar-type-pill rar-type-pill--track-only">Track-only</span>';
     				break;
     			}
-    			$type = get_post_meta( $post_id, '_rar_type', true );
+    			$type = (int) get_post_meta( $post_id, '_rar_type', true );
+    			if ( ! in_array( $type, [ 301, 302, 307 ], true ) ) {
+    				// No type saved (bulk-published or REST-created without
+    				// one) — show what it'll actually redirect with rather
+    				// than a blank cell, same default the engine itself
+    				// falls back to.
+    				$type = class_exists( 'Cogito_RAR_Settings_Defaults' )
+    					? (int) get_option( Cogito_RAR_Settings_Defaults::OPTION_REDIRECT_TYPE, 307 )
+    					: 307;
+    			}
     			echo '<span class="rar-type-pill">' . esc_html( $type ) . '</span>';
     			break;
     

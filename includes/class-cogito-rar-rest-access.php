@@ -37,6 +37,7 @@ class Cogito_RAR_Rest_Access {
         add_action( 'rest_api_init', [ self::class, 'register_edit_link_field' ] );
         add_filter( 'rest_pre_insert_' . self::CPT, [ self::class, 'force_draft_without_publish_cap' ], 10, 2 );
         add_action( 'rest_after_insert_' . self::CPT, [ self::class, 'force_default_active_without_publish_cap' ], 10, 2 );
+        add_action( 'rest_after_insert_' . self::CPT, [ self::class, 'force_default_type_if_missing' ], 10, 3 );
         add_action( 'pre_get_posts', [ self::class, 'restrict_listing_to_own_posts' ] );
         add_filter( 'wp_count_posts', [ self::class, 'scope_counts_to_own_posts' ], 10, 2 );
         add_action( 'rest_after_insert_' . self::CPT, [ self::class, 'enforce_track_only_and_dependents' ], 10, 2 );
@@ -332,7 +333,17 @@ class Cogito_RAR_Rest_Access {
             'auth_callback'     => $auth_callback,
             'sanitize_callback' => function ( $value ) {
                 $value = (int) $value;
-                return in_array( $value, [ 301, 302, 307 ], true ) ? $value : 302;
+                if ( in_array( $value, [ 301, 302, 307 ], true ) ) {
+                    return $value;
+                }
+                // Falls back to the site's configured default (see
+                // Cogito_RAR_Settings_Defaults), not a hardcoded 302 —
+                // this only runs when _rar_type was actually SENT with
+                // an invalid value; see force_default_type_if_missing()
+                // for the separate case of it being omitted entirely.
+                return class_exists( 'Cogito_RAR_Settings_Defaults' )
+                    ? (int) get_option( Cogito_RAR_Settings_Defaults::OPTION_REDIRECT_TYPE, 307 )
+                    : 307;
             },
         ] );
     }
@@ -420,5 +431,42 @@ class Cogito_RAR_Rest_Access {
             : '1';
 
         update_post_meta( $post->ID, '_rar_active', ( '1' === (string) $default_active ) ? '1' : '0' );
+    }
+
+    /**
+     * Writes the site's configured default redirect type on a brand-new
+     * REST-created link when the request never sent _rar_type at all.
+     * _rar_type's own sanitize_callback (see register_meta_fields())
+     * only ever runs on a value that was actually submitted — omitting
+     * the field entirely means WordPress never touches that meta key,
+     * so it's left genuinely missing rather than set to anything, and
+     * Cogito_RAR_Redirect_Engine falls back to a plain 302 for a link
+     * whose _rar_type can't be read as one of the three valid codes.
+     * Every account that can create a link this way is affected, not
+     * just the restricted Assistant role, so this isn't gated on
+     * publish capability the way the Active default above is.
+     *
+     * Only fires on create ($creating), and only if nothing has set
+     * _rar_type by the time this runs — never touches a link that
+     * already has a type, saved or otherwise.
+     *
+     * @param WP_Post         $post
+     * @param WP_REST_Request $request
+     * @param bool            $creating
+     */
+    public static function force_default_type_if_missing( $post, $request, $creating ) {
+        if ( self::CPT !== $post->post_type || ! $creating ) {
+            return;
+        }
+
+        if ( '' !== get_post_meta( $post->ID, '_rar_type', true ) ) {
+            return;
+        }
+
+        $default_type = class_exists( 'Cogito_RAR_Settings_Defaults' )
+            ? (int) get_option( Cogito_RAR_Settings_Defaults::OPTION_REDIRECT_TYPE, 307 )
+            : 307;
+
+        update_post_meta( $post->ID, '_rar_type', $default_type );
     }
 }
