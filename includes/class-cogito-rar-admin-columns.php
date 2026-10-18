@@ -129,9 +129,33 @@ public static function handle_column_sorting( $query ) {
 		case 'rar_type':
 		case 'rar_brand':
 		case 'rar_network':
-			// Sort by postmeta values
-			$query->set( 'meta_key', '_' . $orderby );
-			$query->set( 'orderby', 'meta_value' );
+			// Sort by postmeta values. NOT the simpler top-level
+			// meta_key + orderby=meta_value combo — WordPress turns
+			// that into an INNER JOIN against postmeta for this one
+			// key, silently dropping every post that doesn't have it
+			// from the entire list (not just the ordering). Invisible
+			// for a field like Type that's always set on every link,
+			// but Brand/Network are optional and new — most existing
+			// links never had that meta written, so sorting by Network
+			// was hiding ~714 of 726 links with no error or filter
+			// active to explain it. An EXISTS/NOT EXISTS pair, OR'd
+			// together, keeps every post in the result either way.
+			$meta_key = '_' . $orderby;
+			$order    = strtoupper( (string) $query->get( 'order' ) );
+			$order    = in_array( $order, [ 'ASC', 'DESC' ], true ) ? $order : 'ASC';
+
+			$query->set( 'meta_query', [
+				'relation'      => 'OR',
+				'rar_sort_has'  => [
+					'key'     => $meta_key,
+					'compare' => 'EXISTS',
+				],
+				'rar_sort_none' => [
+					'key'     => $meta_key,
+					'compare' => 'NOT EXISTS',
+				],
+			] );
+			$query->set( 'orderby', [ 'rar_sort_has' => $order ] );
 			break;
 	}
 }
