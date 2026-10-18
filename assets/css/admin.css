@@ -189,11 +189,14 @@ body.post-type-rar_redirect .wp-list-table {
     table-layout: fixed;
 }
 
-/* Title enlarged again — the icon-only status columns (Active/Nofollow/
-   Sponsored), Clicks, and Created At don't need nearly as much room as a
-   fixed-width layout was giving them, so that space goes to Title instead. */
-body.post-type-rar_redirect .wp-list-table .column-title { width: 29%; }
-body.post-type-rar_redirect .wp-list-table .column-target { width: 16.5%; }
+/* Title trimmed to 75% of its previous width (29% → 22%), and Target
+   trimmed too, to make room for Brand/Network below — those two had no
+   width rule at all, so under this table's fixed layout they were
+   squeezed to almost nothing, wrapping "NETWORK" one letter per line. */
+body.post-type-rar_redirect .wp-list-table .column-title { width: 22%; }
+body.post-type-rar_redirect .wp-list-table .column-target { width: 13%; }
+body.post-type-rar_redirect .wp-list-table .column-brand { width: 5%; }
+body.post-type-rar_redirect .wp-list-table .column-network { width: 5.5%; }
 body.post-type-rar_redirect .wp-list-table .column-slug { width: 26%; }
 body.post-type-rar_redirect .wp-list-table .column-date { width: 6%; }
 body.post-type-rar_redirect .wp-list-table .column-type { width: 6%; }
@@ -204,10 +207,21 @@ body.post-type-rar_redirect .wp-list-table .column-rar_clicks { width: 3%; }
 
 body.post-type-rar_redirect .wp-list-table .column-title,
 body.post-type-rar_redirect .wp-list-table .column-target,
+body.post-type-rar_redirect .wp-list-table .column-brand,
+body.post-type-rar_redirect .wp-list-table .column-network,
 body.post-type-rar_redirect .wp-list-table .column-slug {
     /* Long content (titles, target URLs, vanity slugs) wraps rather
        than forcing the fixed layout to overflow or truncate silently. */
     word-break: break-word;
+}
+
+/* Target URL, Brand and Network are all narrow columns now — smaller
+   text fits more of a long value before wrapping, same treatment the
+   Vanity Slug field already gets below. */
+body.post-type-rar_redirect .wp-list-table .column-target,
+body.post-type-rar_redirect .wp-list-table .column-brand,
+body.post-type-rar_redirect .wp-list-table .column-network {
+    font-size: 0.85em;
 }
 
 /* Smaller text specifically in the list table's Vanity Slug field (not
