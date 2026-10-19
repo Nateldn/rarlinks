@@ -31,30 +31,7 @@ class Cogito_RAR_Track_Only_Capture {
         add_action( 'rest_api_init', [ self::class, 'register_route' ] );
         add_action( 'wp_enqueue_scripts', [ self::class, 'enqueue' ] );
 
-        // Same sendBeacon/auth-bypass reasoning as the other beacon routes
-        // (click-context, raw-link-click): sendBeacon can't carry the
-        // X-WP-Nonce header WP's cookie-auth would otherwise demand, and a
-        // security/hardening plugin has separately been confirmed blocking
-        // anonymous REST access broadly on this site — this route's own
-        // security (nonce in the body, origin/referer, rate limiting, and
-        // re-validating the post server-side) already runs inside
-        // handle_request() regardless.
         add_filter( 'rest_authentication_errors', [ self::class, 'bypass_cookie_nonce_for_route' ], PHP_INT_MAX );
-        add_filter( 'rocket_delay_js_exclusions', [ self::class, 'exclude_from_wp_rocket_delay' ] );
-        add_filter( 'rocket_exclude_defer_js', [ self::class, 'exclude_from_wp_rocket_delay' ] );
-        add_filter( 'script_loader_tag', [ self::class, 'tag_as_unoptimized' ], 10, 2 );
-    }
-
-    public static function exclude_from_wp_rocket_delay( $exclusions ) {
-        $exclusions[] = 'cogito-rar-track-only-capture';
-        return $exclusions;
-    }
-
-    public static function tag_as_unoptimized( $tag, $handle ) {
-        if ( 'cogito-rar-track-only-capture' !== $handle ) {
-            return $tag;
-        }
-        return str_replace( ' src=', ' data-no-optimize="1" data-cfasync="false" data-no-defer="1" data-no-delay="1" src=', $tag );
     }
 
     public static function bypass_cookie_nonce_for_route( $result ) {
