@@ -76,6 +76,7 @@ class Cogito_RAR_Settings_Page {
     private static function get_tabs() {
         return [
             'defaults' => 'Defaults',
+            'networks' => 'Affiliate Networks',
         ];
     }
 

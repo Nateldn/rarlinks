@@ -5,6 +5,108 @@ newest first. Each references the file/line as of the commit that made
 the change — line numbers drift as the file changes, so check git blame
 on the referenced line if this doc and the code look out of sync.
 
+## 2026-10-30 — Rakuten Advertising API client and Affiliate Networks settings tab (phase 1)
+
+**Files:**
+- `includes/networks/class-cogito-rar-rakuten-api.php` (new)
+- `includes/settings/class-cogito-rar-settings-networks.php` (new)
+- `includes/settings/class-cogito-rar-settings-page.php`, `get_tabs()` (line 77)
+- `cogito-rar.php` (line 146)
+
+**What this is:** the first half of generating Rakuten affiliate links from
+inside RARLinks — the API client, credential storage, token handling,
+connection test and advertiser sync. The Edit-screen button, bulk tool and
+REST endpoint come in phase 2, deliberately after the connection has been
+verified against the live API rather than built on top of untested code.
+
+**Why it exists at all:** Rakuten prohibits third parties accessing their
+API, which rules out Claude or the MCP assistants calling Rakuten with
+Nate's token. A server-side integration sidesteps that: the plugin holds
+the credentials and makes the call from renchlist.com itself, so Rakuten
+only ever sees a request from Nate's own server. The credentials never
+leave the server and are never exposed through REST.
+
+### Auth: no refresh tokens, by choice
+
+Rakuten's `/token` endpoint returns both an access token (3600s) and a
+refresh token, but their docs state that using the refresh token
+*immediately expires the current access token* regardless of remaining
+life. Under concurrent requests that is a race: two refreshes invalidate
+each other.
+
+The token endpoint allows 100 calls/minute and tokens last an hour, so
+minting a fresh token on expiry costs roughly one call per hour. The
+refresh flow buys nothing and introduces a failure mode, so it is not
+implemented. `get_access_token()` caches in a transient with a 120-second
+safety margin; `request()` retries once on a 401 after clearing the cache.
+
+The transient is fine to lose under Docket Cache — a cache flush just
+means minting a new token.
+
+### Auth: an ambiguity in Rakuten's own docs
+
+Rakuten's guide says the token request uses `grant_type=password` with the
+scope in the body, but their own curl example sends only `scope`. The
+client follows the curl example. If the live call returns a 400, adding
+`grant_type=password` to the body in `get_access_token()` is the first
+thing to try.
+
+### Advertiser sync stores four fields, not the full payload
+
+`/v2/advertisers` returns contact details per advertiser — name, job
+title, email, phone — plus policies and feature flags. The sync keeps only
+`id`, `name`, `url` and a normalised `host`, and discards the rest.
+
+Link generation needs the ID, and domain matching needs the host. Nothing
+in the flow needs advertiser contact details, and phase 2 exposes advertiser
+data over REST to the assistant, so storing them would mean handing
+commercial contact data to a third party for no reason.
+
+The sync requests `deep_links=true`, so only advertisers that actually
+support deep linking are stored.
+
+### Domain matching
+
+`resolve_advertiser_for_url()` matches the pasted URL's host against the
+synced advertiser hosts: exact match first, then a suffix match so a
+subdomain resolves to its parent advertiser. `www.` is stripped from both
+sides. This is what makes "paste a URL, get the right advertiser"
+automatic, and it only works because `/v2/advertisers` returns each
+advertiser's own `url`.
+
+A URL with no match returns null, and phase 2 should prompt for the
+advertiser rather than guessing.
+
+### Error messages
+
+Rakuten's documented error codes (`ACCESS_DENIED`, `DEEP_LINK_DENIED`,
+`CANNOT_RESOLVE_ADVERTISER`, `DEEP_LINKING_NOT_ENABLED`,
+`URL_TEMPLATE_MISMATCH`, `UNEXPECTED_ERROR`, `ENTITY_DECODE_ERROR`) are
+translated to plain English in `describe_error()`, since these surface
+directly to whoever is pasting URLs. Anything unrecognised falls through
+with the raw message and HTTP status attached.
+
+### Known limits carried forward to phase 2
+
+- The Deep Links API is **one link per request, no batch**, at 100
+  calls/minute. The bulk tool must loop and throttle.
+- `u1` (sub-tracking, could carry the RARLink post ID) is supported by
+  `create_deep_link()` but not yet used. Rakuten's docs say it may require
+  "Signature" enabled on the account — confirm before relying on it.
+- Rakuten is not in `Cogito_RAR_Track_Only::AUTO_DETECT_DOMAINS`, so
+  generated links will be ordinary cloaked `/go/` redirects. Unconfirmed
+  whether Rakuten's agreement permits cloaking.
+
+### Secret handling
+
+The client secret renders as `********` once stored, and a save only
+overwrites it when the field contains something other than the mask — so
+saving the form without retyping the secret keeps it. All three options are
+stored with `autoload = false`, as is the synced advertiser list, which can
+run to hundreds of rows.
+
+---
+
 ## 2026-10-19 — Removed the WP Rocket delay/defer exclusion for the three click-capture scripts
 
 **Files:**
