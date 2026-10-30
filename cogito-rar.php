@@ -147,8 +147,12 @@ Cogito_RAR_Settings_Defaults::init();
 
 // 🔗 Affiliate network APIs (Rakuten first) + their settings tab
 require_once plugin_dir_path( __FILE__ ) . 'includes/networks/class-cogito-rar-rakuten-api.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/networks/class-cogito-rar-rakuten-links.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/networks/class-cogito-rar-rakuten-bulk.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-settings-networks.php';
 Cogito_RAR_Settings_Networks::init();
+Cogito_RAR_Rakuten_Links::init();
+Cogito_RAR_Rakuten_Bulk::init();
 
 // 💳 Conversions: provider-agnostic server-side conversion tracking (Meta
 // first, Pinterest intended next). Off by default (master toggle unchecked).

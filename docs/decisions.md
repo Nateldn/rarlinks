@@ -5,6 +5,134 @@ newest first. Each references the file/line as of the commit that made
 the change — line numbers drift as the file changes, so check git blame
 on the referenced line if this doc and the code look out of sync.
 
+## 2026-10-30 — Rakuten link generation: Edit screen, bulk tool, REST (phase 2)
+
+**Files:**
+- `includes/networks/class-cogito-rar-rakuten-links.php` (new) — shared
+  generation, AJAX handler, REST routes, editor script enqueue
+- `includes/networks/class-cogito-rar-rakuten-bulk.php` (new) — the bulk
+  screen
+- `assets/js/cogito-rar-rakuten.js` (new) — Edit-screen button
+- `cogito-rar.php` (line 146)
+
+All three entry points (Edit screen, bulk, REST) call
+`Cogito_RAR_Rakuten_Links::generate()`, so advertiser resolution and error
+handling behave identically regardless of how a link was requested.
+
+### REST: two routes, both gated on `create_rar_redirects`
+
+- `POST /wp-json/rar/v1/rakuten-link` — body `url`, optional
+  `advertiser_id` and `name`; returns the deep link, advertiser ID and
+  name.
+- `GET /wp-json/rar/v1/rakuten-advertisers?search=` — capped at 50
+  results, for when an assistant needs to pick an advertiser by hand.
+
+`create_rar_redirects` means the RARLinks Assistant role can use both.
+Deliberately *not* public: unlike the three click-capture beacon routes,
+these spend Rakuten's rate limit and create entries in the publisher
+dashboard, so they require a logged-in account with that capability.
+
+Credentials are never returned by either route. The assistant sends a URL
+and receives a link; it never sees the client ID, secret, account ID or
+access token, and never contacts `api.linksynergy.com` itself. That is the
+point of the design — Rakuten bars third-party API access, so every call
+originates from renchlist.com with Nate's own credentials.
+
+Rate limited to 60 generations per user per 5 minutes, shared between the
+REST routes and the AJAX handler, using the same transient-counter
+approach as the beacon routes.
+
+### Link creation is a separate step from RARLink creation, over REST
+
+The REST route returns a deep link; it does not create a RARLink. An
+assistant calls `rakuten-link` first, then posts the result to
+`/wp/v2/rar_redirect` as `meta._rar_target`. Two explicit calls rather than
+one with hidden behaviour.
+
+### Edit screen replaces the Target URL in place
+
+The button sits under Target URL. It takes whatever is in that field,
+generates the deep link, and overwrites the field with it. The original
+merchant URL is not stored separately — it survives inside the deep link
+as the `murl=` parameter, so nothing is lost.
+
+On success it also sets Network to "Rakuten Advertising" and fills Brand
+with the advertiser name **only if Brand is empty**, so a manually chosen
+brand is never overwritten. The post title is sent as Rakuten's `name`
+parameter, which is what identifies the link on their Deep Links page.
+
+Nothing is saved until the post is saved — the button only changes form
+fields.
+
+### Bulk tool is two steps, and preview makes no API calls
+
+Paste → Preview resolves each line against the synced advertiser list
+locally, with no Rakuten calls at all. Only on confirm are deep links
+generated.
+
+This matters because generated links persist in Rakuten's Publisher
+Dashboard. Generating during preview would litter that dashboard with
+links for batches that were reconsidered and abandoned.
+
+Input accepts `URL` or `URL | Title` per line.
+
+### Bulk limits: 25 rows, 700ms apart
+
+The Deep Links API is one link per request at 100 calls/minute, so a batch
+is a sequential loop. 25 rows at 700ms is roughly 17 seconds worst case,
+which stays inside typical `max_execution_time` on shared hosting. Anything
+beyond 25 lines is previewed but not processed, with a note to run a second
+batch.
+
+A background queue would lift that cap, but adds failure modes that are not
+worth it until batches routinely exceed 25.
+
+### The bulk tool sets meta the other paths get for free
+
+`wp_insert_post()` bypasses both the classic Edit-screen save handler
+(which needs `$_POST`) and the REST hooks in
+`Cogito_RAR_Rest_Access`, so none of the usual defaults get applied. The
+bulk tool therefore writes them explicitly: `_rar_type`, `_rar_active`,
+`_rar_nofollow` and `_rar_sponsored` from the site defaults, and
+`_rar_track_only`, `_rar_geo_enabled`, `_rar_rotation_enabled`, `_rar_geo`
+and `_rar_rotation` to their off/empty values.
+
+`_rar_active` is the one that actually matters: without it,
+`Cogito_RAR_Redirect_Engine` reads an empty string, fails its
+`!== '1'` check and the link never redirects even once published.
+
+Everything is created as a draft. Publishing stays manual.
+
+### Title derivation
+
+A line with no supplied title gets
+`{Advertiser} – {Last URL segment, title-cased} [Rakuten Advertising]`,
+with any file extension stripped. Titles are editable afterwards; this just
+avoids a batch of indistinguishable drafts.
+
+### Verified
+
+The pure logic — host normalisation, advertiser matching including
+subdomain-to-parent, input parsing and title derivation — is covered by 17
+checks that pass clean under `E_ALL` on PHP 8.3. The harness lives in the
+session scratchpad, not the repo. The live API paths are not covered by
+those checks and need testing against Rakuten.
+
+### Still open
+
+- `u1` sub-tracking (could carry the RARLink post ID) is supported by the
+  API client but unused. May require "Signature" on the account.
+- Generated links are ordinary cloaked `/go/` redirects. Whether Rakuten's
+  agreement permits cloaking is unconfirmed; if not, add their tracking
+  domain to `Cogito_RAR_Track_Only::AUTO_DETECT_DOMAINS`.
+- The advertiser list cannot be filtered to actual partnerships —
+  `/v2/advertisers` has no such parameter and `can_partner` only appears
+  when fetching one advertiser by ID. A URL can therefore match an
+  advertiser Nate has no partnership with; that surfaces as
+  `ACCESS_DENIED` at generation time, translated to plain English.
+
+---
+
 ## 2026-10-30 — Rakuten Advertising API client and Affiliate Networks settings tab (phase 1)
 
 **Files:**
