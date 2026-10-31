@@ -31,20 +31,46 @@ class Cogito_RAR_Rakuten_Links {
         }
 
         $advertiser_name = '';
+        $confidence      = 'manual';
 
         if ( '' === $advertiser_id ) {
-            $match = Cogito_RAR_Rakuten_API::resolve_advertiser_for_url( $url );
-            if ( null === $match ) {
+            $result = Cogito_RAR_Rakuten_API::match_advertisers( $url );
+
+            if ( null === $result['match'] ) {
+                $host = Cogito_RAR_Rakuten_API::normalise_host( $url );
+
+                if ( ! empty( $result['candidates'] ) ) {
+                    $names = [];
+                    foreach ( $result['candidates'] as $candidate ) {
+                        $names[] = sprintf( '%s (%s, ID %s)', $candidate['name'], $candidate['host'], $candidate['id'] );
+                    }
+                    return new WP_Error(
+                        'rar_rakuten_ambiguous',
+                        sprintf(
+                            'Several advertisers could match %s: %s. Supply the advertiser ID you want.',
+                            $host,
+                            implode( '; ', $names )
+                        )
+                    );
+                }
+
                 return new WP_Error(
                     'rar_rakuten_no_match',
                     sprintf(
-                        'No synced Rakuten advertiser matches %s. Sync advertisers again, or supply an advertiser ID.',
-                        esc_html( Cogito_RAR_Rakuten_API::normalise_host( $url ) )
+                        'No synced Rakuten advertiser matches %s. Search the advertiser list under Settings → Affiliate Networks and supply the advertiser ID, or sync again.',
+                        $host
                     )
                 );
             }
-            $advertiser_id   = $match['id'];
-            $advertiser_name = $match['name'];
+
+            $advertiser_id   = $result['match']['id'];
+            $advertiser_name = $result['match']['name'];
+            $confidence      = $result['confidence'];
+        } else {
+            $known = Cogito_RAR_Rakuten_API::get_advertiser_by_id( $advertiser_id );
+            if ( null !== $known ) {
+                $advertiser_name = $known['name'];
+            }
         }
 
         $result = Cogito_RAR_Rakuten_API::create_deep_link( $url, $advertiser_id, $name );
@@ -58,6 +84,7 @@ class Cogito_RAR_Rakuten_Links {
 
         $result['source_url'] = $url;
         $result['network']    = self::NETWORK_LABEL;
+        $result['confidence'] = $confidence;
 
         return $result;
     }
@@ -87,10 +114,11 @@ class Cogito_RAR_Rakuten_Links {
             wp_send_json_error( [ 'message' => 'Too many link generations. Try again in a few minutes.' ], 429 );
         }
 
-        $url  = isset( $_POST['url'] ) ? wp_unslash( $_POST['url'] ) : '';
-        $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+        $url       = isset( $_POST['url'] ) ? wp_unslash( $_POST['url'] ) : '';
+        $name      = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+        $advertiser = isset( $_POST['advertiser_id'] ) ? sanitize_text_field( wp_unslash( $_POST['advertiser_id'] ) ) : '';
 
-        $result = self::generate( $url, '', $name );
+        $result = self::generate( $url, $advertiser, $name );
 
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( [ 'message' => $result->get_error_message() ] );

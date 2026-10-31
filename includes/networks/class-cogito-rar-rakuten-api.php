@@ -210,34 +210,108 @@ class Cogito_RAR_Rakuten_API {
         return (int) get_option( self::OPTION_ADVERTISERS_SYNCED, 0 );
     }
 
+    const MULTI_PART_SUFFIXES = [
+        'co.uk', 'org.uk', 'me.uk', 'net.uk', 'ltd.uk', 'plc.uk', 'ac.uk', 'gov.uk', 'sch.uk',
+        'com.au', 'net.au', 'org.au', 'co.nz', 'net.nz', 'org.nz',
+        'com.br', 'com.mx', 'com.ar', 'com.co', 'com.pe',
+        'co.jp', 'ne.jp', 'or.jp', 'co.kr', 'com.cn', 'com.tw', 'com.hk', 'com.sg', 'com.my',
+        'co.za', 'co.in', 'com.tr', 'co.il', 'com.ua', 'co.th', 'com.ph',
+    ];
+
     public static function normalise_host( $url ) {
-        $host = strtolower( (string) wp_parse_url( (string) $url, PHP_URL_HOST ) );
-        return preg_replace( '/^www\./', '', $host );
+        $url  = trim( (string) $url );
+        $host = (string) wp_parse_url( $url, PHP_URL_HOST );
+
+        if ( '' === $host ) {
+            $host = preg_replace( '#^[a-z][a-z0-9+.\-]*://#i', '', $url );
+            $host = explode( '/', $host )[0];
+            $host = explode( '?', $host )[0];
+            $host = explode( '#', $host )[0];
+            $host = explode( ':', $host )[0];
+
+            if ( ! preg_match( '/^[a-z0-9.\-]+\.[a-z]{2,}$/i', $host ) ) {
+                return '';
+            }
+        }
+
+        return preg_replace( '/^www\./', '', strtolower( $host ) );
     }
 
-    public static function resolve_advertiser_for_url( $url ) {
+    public static function base_name( $url ) {
         $host = self::normalise_host( $url );
         if ( '' === $host ) {
-            return null;
+            return '';
+        }
+
+        $parts = explode( '.', $host );
+        $count = count( $parts );
+
+        if ( $count < 2 ) {
+            return $host;
+        }
+
+        $last_two = $parts[ $count - 2 ] . '.' . $parts[ $count - 1 ];
+
+        if ( $count >= 3 && in_array( $last_two, self::MULTI_PART_SUFFIXES, true ) ) {
+            return $parts[ $count - 3 ];
+        }
+
+        return $parts[ $count - 2 ];
+    }
+
+    public static function match_advertisers( $url ) {
+        $empty = [ 'match' => null, 'confidence' => '', 'candidates' => [] ];
+
+        $host = self::normalise_host( $url );
+        if ( '' === $host ) {
+            return $empty;
         }
 
         $advertisers = self::get_advertisers();
 
         foreach ( $advertisers as $advertiser ) {
             if ( '' !== $advertiser['host'] && $advertiser['host'] === $host ) {
-                return $advertiser;
+                return [ 'match' => $advertiser, 'confidence' => 'exact', 'candidates' => [] ];
             }
         }
 
         foreach ( $advertisers as $advertiser ) {
-            if ( '' === $advertiser['host'] ) {
-                continue;
-            }
-            if ( str_ends_with( $host, '.' . $advertiser['host'] ) ) {
-                return $advertiser;
+            if ( '' !== $advertiser['host'] && str_ends_with( $host, '.' . $advertiser['host'] ) ) {
+                return [ 'match' => $advertiser, 'confidence' => 'subdomain', 'candidates' => [] ];
             }
         }
 
+        $base = self::base_name( $host );
+        if ( '' === $base ) {
+            return $empty;
+        }
+
+        $candidates = [];
+        foreach ( $advertisers as $advertiser ) {
+            if ( '' !== $advertiser['host'] && self::base_name( $advertiser['host'] ) === $base ) {
+                $candidates[] = $advertiser;
+            }
+        }
+
+        if ( 1 === count( $candidates ) ) {
+            return [ 'match' => $candidates[0], 'confidence' => 'name', 'candidates' => [] ];
+        }
+
+        return [ 'match' => null, 'confidence' => '', 'candidates' => $candidates ];
+    }
+
+    public static function resolve_advertiser_for_url( $url ) {
+        $result = self::match_advertisers( $url );
+        return $result['match'];
+    }
+
+    public static function get_advertiser_by_id( $id ) {
+        $id = (string) $id;
+        foreach ( self::get_advertisers() as $advertiser ) {
+            if ( $advertiser['id'] === $id ) {
+                return $advertiser;
+            }
+        }
         return null;
     }
 

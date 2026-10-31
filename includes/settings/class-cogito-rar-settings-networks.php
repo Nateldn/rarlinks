@@ -204,17 +204,54 @@ class Cogito_RAR_Settings_Networks {
         echo '</div>';
 
         if ( ! empty( $advertisers ) ) {
+            $search = isset( $_GET['adv_search'] ) ? sanitize_text_field( wp_unslash( $_GET['adv_search'] ) ) : '';
+
+            if ( '' !== $search ) {
+                $needle      = strtolower( $search );
+                $advertisers = array_values( array_filter( $advertisers, static function ( $advertiser ) use ( $needle ) {
+                    return false !== stripos( $advertiser['name'], $needle )
+                        || false !== stripos( $advertiser['host'], $needle )
+                        || $advertiser['id'] === $needle;
+                } ) );
+            }
+
             echo '<div class="rar-card">';
             echo '<h4>Synced advertisers</h4>';
-            echo '<table class="widefat striped"><thead><tr><th>Advertiser</th><th>Domain</th><th>ID</th></tr></thead><tbody>';
-            foreach ( $advertisers as $advertiser ) {
-                echo '<tr>';
-                echo '<td>' . esc_html( $advertiser['name'] ) . '</td>';
-                echo '<td>' . esc_html( $advertiser['host'] ) . '</td>';
-                echo '<td>' . esc_html( $advertiser['id'] ) . '</td>';
-                echo '</tr>';
+
+            echo '<form method="get" action="' . esc_url( admin_url( 'edit.php' ) ) . '" style="margin-bottom:12px;">';
+            echo '<input type="hidden" name="post_type" value="rar_redirect">';
+            echo '<input type="hidden" name="page" value="rar_settings">';
+            echo '<input type="hidden" name="tab" value="networks">';
+            echo '<input type="search" name="adv_search" value="' . esc_attr( $search ) . '" placeholder="Search name, domain or ID" style="width:280px;">';
+            submit_button( 'Search advertisers', 'secondary', 'submit', false );
+            if ( '' !== $search ) {
+                echo ' <a href="' . esc_url( self::tab_url() ) . '">Clear</a>';
             }
-            echo '</tbody></table>';
+            echo '</form>';
+
+            if ( empty( $advertisers ) ) {
+                echo '<p>No advertiser matches that search.</p>';
+            } else {
+                $shown = array_slice( $advertisers, 0, 100 );
+
+                echo '<p class="description">';
+                echo esc_html( '' !== $search
+                    ? sprintf( '%d match%s.', count( $advertisers ), 1 === count( $advertisers ) ? '' : 'es' )
+                    : sprintf( '%d advertisers. Showing the first %d — search to narrow.', count( $advertisers ), count( $shown ) )
+                );
+                echo '</p>';
+
+                echo '<table class="widefat striped"><thead><tr><th>Advertiser</th><th>Domain</th><th>ID</th></tr></thead><tbody>';
+                foreach ( $shown as $advertiser ) {
+                    echo '<tr>';
+                    echo '<td>' . esc_html( $advertiser['name'] ) . '</td>';
+                    echo '<td>' . esc_html( $advertiser['host'] ) . '</td>';
+                    echo '<td><code>' . esc_html( $advertiser['id'] ) . '</code></td>';
+                    echo '</tr>';
+                }
+                echo '</tbody></table>';
+            }
+
             echo '</div>';
         }
 

@@ -5,6 +5,63 @@ newest first. Each references the file/line as of the commit that made
 the change — line numbers drift as the file changes, so check git blame
 on the referenced line if this doc and the code look out of sync.
 
+## 2026-10-31 — Advertiser matching across TLDs, plus a manual override
+
+**Files:**
+- `includes/networks/class-cogito-rar-rakuten-api.php` — `normalise_host()`,
+  `base_name()`, `match_advertisers()`, `get_advertiser_by_id()`
+- `includes/networks/class-cogito-rar-rakuten-links.php` — `generate()`
+- `includes/settings/class-cogito-rar-settings-networks.php` — advertiser search
+- `assets/js/cogito-rar-rakuten.js` — advertiser ID field
+
+**The bug:** matching only did exact host or subdomain-to-parent. Rakuten
+stores Belstaff as `belstaff.co.uk` and Bellroy as a regional domain, but
+the product URLs being pasted were `.com`. Different host, no match, and
+the tool refused to generate — for advertisers Nate is actually partnered
+with.
+
+**Fix:** after exact and subdomain matching both miss, compare the
+registrable brand name with the TLD stripped, so `belstaff.com` matches
+`belstaff.co.uk`. Multi-part suffixes (`co.uk`, `com.au`, …) are handled by
+a hardcoded list rather than a public-suffix library, which would mean a
+bundled dependency for one string operation.
+
+A brand-name match is reported back as `confidence: 'name'` and labelled in
+the UI as "matched by brand name, different domain", because it is a weaker
+claim than a domain match and the operator should see that.
+
+**Ambiguity is never guessed.** If two advertisers share a brand name
+across TLDs, the match fails and the error names every candidate with its
+domain and ID, for the operator to choose. Silently picking one would
+attach a link to the wrong advertiser and lose the commission.
+
+**Manual override.** The Edit screen now has an optional Advertiser ID
+field beside the button, and the REST route already accepted
+`advertiser_id`. Supplying one skips matching entirely. Matching should
+never be the thing that blocks a link — Rakuten is the authority on whether
+a URL is acceptable for an advertiser, and it returns a specific error when
+it is not.
+
+**Advertiser search.** The settings table rendered all 1736 rows unfiltered
+and now has a search box, capped at 100 rows. The absence of one is part of
+why the mismatch wasn't obvious: there was no practical way to look up what
+had actually been stored for a given brand.
+
+### A bug the test harness caught
+
+`base_name()` was passing an already-bare host back through
+`normalise_host()`, which used `wp_parse_url( $url, PHP_URL_HOST )` — that
+returns nothing for a string with no scheme, so every brand-name comparison
+silently compared `''` against `''`. The first fix therefore did nothing,
+and looked like it worked because the `base_name()` tests all passed full
+URLs.
+
+`normalise_host()` now falls back to treating a bare host as a host, while
+still returning `''` for input that isn't one. Both suites pass clean under
+`E_ALL` on 8.3: 17 checks on parsing and title derivation, 14 on matching.
+
+---
+
 ## 2026-10-30 — Rakuten link generation: Edit screen, bulk tool, REST (phase 2)
 
 **Files:**

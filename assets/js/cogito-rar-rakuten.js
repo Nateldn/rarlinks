@@ -20,11 +20,19 @@
         button.id = 'rar-rakuten-generate';
         button.textContent = 'Generate Rakuten link';
 
+        var advertiser = document.createElement('input');
+        advertiser.type = 'text';
+        advertiser.id = 'rar-rakuten-advertiser';
+        advertiser.placeholder = 'Advertiser ID (optional)';
+        advertiser.style.width = '180px';
+        advertiser.style.marginLeft = '8px';
+
         var status = document.createElement('span');
         status.className = 'rar-rakuten-status';
         status.style.marginLeft = '10px';
 
         wrap.appendChild(button);
+        wrap.appendChild(advertiser);
         wrap.appendChild(status);
         target.parentNode.parentNode.insertBefore(wrap, target.parentNode.nextSibling);
 
@@ -51,6 +59,7 @@
             body.append('nonce', rarRakuten.nonce);
             body.append('url', url);
             body.append('name', titleField ? titleField.value : '');
+            body.append('advertiser_id', advertiser.value.trim());
 
             button.disabled = true;
             setStatus('Generating…', '');
@@ -84,7 +93,12 @@
                         brand.value = payload.data.advertiser_name;
                     }
 
-                    setStatus('Matched ' + (payload.data.advertiser_name || payload.data.advertiser_id) + '. Save to keep it.', 'ok');
+                    var who = payload.data.advertiser_name || payload.data.advertiser_id;
+                    var how = payload.data.confidence === 'name'
+                        ? ' (matched by brand name, different domain)'
+                        : (payload.data.confidence === 'manual' ? ' (advertiser you supplied)' : '');
+
+                    setStatus('Matched ' + who + how + '. Save to keep it.', 'ok');
                 })
                 .catch(function () {
                     button.disabled = false;
