@@ -5,6 +5,63 @@ newest first. Each references the file/line as of the commit that made
 the change — line numbers drift as the file changes, so check git blame
 on the referenced line if this doc and the code look out of sync.
 
+## 2026-10-31 — Sub ID support, and clearer labelling of the two different IDs
+
+**Files:**
+- `includes/networks/interface-cogito-rar-affiliate-provider.php` —
+  `sub_id_label()`, `default_sub_id()`, `generate()` gains `$sub_id`
+- `includes/networks/class-cogito-rar-provider-rakuten.php`
+- `includes/networks/class-cogito-rar-affiliate-links.php` — `generate()`
+- `includes/networks/class-cogito-rar-rakuten-bulk.php`
+- `assets/js/cogito-rar-affiliate.js`
+
+**Two IDs were being confused, and the UI caused it.** "Account ID" in
+settings identifies the publisher and is sent as the token `scope`.
+"Advertiser ID" (MID) identifies the merchant and differs per link. Reading
+the settings screen it was reasonable to think the stored ID was the
+advertiser one.
+
+The advertiser ID is **always** sent to Rakuten — their API rejects the
+call without it. It is optional *in the UI* only because it is resolved
+from the synced advertiser list by domain. The field is an override for
+when matching misses or is ambiguous.
+
+Relabelled accordingly: the Edit-screen field is "Merchant ID (auto)", the
+Account ID description states it identifies you rather than the merchant,
+and the success message now names the merchant ID actually used, so the
+link can be checked against Rakuten's dashboard without guessing.
+
+**Sub ID added across the chain.** Rakuten's own deep link creator offers
+one and it was missing here, which makes per-campaign reporting impossible.
+It is on the provider interface rather than Rakuten's class because every
+network has the concept under a different name — Awin `clickref`, Impact
+`subId1`, Sovrn `u1` — so `sub_id_label()` lets each provider name its own
+field.
+
+Resolution order is explicit value, then the provider's configured default,
+then none. A default lives in the provider's settings; the Edit screen
+pre-fills it and allows an override; the bulk screen takes one for the
+whole batch; REST accepts `sub_id`.
+
+`null` and `''` both fall back to the default, so omitting the parameter
+and clearing the field behave the same. Suppressing the default entirely
+is not currently possible — if that is ever needed it wants an explicit
+sentinel rather than overloading the empty string.
+
+Rakuten's docs note custom `u1` values may require Signature enabled on the
+account. The value is sent regardless; if the account does not support it
+their API is the thing that will say so.
+
+### Contract verification
+
+Adding methods to the interface is a fatal error at load time if a provider
+does not implement them, which neither `php -l` nor the existing suites
+catch — the site would white-screen. A third harness instantiates the
+provider, reflects over the interface and checks every method exists, plus
+registry registration and lookup. Run before pushing any interface change.
+
+---
+
 ## 2026-10-31 — Restructured affiliate link generation around pluggable providers
 
 **Files:**

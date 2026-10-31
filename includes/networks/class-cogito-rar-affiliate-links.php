@@ -21,7 +21,7 @@ class Cogito_RAR_Affiliate_Links {
         add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_editor_script' ] );
     }
 
-    public static function generate( $url, $network = '', $advertiser_id = '', $name = '' ) {
+    public static function generate( $url, $network = '', $advertiser_id = '', $name = '', $sub_id = null ) {
         $url = trim( (string) $url );
         if ( '' === $url || ! wp_http_validate_url( $url ) ) {
             return new WP_Error( 'rar_affiliate_bad_url', 'That does not look like a valid URL.' );
@@ -98,7 +98,11 @@ class Cogito_RAR_Affiliate_Links {
             }
         }
 
-        $result = $provider->generate( $url, $advertiser_id, $name );
+        $sub_id = ( null === $sub_id || '' === $sub_id )
+            ? $provider->default_sub_id()
+            : (string) $sub_id;
+
+        $result = $provider->generate( $url, $advertiser_id, $name, $sub_id );
         if ( is_wp_error( $result ) ) {
             return $result;
         }
@@ -111,6 +115,7 @@ class Cogito_RAR_Affiliate_Links {
         $result['network']    = $provider->label();
         $result['network_id'] = $provider->id();
         $result['confidence'] = $confidence;
+        $result['sub_id']     = $sub_id;
 
         return $result;
     }
@@ -169,7 +174,8 @@ class Cogito_RAR_Affiliate_Links {
             isset( $_POST['url'] ) ? wp_unslash( $_POST['url'] ) : '',
             isset( $_POST['network'] ) ? sanitize_key( wp_unslash( $_POST['network'] ) ) : '',
             isset( $_POST['advertiser_id'] ) ? sanitize_text_field( wp_unslash( $_POST['advertiser_id'] ) ) : '',
-            isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : ''
+            isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '',
+            isset( $_POST['sub_id'] ) ? sanitize_text_field( wp_unslash( $_POST['sub_id'] ) ) : null
         );
 
         if ( is_wp_error( $result ) ) {
@@ -189,6 +195,7 @@ class Cogito_RAR_Affiliate_Links {
                 'network'       => [ 'required' => false, 'type' => 'string' ],
                 'advertiser_id' => [ 'required' => false, 'type' => 'string' ],
                 'name'          => [ 'required' => false, 'type' => 'string' ],
+                'sub_id'        => [ 'required' => false, 'type' => 'string' ],
             ],
         ] );
 
@@ -227,7 +234,8 @@ class Cogito_RAR_Affiliate_Links {
             (string) $request->get_param( 'url' ),
             (string) $request->get_param( 'network' ),
             (string) $request->get_param( 'advertiser_id' ),
-            (string) $request->get_param( 'name' )
+            (string) $request->get_param( 'name' ),
+            null === $request->get_param( 'sub_id' ) ? null : (string) $request->get_param( 'sub_id' )
         );
 
         if ( is_wp_error( $result ) ) {
@@ -303,11 +311,15 @@ class Cogito_RAR_Affiliate_Links {
             $networks[] = [ 'id' => $provider->id(), 'label' => $provider->label() ];
         }
 
+        $first = reset( $configured );
+
         wp_localize_script( 'cogito-rar-affiliate', 'rarAffiliate', [
-            'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
-            'action'   => self::AJAX_ACTION,
-            'nonce'    => wp_create_nonce( self::NONCE_ACTION ),
-            'networks' => $networks,
+            'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+            'action'       => self::AJAX_ACTION,
+            'nonce'        => wp_create_nonce( self::NONCE_ACTION ),
+            'networks'     => $networks,
+            'subIdLabel'   => $first ? $first->sub_id_label() : 'Sub ID',
+            'defaultSubId' => $first ? $first->default_sub_id() : '',
         ] );
     }
 }

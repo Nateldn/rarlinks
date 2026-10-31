@@ -92,14 +92,15 @@ class Cogito_RAR_Rakuten_Bulk {
             : sprintf( '%s [Rakuten Advertising]', $advertiser );
     }
 
-    private static function create_link( $row ) {
+    private static function create_link( $row, $sub_id = null ) {
         $title = self::derive_title( $row );
 
         $generated = Cogito_RAR_Affiliate_Links::generate(
             $row['url'],
             Cogito_RAR_Provider_Rakuten::ID,
             isset( $row['advertiser']['id'] ) ? $row['advertiser']['id'] : '',
-            $title
+            $title,
+            $sub_id
         );
 
         if ( is_wp_error( $generated ) ) {
@@ -162,8 +163,9 @@ class Cogito_RAR_Rakuten_Bulk {
             wp_die( 'Insufficient permissions.', '', [ 'response' => 403 ] );
         }
 
-        $raw  = isset( $_POST['rar_bulk_urls'] ) ? wp_unslash( $_POST['rar_bulk_urls'] ) : '';
-        $rows = array_slice( self::parse_input( $raw ), 0, self::MAX_ROWS );
+        $raw    = isset( $_POST['rar_bulk_urls'] ) ? wp_unslash( $_POST['rar_bulk_urls'] ) : '';
+        $sub_id = isset( $_POST['rar_bulk_sub_id'] ) ? sanitize_text_field( wp_unslash( $_POST['rar_bulk_sub_id'] ) ) : null;
+        $rows   = array_slice( self::parse_input( $raw ), 0, self::MAX_ROWS );
 
         $created = [];
         $failed  = [];
@@ -174,7 +176,7 @@ class Cogito_RAR_Rakuten_Bulk {
                 continue;
             }
 
-            $result = self::create_link( $row );
+            $result = self::create_link( $row, $sub_id );
 
             if ( is_wp_error( $result ) ) {
                 $failed[] = [ 'url' => $row['url'], 'error' => $result->get_error_message() ];
@@ -272,9 +274,16 @@ class Cogito_RAR_Rakuten_Bulk {
         }
 
         if ( $ready > 0 ) {
+            $provider       = Cogito_RAR_Affiliate_Networks::get( Cogito_RAR_Provider_Rakuten::ID );
+            $sub_id_label   = $provider ? $provider->sub_id_label() : 'Sub ID';
+            $sub_id_default = $provider ? $provider->default_sub_id() : '';
+
             echo '<form method="post" action="' . esc_url( self::page_url() ) . '" style="margin-top:12px;">';
             wp_nonce_field( 'rar_bulk_create', 'rar_bulk_create_nonce' );
             echo '<input type="hidden" name="rar_bulk_urls" value="' . esc_attr( $raw ) . '">';
+            echo '<p><label>' . esc_html( $sub_id_label ) . ' for this batch: ';
+            echo '<input type="text" name="rar_bulk_sub_id" value="' . esc_attr( $sub_id_default ) . '" style="width:220px;">';
+            echo '</label></p>';
             submit_button( sprintf( 'Generate and create %d draft link%s', $ready, 1 === $ready ? '' : 's' ), 'primary', 'submit', false );
             echo '<p class="description" style="margin-top:8px;">Links are generated in Rakuten and saved as drafts here. Nothing goes live until you publish it.</p>';
             echo '</form>';

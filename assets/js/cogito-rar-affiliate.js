@@ -39,9 +39,19 @@
         var advertiser = document.createElement('input');
         advertiser.type = 'text';
         advertiser.id = 'rar-affiliate-advertiser';
-        advertiser.placeholder = 'Advertiser ID (optional)';
-        advertiser.style.width = '170px';
+        advertiser.placeholder = 'Merchant ID (auto)';
+        advertiser.title = 'The advertiser/merchant ID. Detected from the URL — only set this to override.';
+        advertiser.style.width = '150px';
         advertiser.style.marginLeft = '8px';
+
+        var subId = document.createElement('input');
+        subId.type = 'text';
+        subId.id = 'rar-affiliate-sub-id';
+        subId.placeholder = rarAffiliate.subIdLabel || 'Sub ID';
+        subId.title = 'Sub ID passed to the network for your own reporting.';
+        subId.value = rarAffiliate.defaultSubId || '';
+        subId.style.width = '140px';
+        subId.style.marginLeft = '8px';
 
         var status = document.createElement('span');
         status.className = 'rar-affiliate-status';
@@ -50,6 +60,7 @@
         wrap.appendChild(button);
         wrap.appendChild(network);
         wrap.appendChild(advertiser);
+        wrap.appendChild(subId);
         wrap.appendChild(status);
         target.parentNode.parentNode.insertBefore(wrap, target.parentNode.nextSibling);
 
@@ -77,6 +88,7 @@
             body.append('url', url);
             body.append('network', network.value);
             body.append('advertiser_id', advertiser.value.trim());
+            body.append('sub_id', subId.value.trim());
             body.append('name', titleField ? titleField.value : '');
 
             button.disabled = true;
@@ -116,9 +128,15 @@
                     var who = payload.data.advertiser_name || payload.data.advertiser_id;
                     var how = payload.data.confidence === 'name'
                         ? ' (matched by brand name, different domain)'
-                        : (payload.data.confidence === 'manual' ? ' (advertiser you supplied)' : '');
+                        : (payload.data.confidence === 'manual' ? ' (merchant you supplied)' : '');
 
-                    setStatus(payload.data.network + ': ' + who + how + '. Save to keep it.', 'ok');
+                    var sub = payload.data.sub_id ? ', sub ID ' + payload.data.sub_id : '';
+
+                    setStatus(
+                        payload.data.network + ': ' + who + ' (merchant ID ' + payload.data.advertiser_id + ')'
+                        + how + sub + '. Save to keep it.',
+                        'ok'
+                    );
                 })
                 .catch(function (error) {
                     button.disabled = false;

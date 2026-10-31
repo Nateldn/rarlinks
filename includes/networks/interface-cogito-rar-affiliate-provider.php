@@ -18,5 +18,9 @@ interface Cogito_RAR_Affiliate_Provider {
 
     public function match_advertiser( $url );
 
-    public function generate( $url, $advertiser_id = '', $name = '' );
+    public function sub_id_label();
+
+    public function default_sub_id();
+
+    public function generate( $url, $advertiser_id = '', $name = '', $sub_id = '' );
 }

@@ -11,6 +11,8 @@ class Cogito_RAR_Provider_Rakuten implements Cogito_RAR_Affiliate_Provider {
 
     const SECRET_MASK = '********';
 
+    const OPTION_DEFAULT_SUB_ID = 'rar_rakuten_default_sub_id';
+
     public function id() {
         return self::ID;
     }
@@ -27,8 +29,16 @@ class Cogito_RAR_Provider_Rakuten implements Cogito_RAR_Affiliate_Provider {
         return Cogito_RAR_Rakuten_API::match_advertisers( $url );
     }
 
-    public function generate( $url, $advertiser_id = '', $name = '' ) {
-        return Cogito_RAR_Rakuten_API::create_deep_link( $url, $advertiser_id, $name );
+    public function sub_id_label() {
+        return 'Sub ID (u1)';
+    }
+
+    public function default_sub_id() {
+        return (string) get_option( self::OPTION_DEFAULT_SUB_ID, '' );
+    }
+
+    public function generate( $url, $advertiser_id = '', $name = '', $sub_id = '' ) {
+        return Cogito_RAR_Rakuten_API::create_deep_link( $url, $advertiser_id, $name, $sub_id );
     }
 
     public function get_advertiser_by_id( $id ) {
@@ -53,6 +63,11 @@ class Cogito_RAR_Provider_Rakuten implements Cogito_RAR_Affiliate_Provider {
             update_option( Cogito_RAR_Rakuten_API::OPTION_CLIENT_SECRET, sanitize_text_field( $secret ), false );
         }
 
+        $sub_id = isset( $_POST['rar_rakuten_default_sub_id'] )
+            ? sanitize_text_field( wp_unslash( $_POST['rar_rakuten_default_sub_id'] ) )
+            : '';
+        update_option( self::OPTION_DEFAULT_SUB_ID, $sub_id, false );
+
         delete_transient( Cogito_RAR_Rakuten_API::TOKEN_TRANSIENT );
     }
 
@@ -74,7 +89,12 @@ class Cogito_RAR_Provider_Rakuten implements Cogito_RAR_Affiliate_Provider {
 
         echo '<tr><th scope="row"><label for="rar_rakuten_account_id">Account ID</label></th><td>';
         echo '<input type="text" class="regular-text" id="rar_rakuten_account_id" name="rar_rakuten_account_id" value="' . esc_attr( $account_id ) . '" autocomplete="off">';
-        echo '<p class="description">Sent to Rakuten as the token <code>scope</code>.</p>';
+        echo '<p class="description">Identifies <strong>you</strong>, not the merchant. Sent to Rakuten as the token <code>scope</code>. The advertiser (merchant) ID is resolved per link.</p>';
+        echo '</td></tr>';
+
+        echo '<tr><th scope="row"><label for="rar_rakuten_default_sub_id">Default ' . esc_html( $this->sub_id_label() ) . '</label></th><td>';
+        echo '<input type="text" class="regular-text" id="rar_rakuten_default_sub_id" name="rar_rakuten_default_sub_id" value="' . esc_attr( $this->default_sub_id() ) . '">';
+        echo '<p class="description">Applied to every generated link unless overridden. Leave empty for none. Rakuten may require Signature to be enabled on your account for custom values.</p>';
         echo '</td></tr>';
 
         echo '</tbody></table>';
