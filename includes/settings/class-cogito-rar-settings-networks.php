@@ -6,8 +6,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Cogito_RAR_Settings_Networks {
 
-    const SECRET_MASK = '********';
-
     public static function init() {
         add_action( 'rar_settings_render_tab_networks', [ self::class, 'render' ] );
         add_action( 'admin_init', [ self::class, 'maybe_handle_save' ] );
@@ -40,24 +38,14 @@ class Cogito_RAR_Settings_Networks {
             return;
         }
 
-        $client_id = isset( $_POST['rar_rakuten_client_id'] )
-            ? sanitize_text_field( wp_unslash( $_POST['rar_rakuten_client_id'] ) )
-            : '';
-        update_option( Cogito_RAR_Rakuten_API::OPTION_CLIENT_ID, $client_id, false );
+        $provider_id = isset( $_POST['rar_network_provider'] ) ? sanitize_key( wp_unslash( $_POST['rar_network_provider'] ) ) : '';
+        $provider    = Cogito_RAR_Affiliate_Networks::get( $provider_id );
 
-        $account_id = isset( $_POST['rar_rakuten_account_id'] )
-            ? sanitize_text_field( wp_unslash( $_POST['rar_rakuten_account_id'] ) )
-            : '';
-        update_option( Cogito_RAR_Rakuten_API::OPTION_ACCOUNT_ID, $account_id, false );
-
-        $secret = isset( $_POST['rar_rakuten_client_secret'] )
-            ? trim( wp_unslash( $_POST['rar_rakuten_client_secret'] ) )
-            : '';
-        if ( '' !== $secret && self::SECRET_MASK !== $secret ) {
-            update_option( Cogito_RAR_Rakuten_API::OPTION_CLIENT_SECRET, sanitize_text_field( $secret ), false );
+        if ( null === $provider ) {
+            wp_die( 'Unknown affiliate network.', '', [ 'response' => 400 ] );
         }
 
-        delete_transient( Cogito_RAR_Rakuten_API::TOKEN_TRANSIENT );
+        $provider->handle_settings_save();
 
         wp_safe_redirect( add_query_arg( 'saved', 1, self::tab_url() ) );
         exit;
@@ -132,10 +120,6 @@ class Cogito_RAR_Settings_Networks {
     public static function render() {
         self::render_notices();
 
-        $client_id  = (string) get_option( Cogito_RAR_Rakuten_API::OPTION_CLIENT_ID, '' );
-        $account_id = (string) get_option( Cogito_RAR_Rakuten_API::OPTION_ACCOUNT_ID, '' );
-        $has_secret = '' !== (string) get_option( Cogito_RAR_Rakuten_API::OPTION_CLIENT_SECRET, '' );
-
         $advertisers = Cogito_RAR_Rakuten_API::get_advertisers();
         $synced      = Cogito_RAR_Rakuten_API::get_last_synced();
 
@@ -146,30 +130,17 @@ class Cogito_RAR_Settings_Networks {
         echo '<p>API credentials for generating affiliate links directly from the RARLink edit screen. Credentials are stored on this server and are never exposed through the REST API.</p>';
         echo '</div>';
 
-        echo '<div class="rar-card">';
-        echo '<h4>Rakuten Advertising</h4>';
-        echo '<form method="post" action="' . esc_url( self::tab_url() ) . '">';
-        wp_nonce_field( 'rar_networks_settings', 'rar_networks_settings_nonce' );
-        echo '<table class="form-table"><tbody>';
-
-        echo '<tr><th scope="row"><label for="rar_rakuten_client_id">Client ID</label></th><td>';
-        echo '<input type="text" class="regular-text" id="rar_rakuten_client_id" name="rar_rakuten_client_id" value="' . esc_attr( $client_id ) . '" autocomplete="off">';
-        echo '</td></tr>';
-
-        echo '<tr><th scope="row"><label for="rar_rakuten_client_secret">Client Secret</label></th><td>';
-        echo '<input type="password" class="regular-text" id="rar_rakuten_client_secret" name="rar_rakuten_client_secret" value="' . ( $has_secret ? esc_attr( self::SECRET_MASK ) : '' ) . '" autocomplete="off">';
-        echo '<p class="description">' . ( $has_secret ? 'A secret is saved. Leave as-is to keep it, or type a new one to replace it.' : 'Generated with your application in the Rakuten developer portal.' ) . '</p>';
-        echo '</td></tr>';
-
-        echo '<tr><th scope="row"><label for="rar_rakuten_account_id">Account ID</label></th><td>';
-        echo '<input type="text" class="regular-text" id="rar_rakuten_account_id" name="rar_rakuten_account_id" value="' . esc_attr( $account_id ) . '" autocomplete="off">';
-        echo '<p class="description">Sent to Rakuten as the token <code>scope</code>.</p>';
-        echo '</td></tr>';
-
-        echo '</tbody></table>';
-        submit_button( 'Save credentials' );
-        echo '</form>';
-        echo '</div>';
+        foreach ( Cogito_RAR_Affiliate_Networks::all() as $provider ) {
+            echo '<div class="rar-card">';
+            echo '<h4>' . esc_html( $provider->label() ) . '</h4>';
+            echo '<form method="post" action="' . esc_url( self::tab_url() ) . '">';
+            wp_nonce_field( 'rar_networks_settings', 'rar_networks_settings_nonce' );
+            echo '<input type="hidden" name="rar_network_provider" value="' . esc_attr( $provider->id() ) . '">';
+            $provider->render_settings();
+            submit_button( 'Save credentials' );
+            echo '</form>';
+            echo '</div>';
+        }
 
         echo '<div class="rar-card">';
         echo '<h4>Connection</h4>';

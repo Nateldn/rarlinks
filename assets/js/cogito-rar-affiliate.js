@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    if (typeof rarRakuten === 'undefined') {
+    if (typeof rarAffiliate === 'undefined') {
         return;
     }
 
@@ -12,26 +12,43 @@
         }
 
         var wrap = document.createElement('p');
-        wrap.className = 'rar-rakuten-wrap';
+        wrap.className = 'rar-affiliate-wrap';
 
         var button = document.createElement('button');
         button.type = 'button';
         button.className = 'button';
-        button.id = 'rar-rakuten-generate';
-        button.textContent = 'Generate Rakuten link';
+        button.id = 'rar-affiliate-generate';
+        button.textContent = 'Generate affiliate link';
+
+        var network = document.createElement('select');
+        network.id = 'rar-affiliate-network';
+        network.style.marginLeft = '8px';
+
+        var auto = document.createElement('option');
+        auto.value = '';
+        auto.textContent = rarAffiliate.networks.length > 1 ? 'Detect network' : 'Detect';
+        network.appendChild(auto);
+
+        rarAffiliate.networks.forEach(function (item) {
+            var option = document.createElement('option');
+            option.value = item.id;
+            option.textContent = item.label;
+            network.appendChild(option);
+        });
 
         var advertiser = document.createElement('input');
         advertiser.type = 'text';
-        advertiser.id = 'rar-rakuten-advertiser';
+        advertiser.id = 'rar-affiliate-advertiser';
         advertiser.placeholder = 'Advertiser ID (optional)';
-        advertiser.style.width = '180px';
+        advertiser.style.width = '170px';
         advertiser.style.marginLeft = '8px';
 
         var status = document.createElement('span');
-        status.className = 'rar-rakuten-status';
+        status.className = 'rar-affiliate-status';
         status.style.marginLeft = '10px';
 
         wrap.appendChild(button);
+        wrap.appendChild(network);
         wrap.appendChild(advertiser);
         wrap.appendChild(status);
         target.parentNode.parentNode.insertBefore(wrap, target.parentNode.nextSibling);
@@ -55,23 +72,26 @@
 
             var titleField = document.getElementById('title');
             var body = new URLSearchParams();
-            body.append('action', rarRakuten.action);
-            body.append('nonce', rarRakuten.nonce);
+            body.append('action', rarAffiliate.action);
+            body.append('nonce', rarAffiliate.nonce);
             body.append('url', url);
-            body.append('name', titleField ? titleField.value : '');
+            body.append('network', network.value);
             body.append('advertiser_id', advertiser.value.trim());
+            body.append('name', titleField ? titleField.value : '');
 
             button.disabled = true;
             setStatus('Generating…', '');
 
-            fetch(rarRakuten.ajaxUrl, {
+            fetch(rarAffiliate.ajaxUrl, {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: body.toString()
             })
                 .then(function (response) {
-                    return response.json();
+                    return response.json().catch(function () {
+                        throw new Error('Server returned ' + response.status);
+                    });
                 })
                 .then(function (payload) {
                     button.disabled = false;
@@ -83,9 +103,9 @@
 
                     target.value = payload.data.deep_link;
 
-                    var network = fieldByName('rar_network');
-                    if (network) {
-                        network.value = rarRakuten.network;
+                    var networkField = fieldByName('rar_network');
+                    if (networkField) {
+                        networkField.value = payload.data.network;
                     }
 
                     var brand = fieldByName('rar_brand');
@@ -98,11 +118,11 @@
                         ? ' (matched by brand name, different domain)'
                         : (payload.data.confidence === 'manual' ? ' (advertiser you supplied)' : '');
 
-                    setStatus('Matched ' + who + how + '. Save to keep it.', 'ok');
+                    setStatus(payload.data.network + ': ' + who + how + '. Save to keep it.', 'ok');
                 })
-                .catch(function () {
+                .catch(function (error) {
                     button.disabled = false;
-                    setStatus('Could not reach the server.', 'error');
+                    setStatus(error.message || 'Could not reach the server.', 'error');
                 });
         });
     });

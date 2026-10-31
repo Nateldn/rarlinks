@@ -146,12 +146,18 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-s
 Cogito_RAR_Settings_Defaults::init();
 
 // 🔗 Affiliate network APIs (Rakuten first) + their settings tab
+require_once plugin_dir_path( __FILE__ ) . 'includes/networks/interface-cogito-rar-affiliate-provider.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/networks/class-cogito-rar-affiliate-networks.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/networks/class-cogito-rar-affiliate-links.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/networks/class-cogito-rar-rakuten-api.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/networks/class-cogito-rar-rakuten-links.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/networks/class-cogito-rar-provider-rakuten.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/networks/class-cogito-rar-rakuten-bulk.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/settings/class-cogito-rar-settings-networks.php';
+
+Cogito_RAR_Affiliate_Networks::register( new Cogito_RAR_Provider_Rakuten() );
+
 Cogito_RAR_Settings_Networks::init();
-Cogito_RAR_Rakuten_Links::init();
+Cogito_RAR_Affiliate_Links::init();
 Cogito_RAR_Rakuten_Bulk::init();
 
 // 💳 Conversions: provider-agnostic server-side conversion tracking (Meta

@@ -95,8 +95,9 @@ class Cogito_RAR_Rakuten_Bulk {
     private static function create_link( $row ) {
         $title = self::derive_title( $row );
 
-        $generated = Cogito_RAR_Rakuten_Links::generate(
+        $generated = Cogito_RAR_Affiliate_Links::generate(
             $row['url'],
+            Cogito_RAR_Provider_Rakuten::ID,
             isset( $row['advertiser']['id'] ) ? $row['advertiser']['id'] : '',
             $title
         );
@@ -118,7 +119,7 @@ class Cogito_RAR_Rakuten_Bulk {
         $defaults_exist = class_exists( 'Cogito_RAR_Settings_Defaults' );
 
         update_post_meta( $post_id, '_rar_target', $generated['deep_link'] );
-        update_post_meta( $post_id, '_rar_network', Cogito_RAR_Rakuten_Links::NETWORK_LABEL );
+        update_post_meta( $post_id, '_rar_network', $generated['network'] );
         update_post_meta( $post_id, '_rar_brand', $generated['advertiser_name'] );
         update_post_meta( $post_id, '_rar_notes', 'Generated from ' . $row['url'] );
 

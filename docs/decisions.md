@@ -5,6 +5,67 @@ newest first. Each references the file/line as of the commit that made
 the change — line numbers drift as the file changes, so check git blame
 on the referenced line if this doc and the code look out of sync.
 
+## 2026-10-31 — Restructured affiliate link generation around pluggable providers
+
+**Files:**
+- `includes/networks/interface-cogito-rar-affiliate-provider.php` (new)
+- `includes/networks/class-cogito-rar-affiliate-networks.php` (new) — registry
+- `includes/networks/class-cogito-rar-affiliate-links.php` (new) — replaces
+  `class-cogito-rar-rakuten-links.php`
+- `includes/networks/class-cogito-rar-provider-rakuten.php` (new)
+- `assets/js/cogito-rar-affiliate.js` (new) — replaces
+  `assets/js/cogito-rar-rakuten.js`
+- `includes/settings/class-cogito-rar-settings-networks.php`
+- `includes/networks/class-cogito-rar-rakuten-bulk.php`
+- `cogito-rar.php` (line 146)
+
+**Why:** the first build was Rakuten-shaped throughout — the button said
+"Generate Rakuten link", the REST route was `rakuten-link`, the settings
+tab hardcoded Rakuten's three fields. Awin, Impact and Sovrn are expected
+to follow, and each would have meant touching every one of those places.
+
+**Shape:** `Cogito_RAR_Affiliate_Provider` is the contract — identity,
+whether it is configured, how it renders and saves its own credentials, how
+it matches an advertiser, how it generates a link.
+`Cogito_RAR_Affiliate_Networks` is the registry; providers register
+themselves in `cogito-rar.php` and a `rarlinks_affiliate_providers` filter
+allows more without editing the plugin.
+
+Adding a network is now one class plus one `register()` call. The settings
+tab, the Edit-screen dropdown, the REST route and auto-detection all pick it
+up with no further changes.
+
+**Rakuten's transport class is untouched.**
+`Cogito_RAR_Rakuten_API` still owns tokens, sync and the HTTP calls;
+`Cogito_RAR_Provider_Rakuten` is a thin adapter over it. The abstraction
+sits above the network-specific code rather than trying to absorb it,
+because the next provider's auth and link formats will not resemble
+Rakuten's.
+
+**Auto-detection across networks.** With no network specified,
+`Cogito_RAR_Affiliate_Networks::match()` asks every configured provider and
+only proceeds when exactly one returns a definite match. Two networks both
+claiming a domain is a real possibility once there are several — an
+advertiser can run programmes on more than one — so that case fails and
+names every candidate with its network, rather than silently picking the
+one that happened to register first.
+
+**UI:** the button now reads "Generate affiliate link", with a network
+dropdown defaulting to "Detect network" and the optional advertiser ID
+field beside it. The resulting network label is written to the RARLink's
+Network field from the provider itself, not a constant.
+
+**REST:** `POST rar/v1/affiliate-link` (optional `network`) and
+`GET rar/v1/affiliate-networks`. The old `rar/v1/rakuten-link` route is
+gone; `rar/v1/rakuten-advertisers` stays, since advertiser lookup is
+inherently network-specific and nothing else consumes it yet. No skill
+referenced the old route, so nothing external breaks.
+
+Both verification suites still pass unchanged after the refactor — 17
+checks on parsing and title derivation, 14 on matching.
+
+---
+
 ## 2026-10-31 — Advertiser matching across TLDs, plus a manual override
 
 **Files:**
