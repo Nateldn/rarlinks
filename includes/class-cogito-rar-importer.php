@@ -204,6 +204,17 @@ class Cogito_RAR_Importer {
                         	continue;
                         }
 
+                        if ( class_exists( 'Cogito_RAR_Slug_Check' ) ) {
+                        	$slug_state = Cogito_RAR_Slug_Check::check( $slug );
+                        	if ( ! $slug_state['available'] ) {
+                        		$row['error'] = isset( $slug_state['conflict']['title'] )
+                        			? sprintf( 'Slug "%s" already used by "%s"', $slug, $slug_state['conflict']['title'] )
+                        			: sprintf( 'Slug "%s" is already in use', $slug );
+                        		$malformed_rows[] = $row;
+                        		continue;
+                        	}
+                        }
+
                     
                     	// Insert the post
                     	$post_id = wp_insert_post([

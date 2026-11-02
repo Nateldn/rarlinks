@@ -19,6 +19,7 @@ class Cogito_RAR_Metabox_Save {
     public static function init() {
         add_action( 'save_post', [ self::class, 'handle' ], 10, 2 );
         add_action( 'admin_notices', [ self::class, 'admin_notice_rotation_error' ] );
+        add_action( 'admin_notices', [ self::class, 'admin_notice_slug_taken' ] );
     }
 
     /**
@@ -45,6 +46,18 @@ class Cogito_RAR_Metabox_Save {
         // Vanity slug (needs careful handling to avoid infinite loop)
         if ( isset( $_POST['rar_slug'] ) ) {
             $new = sanitize_title( wp_unslash( $_POST['rar_slug'] ) );
+
+            if ( $new && $new !== $post->post_name && Cogito_RAR_Slug_Check::is_taken( $new, $post_id ) ) {
+                $clash = Cogito_RAR_Slug_Check::check( $new, $post_id );
+                $clash_id = isset( $clash['conflict']['id'] ) ? (int) $clash['conflict']['id'] : 0;
+
+                add_filter( 'redirect_post_location', static function ( $location ) use ( $clash_id ) {
+                    return add_query_arg( 'rar_slug_taken', $clash_id, $location );
+                } );
+
+                $new = '';
+            }
+
             if ( $new && $new !== $post->post_name ) {
                 // Temporarily remove this hook to prevent infinite loop on wp_update_post
                 remove_action( 'save_post', [ 'Cogito_RAR', 'save_meta' ], 10 ); // Remove old hook if it still exists
@@ -187,5 +200,25 @@ class Cogito_RAR_Metabox_Save {
         if ( isset( $_GET['rar_rotation_error'] ) ) {
             echo '<div class="notice notice-error"><p><strong>RAR Error:</strong> Weighted rotation must total exactly 100.</p></div>';
         }
+    }
+
+    public static function admin_notice_slug_taken() {
+        if ( ! isset( $_GET['rar_slug_taken'] ) ) {
+            return;
+        }
+
+        $clash_id = absint( $_GET['rar_slug_taken'] );
+
+        echo '<div class="notice notice-error"><p><strong>Vanity slug not saved:</strong> that slug is already in use';
+
+        if ( $clash_id ) {
+            printf(
+                ' by <a href="%s">%s</a>',
+                esc_url( admin_url( 'post.php?post=' . $clash_id . '&action=edit' ) ),
+                esc_html( get_the_title( $clash_id ) )
+            );
+        }
+
+        echo '. The previous slug has been kept — choose another and save again.</p></div>';
     }
 }

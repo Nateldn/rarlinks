@@ -34,6 +34,10 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-rest-acces
 Cogito_RAR_Rest_Access::init();
 
 
+// 🔎 Vanity slug availability (edit screen, REST, importer)
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-cogito-rar-slug-check.php';
+Cogito_RAR_Slug_Check::init();
+
 // 🏷 Shared Brand/Network options (datalist suggestions + admin filter)
 require_once plugin_dir_path( __FILE__ ) . 'includes/helpers/class-cogito-rar-networks.php';
 
