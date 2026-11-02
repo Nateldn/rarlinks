@@ -56,6 +56,7 @@ class Cogito_RAR_Roles {
         'edit_private_rar_redirects',
         'edit_published_rar_redirects',
         'create_rar_redirects',
+        'read_others_rar_redirects',
     ];
 
     /**
@@ -69,6 +70,7 @@ class Cogito_RAR_Roles {
         'read'                => true,
         'create_rar_redirects' => true,
         'edit_rar_redirects'   => true,
+        'read_others_rar_redirects' => true,
     ];
 
     public static function init() {
@@ -90,12 +92,12 @@ class Cogito_RAR_Roles {
      * role tools gets put back on the next admin page load.
      */
     public static function maybe_sync_capabilities() {
-        if ( get_option( 'rar_roles_synced_version' ) === '1.0' ) {
+        if ( get_option( 'rar_roles_synced_version' ) === '1.1' ) {
             return;
         }
 
         self::on_activate();
-        update_option( 'rar_roles_synced_version', '1.0' );
+        update_option( 'rar_roles_synced_version', '1.1' );
     }
 
     private static function grant_full_capabilities( $role_name ) {

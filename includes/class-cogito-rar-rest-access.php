@@ -179,7 +179,7 @@ class Cogito_RAR_Rest_Access {
         if ( self::CPT !== $type ) {
             return $counts;
         }
-        if ( ! is_user_logged_in() || current_user_can( 'edit_others_rar_redirects' ) ) {
+        if ( ! is_user_logged_in() || current_user_can( 'read_others_rar_redirects' ) ) {
             return $counts;
         }
 
@@ -217,7 +217,7 @@ class Cogito_RAR_Rest_Access {
         if ( self::CPT !== $query->get( 'post_type' ) ) {
             return;
         }
-        if ( ! is_user_logged_in() || current_user_can( 'edit_others_rar_redirects' ) ) {
+        if ( ! is_user_logged_in() || current_user_can( 'read_others_rar_redirects' ) ) {
             return;
         }
 
