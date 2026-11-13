@@ -5,6 +5,36 @@ newest first. Each references the file/line as of the commit that made
 the change — line numbers drift as the file changes, so check git blame
 on the referenced line if this doc and the code look out of sync.
 
+## 2026-11-13 — Admin search understands URLs
+
+**File:** `includes/class-cogito-rar-admin-columns.php`, `extend_admin_search()`
+and the new `search_variants()`.
+
+**The bug:** pasting a full vanity URL returned nothing. The search compared
+the whole string against `post_name`, which holds only the slug, so
+`https://renchlist.com/go/some-slug/` could never match `some-slug`. Only
+typing the bare slug worked.
+
+**Fix:** the term is expanded into variants, OR'd together. A URL on this
+site contributes its slug, with the `/go/` prefix and any trailing slash
+removed. Any URL also contributes a scheme- and `www`-normalised form, so a
+destination pasted as `https://www.example.com/x?a=1` still matches a target
+stored as `http://example.com/x?a=1`. A plain term is unchanged, so typing a
+slug or brand behaves exactly as before.
+
+Host-only matching was deliberately left out: pasting one URL would then
+return every link to that merchant, which is noise when the point is to find
+one link.
+
+**Also fixed while in there:** the query interpolated `esc_sql()` output
+straight into `LIKE`, so `%` and `_` in a search term acted as wildcards —
+and `_` is common in affiliate URLs, which quietly widened results. Now
+`esc_like()` through `$wpdb->prepare()`.
+
+Covered by 8 checks on the variant logic.
+
+---
+
 ## 2026-10-31 — Sub ID support, and clearer labelling of the two different IDs
 
 **Files:**

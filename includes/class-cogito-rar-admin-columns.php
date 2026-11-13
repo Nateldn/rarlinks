@@ -34,20 +34,70 @@ public static function extend_admin_search( $search, $query ) {
 	}
 
 	global $wpdb;
-	$search_term = esc_sql( $query->get( 's' ) );
 
-	$search = " AND (
-		{$wpdb->posts}.post_title LIKE '%{$search_term}%'
-		OR {$wpdb->posts}.post_name LIKE '%{$search_term}%'
-		OR EXISTS (
-			SELECT 1 FROM {$wpdb->postmeta} pm
-			WHERE pm.post_id = {$wpdb->posts}.ID
-			AND pm.meta_key IN ('_rar_target', '_rar_notes', '_rar_type', '_rar_brand', '_rar_network')
-			AND pm.meta_value LIKE '%{$search_term}%'
-		)
-	)";
+	$term = trim( (string) $query->get( 's' ) );
+	if ( '' === $term ) {
+		return $search;
+	}
 
-	return $search;
+	$clauses = [];
+
+	foreach ( self::search_variants( $term ) as $variant ) {
+		$like = '%' . $wpdb->esc_like( $variant ) . '%';
+
+		$clauses[] = $wpdb->prepare(
+			"( {$wpdb->posts}.post_title LIKE %s
+				OR {$wpdb->posts}.post_name LIKE %s
+				OR EXISTS (
+					SELECT 1 FROM {$wpdb->postmeta} pm
+					WHERE pm.post_id = {$wpdb->posts}.ID
+					AND pm.meta_key IN ('_rar_target', '_rar_notes', '_rar_type', '_rar_brand', '_rar_network')
+					AND pm.meta_value LIKE %s
+				) )",
+			$like,
+			$like,
+			$like
+		);
+	}
+
+	return ' AND (' . implode( ' OR ', $clauses ) . ') ';
+}
+
+/**
+ * Search terms to try for one query.
+ */
+public static function search_variants( $term ) {
+	$variants = [ $term ];
+
+	$host = wp_parse_url( $term, PHP_URL_HOST );
+
+	if ( $host ) {
+		$host  = preg_replace( '/^www\./', '', strtolower( $host ) );
+		$path  = (string) wp_parse_url( $term, PHP_URL_PATH );
+		$querystring = (string) wp_parse_url( $term, PHP_URL_QUERY );
+
+		$home_host = preg_replace( '/^www\./', '', strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ) );
+
+		if ( $host === $home_host ) {
+			$prefix = class_exists( 'Cogito_RAR_Redirect_Engine' ) ? Cogito_RAR_Redirect_Engine::PREFIX : 'go';
+			$slug   = trim( $path, '/' );
+
+			if ( '' !== $prefix && 0 === strpos( $slug, $prefix . '/' ) ) {
+				$slug = substr( $slug, strlen( $prefix ) + 1 );
+			}
+
+			if ( '' !== $slug ) {
+				$variants[] = $slug;
+			}
+		}
+
+		$bare = $host . $path . ( '' !== $querystring ? '?' . $querystring : '' );
+		if ( '' !== trim( $bare, '/' ) ) {
+			$variants[] = $bare;
+		}
+	}
+
+	return array_values( array_unique( array_filter( array_map( 'trim', $variants ) ) ) );
 }
 
 
